@@ -38,6 +38,7 @@ export default {
         accent: {
           DEFAULT: "hsl(var(--accent))",
           foreground: "hsl(var(--accent-foreground))",
+          soft: "hsl(var(--accent-soft))",
         },
         popover: {
           DEFAULT: "hsl(var(--popover))",
@@ -56,6 +57,14 @@ export default {
           "accent-foreground": "hsl(var(--sidebar-accent-foreground))",
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
+        },
+        status: {
+          study: "hsl(var(--status-study))",
+          "study-bg": "hsl(var(--status-study-bg))",
+          offers: "hsl(var(--status-offers))",
+          "offers-bg": "hsl(var(--status-offers-bg))",
+          built: "hsl(var(--status-built))",
+          "built-bg": "hsl(var(--status-built-bg))",
         },
       },
       borderRadius: {

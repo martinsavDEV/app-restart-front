@@ -48,7 +48,7 @@ export const QuotesView = () => {
         <div>
           <h1 className="text-lg font-semibold">Versions de chiffrage</h1>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Historique des CAPEX par version pour Parc éolien La Besse
+            Historique des CAPEX par version pour 41 - Parc éolien La Besse
           </p>
         </div>
         <Button size="sm">+ Nouvelle version (copier la dernière)</Button>

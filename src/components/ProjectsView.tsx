@@ -23,7 +23,7 @@ interface Project {
 const projects: Project[] = [
   {
     id: "1",
-    name: "Parc éolien La Besse",
+    name: "41 - Parc éolien La Besse",
     code: "FR-PE-001",
     region: "France – Centre-Val de Loire",
     power: "18 MW",
@@ -34,7 +34,7 @@ const projects: Project[] = [
   },
   {
     id: "2",
-    name: "Parc éolien Épine-aux-Bois",
+    name: "02 - Parc éolien Épine-aux-Bois",
     code: "FR-PE-002",
     region: "France – Hauts-de-France",
     power: "24 MW",
@@ -45,7 +45,7 @@ const projects: Project[] = [
   },
   {
     id: "3",
-    name: "Parc éolien Cherves-Châtelars",
+    name: "16 - Parc éolien Cherves-Châtelars",
     code: "FR-PE-003",
     region: "France – Nouvelle-Aquitaine",
     power: "30 MW",

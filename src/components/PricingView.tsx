@@ -149,7 +149,7 @@ export const PricingView = () => {
         <div>
           <h1 className="text-lg font-semibold">Chiffrage projet</h1>
           <p className="text-xs text-muted-foreground mt-0.5">
-            BPU par lots pour Parc éolien La Besse
+            BPU par lots pour 41 - Parc éolien La Besse
           </p>
           <p className="text-xs text-accent mt-1">
             💡 Double-cliquez sur les quantités et prix pour les modifier

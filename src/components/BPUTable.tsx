@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { EditableCell } from "@/components/EditableCell";
+import { EditableCellText } from "@/components/EditableCellText";
 import { BPULine } from "@/types/bpu";
 import { Trash2 } from "lucide-react";
 
@@ -58,7 +59,14 @@ export const BPUTable = ({ lines, onLineUpdate, onLineDelete }: BPUTableProps) =
             const total = line.quantity * line.unitPrice;
             return (
               <tr key={line.id} className="border-b hover:bg-muted/30 group">
-                <td className="py-3 px-2">{line.designation}</td>
+                <td className="py-3 px-2">
+                  <EditableCellText
+                    value={line.designation}
+                    onChange={(value) => onLineUpdate(line.id, { designation: value })}
+                    maxLength={200}
+                    placeholder="Désignation"
+                  />
+                </td>
                 <td className="py-3 px-2">
                   <EditableCell
                     value={line.quantity}
@@ -68,7 +76,14 @@ export const BPUTable = ({ lines, onLineUpdate, onLineDelete }: BPUTableProps) =
                     className="tabular-nums"
                   />
                 </td>
-                <td className="py-3 px-2">{line.unit}</td>
+                <td className="py-3 px-2">
+                  <EditableCellText
+                    value={line.unit}
+                    onChange={(value) => onLineUpdate(line.id, { unit: value })}
+                    maxLength={20}
+                    placeholder="Unité"
+                  />
+                </td>
                 <td className="py-3 px-2">
                   <EditableCell
                     value={line.unitPrice}
@@ -81,7 +96,13 @@ export const BPUTable = ({ lines, onLineUpdate, onLineDelete }: BPUTableProps) =
                 <td className="py-3 px-2 text-right tabular-nums font-semibold">
                   {formatCurrency(total)}
                 </td>
-                <td className="py-3 px-2 text-muted-foreground">{line.priceSource || "—"}</td>
+                <td className="py-3 px-2">
+                  <EditableCellText
+                    value={line.priceSource || ""}
+                    onChange={(value) => onLineUpdate(line.id, { priceSource: value })}
+                    placeholder="Source prix"
+                  />
+                </td>
                 <td className="py-3 px-2 text-center">
                   <Button
                     variant="ghost"

@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 
 interface QuoteVersion {
@@ -10,6 +11,19 @@ interface QuoteVersion {
   author: string;
   capex: string;
   comment: string;
+}
+
+interface ReferenceDocument {
+  id: string;
+  label: string;
+  reference: string;
+  comment: string;
+}
+
+interface QuotesViewProps {
+  projectName?: string;
+  initialSelectedVersionId?: string;
+  onVersionChange?: (versionId: string) => void;
 }
 
 const quoteVersions: QuoteVersion[] = [
@@ -39,8 +53,59 @@ const quoteVersions: QuoteVersion[] = [
   },
 ];
 
-export const QuotesView = () => {
-  const [selectedVersion, setSelectedVersion] = useState("v3");
+const referenceDocuments: ReferenceDocument[] = [
+  {
+    id: "layout",
+    label: "Plan layout indice",
+    reference: "PE-LAY-012 – Indice C",
+    comment: "",
+  },
+  {
+    id: "access",
+    label: "Étude d'accès",
+    reference: "EA-TR-004 – Indice B",
+    comment: "",
+  },
+  {
+    id: "single-line",
+    label: "Unifilaire HTA",
+    reference: "ELEC-UNI-006 – Indice A",
+    comment: "",
+  },
+  {
+    id: "soil",
+    label: "Étude de sol",
+    reference: "GEO-SOND-009 – Indice D",
+    comment: "",
+  },
+];
+
+export const QuotesView = ({
+  projectName,
+  initialSelectedVersionId,
+  onVersionChange,
+}: QuotesViewProps) => {
+  const [selectedVersion, setSelectedVersion] = useState(
+    initialSelectedVersionId || "v3"
+  );
+  const [documents, setDocuments] = useState(referenceDocuments);
+
+  useEffect(() => {
+    if (initialSelectedVersionId) {
+      setSelectedVersion(initialSelectedVersionId);
+    }
+  }, [initialSelectedVersionId]);
+
+  const handleVersionSelect = (versionId: string) => {
+    setSelectedVersion(versionId);
+    onVersionChange?.(versionId);
+  };
+
+  const handleDocumentCommentChange = (id: string, comment: string) => {
+    setDocuments((prev) =>
+      prev.map((doc) => (doc.id === id ? { ...doc, comment } : doc))
+    );
+  };
 
   return (
     <div className="p-4 space-y-3">
@@ -48,7 +113,7 @@ export const QuotesView = () => {
         <div>
           <h1 className="text-lg font-semibold">Versions de chiffrage</h1>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Historique des CAPEX par version pour 41 - Parc éolien La Besse
+            Historique des CAPEX par version pour {projectName || "41 - Parc éolien La Besse"}
           </p>
         </div>
         <Button size="sm">+ Nouvelle version (copier la dernière)</Button>
@@ -87,7 +152,7 @@ export const QuotesView = () => {
                 {quoteVersions.map((version) => (
                   <tr
                     key={version.id}
-                    onClick={() => setSelectedVersion(version.id)}
+                    onClick={() => handleVersionSelect(version.id)}
                     className={cn(
                       "border-b hover:bg-muted/30 transition-colors cursor-pointer",
                       selectedVersion === version.id && "bg-accent-soft"
@@ -114,23 +179,39 @@ export const QuotesView = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <div className="text-[11px] text-muted-foreground">Plan layout indice</div>
-              <div className="text-xs font-medium mt-0.5">PE-LAY-012 – Indice C</div>
-            </div>
-            <div>
-              <div className="text-[11px] text-muted-foreground">Étude d'accès</div>
-              <div className="text-xs font-medium mt-0.5">EA-TR-004 – Indice B</div>
-            </div>
-            <div>
-              <div className="text-[11px] text-muted-foreground">Unifilaire HTA</div>
-              <div className="text-xs font-medium mt-0.5">ELEC-UNI-006 – Indice A</div>
-            </div>
-            <div>
-              <div className="text-[11px] text-muted-foreground">Étude de sol</div>
-              <div className="text-xs font-medium mt-0.5">GEO-SOND-009 – Indice D</div>
-            </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b">
+                  <th className="text-left py-2 px-2 font-medium text-muted-foreground text-[11px] uppercase">
+                    Document
+                  </th>
+                  <th className="text-left py-2 px-2 font-medium text-muted-foreground text-[11px] uppercase">
+                    Référence / indice
+                  </th>
+                  <th className="text-left py-2 px-2 font-medium text-muted-foreground text-[11px] uppercase w-[320px]">
+                    Commentaire
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {documents.map((doc) => (
+                  <tr key={doc.id} className="border-b align-top">
+                    <td className="py-3 px-2 font-medium">{doc.label}</td>
+                    <td className="py-3 px-2">{doc.reference}</td>
+                    <td className="py-3 px-2">
+                      <Textarea
+                        placeholder="Ajouter un commentaire ou un point de vigilance"
+                        value={doc.comment}
+                        onChange={(e) => handleDocumentCommentChange(doc.id, e.target.value)}
+                        className="text-xs"
+                        rows={2}
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </CardContent>
       </Card>

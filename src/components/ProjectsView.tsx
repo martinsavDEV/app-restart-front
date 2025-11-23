@@ -8,6 +8,14 @@ import { cn } from "@/lib/utils";
 
 type ProjectStatus = "study" | "offers" | "built";
 
+interface ProjectVersion {
+  id: string;
+  name: string;
+  date: string;
+  capex: string;
+  comment: string;
+}
+
 interface Project {
   id: string;
   name: string;
@@ -15,17 +23,8 @@ interface Project {
   region: string;
   power: string;
   turbines: number;
-  versions: number;
   status: ProjectStatus;
-  lastQuote: string;
-}
-
-interface ProjectVersion {
-  id: string;
-  name: string;
-  date: string;
-  capex: string;
-  comment: string;
+  versions: ProjectVersion[];
 }
 
 interface ProjectsViewProps {
@@ -40,9 +39,30 @@ const projects: Project[] = [
     region: "France – Centre-Val de Loire",
     power: "18 MW",
     turbines: 6,
-    versions: 3,
     status: "study",
-    lastQuote: "V3 – 14/03/2025",
+    versions: [
+      {
+        id: "v3",
+        name: "V3 – Révision accès",
+        date: "14/03/2025",
+        capex: "18,35 M€",
+        comment: "Étude d'accès mise à jour",
+      },
+      {
+        id: "v2",
+        name: "V2 – Offre turbinier",
+        date: "02/02/2025",
+        capex: "18,10 M€",
+        comment: "Intègre la dernière offre fournisseur",
+      },
+      {
+        id: "v1",
+        name: "V1 – Études préliminaires",
+        date: "15/11/2024",
+        capex: "17,60 M€",
+        comment: "Hypothèses de base",
+      },
+    ],
   },
   {
     id: "2",
@@ -51,9 +71,30 @@ const projects: Project[] = [
     region: "France – Hauts-de-France",
     power: "24 MW",
     turbines: 8,
-    versions: 5,
     status: "offers",
-    lastQuote: "V5 – 02/02/2025",
+    versions: [
+      {
+        id: "v5",
+        name: "V5 – Alignement fournisseurs",
+        date: "02/02/2025",
+        capex: "21,45 M€",
+        comment: "Version consolidée après retours",
+      },
+      {
+        id: "v4",
+        name: "V4 – Révision géotech",
+        date: "18/12/2024",
+        capex: "21,20 M€",
+        comment: "Prise en compte des nouveaux sondages",
+      },
+      {
+        id: "v3",
+        name: "V3 – Offre turbinier",
+        date: "05/11/2024",
+        capex: "20,80 M€",
+        comment: "Mise à jour prix machines",
+      },
+    ],
   },
   {
     id: "3",
@@ -62,33 +103,30 @@ const projects: Project[] = [
     region: "France – Nouvelle-Aquitaine",
     power: "30 MW",
     turbines: 10,
-    versions: 12,
     status: "built",
-    lastQuote: "V12 – 11/09/2024",
-  },
-];
-
-const projectVersions: ProjectVersion[] = [
-  {
-    id: "v3",
-    name: "V3 – Révision accès",
-    date: "14/03/2025",
-    capex: "18,35 M€",
-    comment: "Étude d'accès mise à jour",
-  },
-  {
-    id: "v2",
-    name: "V2 – Offre turbinier",
-    date: "02/02/2025",
-    capex: "18,10 M€",
-    comment: "Intègre la dernière offre fournisseur",
-  },
-  {
-    id: "v1",
-    name: "V1 – Études préliminaires",
-    date: "15/11/2024",
-    capex: "17,60 M€",
-    comment: "Hypothèses de base",
+    versions: [
+      {
+        id: "v12",
+        name: "V12 – As built",
+        date: "11/09/2024",
+        capex: "25,30 M€",
+        comment: "Chiffrage final après construction",
+      },
+      {
+        id: "v9",
+        name: "V9 – Révision planning",
+        date: "22/05/2024",
+        capex: "24,90 M€",
+        comment: "Optimisation du calendrier travaux",
+      },
+      {
+        id: "v6",
+        name: "V6 – Offre EPC",
+        date: "14/03/2024",
+        capex: "24,10 M€",
+        comment: "Intègre l'offre EPC finale",
+      },
+    ],
   },
 ];
 
@@ -103,20 +141,30 @@ const getStatusBadge = (status: ProjectStatus) => {
 };
 
 export const ProjectsView = ({ onOpenQuotes }: ProjectsViewProps) => {
-  const [selectedProject, setSelectedProject] = useState("1");
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [selectedVersionId, setSelectedVersionId] = useState(projectVersions[0]?.id);
+  const [expandedProjectId, setExpandedProjectId] = useState(projects[0]?.id ?? null);
 
   useEffect(() => {
-    setSelectedVersionId(projectVersions[0]?.id);
-  }, [selectedProject]);
+    if (!projects.find((project) => project.id === expandedProjectId)) {
+      setExpandedProjectId(projects[0]?.id ?? null);
+    }
+  }, [expandedProjectId]);
 
-  const handleViewQuotes = () => {
-    const project = projects.find((p) => p.id === selectedProject);
-    const version = projectVersions.find((v) => v.id === selectedVersionId);
+  const filteredProjects = projects.filter((project) => {
+    const matchesStatus = statusFilter === "all" || project.status === statusFilter;
+    const normalizedQuery = searchQuery.toLowerCase();
 
-    if (project && version && onOpenQuotes) {
+    const matchesQuery =
+      project.name.toLowerCase().includes(normalizedQuery) ||
+      project.code.toLowerCase().includes(normalizedQuery) ||
+      project.region.toLowerCase().includes(normalizedQuery);
+
+    return matchesStatus && (normalizedQuery.trim().length === 0 || matchesQuery);
+  });
+
+  const handleViewQuotes = (project: Project, version: ProjectVersion) => {
+    if (onOpenQuotes) {
       onOpenQuotes(project.id, project.name, version.id);
     }
   };
@@ -135,22 +183,22 @@ export const ProjectsView = ({ onOpenQuotes }: ProjectsViewProps) => {
 
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-sm">Liste des projets</CardTitle>
+          <CardTitle className="text-sm">Liste des projets et chiffrages</CardTitle>
           <CardDescription className="text-xs">
-            Filtrable par pays, statut, puissance, développeur, etc.
+            Parcours rapide des projets et accès direct aux versions de chiffrage
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex flex-wrap gap-2">
             <Input
-              placeholder="Rechercher par nom, code, région, développeur..."
+              placeholder="Rechercher par nom, code, région..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="flex-1 min-w-[260px] h-9 text-xs"
             />
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-[160px] h-9 text-xs">
-                <SelectValue />
+                <SelectValue placeholder="Tous les statuts" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Tous les statuts</SelectItem>
@@ -161,130 +209,76 @@ export const ProjectsView = ({ onOpenQuotes }: ProjectsViewProps) => {
             </Select>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left py-2 px-2 font-medium text-muted-foreground text-[11px] uppercase">
-                    Projet
-                  </th>
-                  <th className="text-left py-2 px-2 font-medium text-muted-foreground text-[11px] uppercase">
-                    Code
-                  </th>
-                  <th className="text-left py-2 px-2 font-medium text-muted-foreground text-[11px] uppercase">
-                    Pays / Région
-                  </th>
-                  <th className="text-left py-2 px-2 font-medium text-muted-foreground text-[11px] uppercase">
-                    Puissance
-                  </th>
-                  <th className="text-left py-2 px-2 font-medium text-muted-foreground text-[11px] uppercase">
-                    Éoliennes
-                  </th>
-                  <th className="text-left py-2 px-2 font-medium text-muted-foreground text-[11px] uppercase">
-                    Versions
-                  </th>
-                  <th className="text-left py-2 px-2 font-medium text-muted-foreground text-[11px] uppercase">
-                    Statut
-                  </th>
-                  <th className="text-left py-2 px-2 font-medium text-muted-foreground text-[11px] uppercase">
-                    Dernier chiffrage
-                  </th>
-                  <th className="text-right py-2 px-2 font-medium text-muted-foreground text-[11px] uppercase">
-                    Action
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {projects.map((project) => (
-                  <tr
-                    key={project.id}
-                    className={cn(
-                      "border-b hover:bg-muted/30 transition-colors",
-                      selectedProject === project.id && "bg-accent-soft"
-                    )}
-                  >
-                    <td className="py-3 px-2">{project.name}</td>
-                    <td className="py-3 px-2">{project.code}</td>
-                    <td className="py-3 px-2">{project.region}</td>
-                    <td className="py-3 px-2">{project.power}</td>
-                    <td className="py-3 px-2">{project.turbines}</td>
-                    <td className="py-3 px-2">{project.versions}</td>
-                    <td className="py-3 px-2">{getStatusBadge(project.status)}</td>
-                    <td className="py-3 px-2">{project.lastQuote}</td>
-                    <td className="py-3 px-2 text-right">
-                      <Button
-                        variant={selectedProject === project.id ? "default" : "outline"}
-                        size="sm"
-                        className="h-7 text-[11px]"
-                        onClick={() => setSelectedProject(project.id)}
-                      >
-                        {selectedProject === project.id ? "Sélectionné" : "Sélectionner"}
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="pb-3">
-          <div className="flex items-start justify-between gap-2">
-            <div>
-              <CardTitle className="text-sm">Versions de chiffrage du projet sélectionné</CardTitle>
-              <CardDescription className="text-xs">
-                Chaque projet embarque ses propres versions (historiques, révisions, offres)
-              </CardDescription>
-            </div>
-            <Button
-              size="sm"
-              className="h-8 text-[11px]"
-              onClick={handleViewQuotes}
-              disabled={!selectedVersionId || !onOpenQuotes}
-            >
-              Voir les chiffrages
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left py-2 px-2 font-medium text-muted-foreground text-[11px] uppercase">
-                    Version
-                  </th>
-                  <th className="text-left py-2 px-2 font-medium text-muted-foreground text-[11px] uppercase">
-                    Date
-                  </th>
-                  <th className="text-left py-2 px-2 font-medium text-muted-foreground text-[11px] uppercase">
-                    CAPEX
-                  </th>
-                  <th className="text-left py-2 px-2 font-medium text-muted-foreground text-[11px] uppercase">
-                    Commentaire
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {projectVersions.map((version) => (
-                  <tr
-                    key={version.id}
-                    className={cn(
-                      "border-b hover:bg-muted/30 cursor-pointer transition-colors",
-                      selectedVersionId === version.id && "bg-accent-soft"
-                    )}
-                    onClick={() => setSelectedVersionId(version.id)}
-                  >
-                    <td className="py-3 px-2 font-medium">{version.name}</td>
-                    <td className="py-3 px-2">{version.date}</td>
-                    <td className="py-3 px-2 font-medium">{version.capex}</td>
-                    <td className="py-3 px-2 text-muted-foreground">{version.comment}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="grid gap-3">
+            {filteredProjects.map((project) => (
+              <Card
+                key={project.id}
+                className={cn(
+                  "border shadow-sm transition-colors",
+                  expandedProjectId === project.id && "border-primary/30 bg-accent-soft"
+                )}
+              >
+                <CardHeader className="pb-2" onClick={() => setExpandedProjectId(project.id)}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="space-y-1">
+                      <CardTitle className="text-sm leading-tight">{project.name}</CardTitle>
+                      <CardDescription className="text-xs text-muted-foreground">
+                        {project.code} • {project.region}
+                      </CardDescription>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="text-right text-xs">
+                        <div className="font-semibold">{project.power}</div>
+                        <div className="text-muted-foreground text-[11px]">
+                          {project.turbines} éoliennes
+                        </div>
+                      </div>
+                      {getStatusBadge(project.status)}
+                    </div>
+                  </div>
+                </CardHeader>
+                {expandedProjectId === project.id && (
+                  <CardContent className="pt-0 space-y-2">
+                    <div className="text-[11px] uppercase text-muted-foreground font-medium">
+                      Chiffrages du projet
+                    </div>
+                    <div className="space-y-2">
+                      {project.versions.map((version) => (
+                        <div
+                          key={version.id}
+                          className={cn(
+                            "flex items-center justify-between gap-4 rounded-md border px-3 py-2",
+                            "hover:border-primary/40"
+                          )}
+                        >
+                          <div className="space-y-0.5">
+                            <div className="text-xs font-semibold">{version.name}</div>
+                            <div className="text-[11px] text-muted-foreground">{version.comment}</div>
+                            <div className="text-[11px] text-muted-foreground">{version.date}</div>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <div className="text-right">
+                              <div className="text-xs font-semibold">{version.capex}</div>
+                              <div className="text-[11px] text-muted-foreground">CAPEX</div>
+                            </div>
+                            {onOpenQuotes && (
+                              <Button
+                                size="sm"
+                                className="h-8 text-[11px]"
+                                variant="outline"
+                                onClick={() => handleViewQuotes(project, version)}
+                              >
+                                Voir le chiffrage
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                )}
+              </Card>
+            ))}
           </div>
         </CardContent>
       </Card>

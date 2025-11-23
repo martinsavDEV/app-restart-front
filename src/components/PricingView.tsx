@@ -10,17 +10,17 @@ import { Plus } from "lucide-react";
 
 const initialLots: WorkLot[] = [
   {
-    id: "installation",
-    name: "Installation de chantier",
-    description: "Sous-ensembles pour base vie, accès et sécurité.",
+    id: "terrassement",
+    name: "Terrassement",
+    description: "Lignes BPU : désignation, Q, U, PU, total, source prix",
     sections: [
       {
-        id: "site-setup",
-        title: "Base vie & sécurité",
+        id: "terr-installation",
+        title: "Installation de chantier",
         description: "Base vie, barriérage, raccordements provisoires",
         lines: [
           {
-            id: "inst-1",
+            id: "terr-inst-1",
             designation: "Base vie : bungalows, raccordements, nettoyage",
             quantity: 1,
             unit: "forfait",
@@ -28,7 +28,7 @@ const initialLots: WorkLot[] = [
             priceSource: "Chiffrage AO interne 2024",
           },
           {
-            id: "inst-2",
+            id: "terr-inst-2",
             designation: "Signalisation et clôtures temporaires",
             quantity: 1,
             unit: "forfait",
@@ -38,38 +38,9 @@ const initialLots: WorkLot[] = [
         ],
       },
       {
-        id: "site-access",
-        title: "Aménagements d'accès",
-        description: "Pistes provisoires et plateforme logistique",
-        lines: [
-          {
-            id: "inst-3",
-            designation: "Ouverture & reprofilage des pistes provisoires",
-            quantity: 2.4,
-            unit: "km",
-            unitPrice: 8500,
-            priceSource: "Devis entreprises locales",
-          },
-          {
-            id: "inst-4",
-            designation: "Aire logistique pour montage",
-            quantity: 1,
-            unit: "forfait",
-            unitPrice: 7800,
-            priceSource: "Chiffrage interne",
-          },
-        ],
-      },
-    ],
-  },
-  {
-    id: "terrassement",
-    name: "Terrassement",
-    description: "Lignes BPU : désignation, Q, U, PU, total, source prix",
-    sections: [
-      {
-        id: "earthworks-main",
+        id: "terr-earthworks",
         title: "Terrassement principal",
+        description: "Décapage, excavation, remblais",
         lines: [
           {
             id: "terr-1",
@@ -87,6 +58,14 @@ const initialLots: WorkLot[] = [
             unitPrice: 12.5,
             priceSource: "BDD – projet similaire 2024",
           },
+          {
+            id: "terr-3",
+            designation: "Remblai compacté GNT",
+            quantity: 420,
+            unit: "m³",
+            unitPrice: 18.0,
+            priceSource: "Devis carrière locale",
+          },
         ],
       },
     ],
@@ -97,9 +76,41 @@ const initialLots: WorkLot[] = [
     description: "Ex : CMC, inclusions rigides, amélioration locale...",
     sections: [
       {
-        id: "reinforcement-main",
-        title: "Renforcement",
-        lines: [],
+        id: "reinf-installation",
+        title: "Installation de chantier",
+        lines: [
+          {
+            id: "reinf-inst-1",
+            designation: "Mobilisation équipe spécialisée",
+            quantity: 1,
+            unit: "forfait",
+            unitPrice: 8500,
+            priceSource: "Devis entreprise spécialisée",
+          },
+        ],
+      },
+      {
+        id: "reinf-main",
+        title: "Travaux de renforcement",
+        description: "Inclusions rigides et traitement",
+        lines: [
+          {
+            id: "reinf-1",
+            designation: "Inclusions rigides Ø450mm",
+            quantity: 320,
+            unit: "ml",
+            unitPrice: 85.0,
+            priceSource: "BDD – projet similaire 2023",
+          },
+          {
+            id: "reinf-2",
+            designation: "Traitement à la chaux",
+            quantity: 650,
+            unit: "m³",
+            unitPrice: 28.5,
+            priceSource: "Devis entreprise",
+          },
+        ],
       },
     ],
   },
@@ -109,9 +120,49 @@ const initialLots: WorkLot[] = [
     description: "Béton, armatures, fouilles, drains, mises à la terre…",
     sections: [
       {
-        id: "foundations-main",
-        title: "Fondations",
-        lines: [],
+        id: "found-installation",
+        title: "Installation de chantier",
+        lines: [
+          {
+            id: "found-inst-1",
+            designation: "Aire de préfabrication ferraillage",
+            quantity: 1,
+            unit: "forfait",
+            unitPrice: 6500,
+            priceSource: "Chiffrage interne",
+          },
+        ],
+      },
+      {
+        id: "found-main",
+        title: "Travaux de fondations",
+        description: "Béton armé et ferraillage",
+        lines: [
+          {
+            id: "found-1",
+            designation: "Béton C30/37 pour massif",
+            quantity: 285,
+            unit: "m³",
+            unitPrice: 145.0,
+            priceSource: "Devis centrale béton",
+          },
+          {
+            id: "found-2",
+            designation: "Acier HA ferraillage",
+            quantity: 32,
+            unit: "tonnes",
+            unitPrice: 1850.0,
+            priceSource: "BDD – médiane 2024",
+          },
+          {
+            id: "found-3",
+            designation: "Coffrage et décoffrage",
+            quantity: 180,
+            unit: "m²",
+            unitPrice: 42.0,
+            priceSource: "Devis entreprise",
+          },
+        ],
       },
     ],
   },
@@ -121,9 +172,49 @@ const initialLots: WorkLot[] = [
     description: "Tranchées HTA, câbles, poste de livraison, réseaux divers…",
     sections: [
       {
-        id: "electricity-main",
-        title: "Électricité",
-        lines: [],
+        id: "elec-installation",
+        title: "Installation de chantier",
+        lines: [
+          {
+            id: "elec-inst-1",
+            designation: "Raccordement provisoire chantier",
+            quantity: 1,
+            unit: "forfait",
+            unitPrice: 3200,
+            priceSource: "Devis ENEDIS",
+          },
+        ],
+      },
+      {
+        id: "elec-main",
+        title: "Réseaux électriques",
+        description: "Câbles, tranchées et postes",
+        lines: [
+          {
+            id: "elec-1",
+            designation: "Tranchée HTA profondeur 1.2m",
+            quantity: 2800,
+            unit: "ml",
+            unitPrice: 32.0,
+            priceSource: "BDD – médiane 5 projets",
+          },
+          {
+            id: "elec-2",
+            designation: "Câble HTA 20kV aluminium",
+            quantity: 2850,
+            unit: "ml",
+            unitPrice: 48.5,
+            priceSource: "Devis fournisseur",
+          },
+          {
+            id: "elec-3",
+            designation: "Poste de livraison préfabriqué",
+            quantity: 1,
+            unit: "unité",
+            unitPrice: 125000,
+            priceSource: "Catalogue constructeur",
+          },
+        ],
       },
     ],
   },
@@ -133,9 +224,41 @@ const initialLots: WorkLot[] = [
     description: "Prix forfaitaires par éolienne, options, logistique…",
     sections: [
       {
-        id: "turbine-main",
-        title: "Turbinier",
-        lines: [],
+        id: "turb-installation",
+        title: "Installation de chantier",
+        lines: [
+          {
+            id: "turb-inst-1",
+            designation: "Mobilisation grue 650t",
+            quantity: 1,
+            unit: "forfait",
+            unitPrice: 85000,
+            priceSource: "Devis grutier spécialisé",
+          },
+        ],
+      },
+      {
+        id: "turb-main",
+        title: "Fourniture et montage",
+        description: "Éoliennes et équipements",
+        lines: [
+          {
+            id: "turb-1",
+            designation: "Éolienne 3MW complète (tour, nacelle, rotor)",
+            quantity: 6,
+            unit: "unité",
+            unitPrice: 1850000,
+            priceSource: "Contrat turbinier 2024",
+          },
+          {
+            id: "turb-2",
+            designation: "Montage et mise en service",
+            quantity: 6,
+            unit: "unité",
+            unitPrice: 125000,
+            priceSource: "Contrat turbinier",
+          },
+        ],
       },
     ],
   },
@@ -161,32 +284,6 @@ export const PricingView = () => {
     return lot.sections.reduce((sum, section) => sum + calculateSectionTotal(section.lines), 0);
   };
 
-  const capexSummary: CAPEXSummary = useMemo(() => {
-    const lotTotal = (lotId: string) => {
-      const lot = lots.find((l) => l.id === lotId);
-      return lot ? calculateLotTotal(lot) : 0;
-    };
-
-    const terrassement = lotTotal("terrassement");
-    const reinforcement = lotTotal("reinforcement");
-    const foundations = lotTotal("foundations");
-    const electricity = lotTotal("electricity");
-    const turbine = lotTotal("turbine");
-    const subtotal = terrassement + reinforcement + foundations + electricity + turbine;
-    const contingency = subtotal * (contingencyRate / 100);
-    const total = subtotal + contingency;
-
-    return {
-      terrassement,
-      reinforcement,
-      foundations,
-      electricity,
-      turbine,
-      subtotal,
-      contingency,
-      total,
-    };
-  }, [lots, contingencyRate]);
 
   const handleLineUpdate = (
     lotId: string,
@@ -277,9 +374,6 @@ export const PricingView = () => {
             <p className="text-xs text-muted-foreground mt-0.5">
               BPU par lots pour 41 - Parc éolien La Besse
             </p>
-            <p className="text-xs text-accent mt-1">
-              💡 Double-cliquez sur les quantités et prix pour les modifier
-            </p>
           </div>
           <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:gap-3">
             <TabsList className="w-full lg:w-auto flex-wrap justify-start">
@@ -298,74 +392,68 @@ export const PricingView = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-4">
-          <div className="space-y-3">
-            {lots.map((lot) => (
-              <TabsContent key={lot.id} value={lot.id} className="space-y-3">
-                <Card>
-                  <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <CardTitle className="text-sm">{lot.name}</CardTitle>
-                        <CardDescription className="text-xs">{lot.description}</CardDescription>
-                      </div>
-                      <div className="text-xs font-semibold tabular-nums">
-                        Total lot : {formatCurrency(calculateLotTotal(lot))}
-                      </div>
+        <div className="space-y-3">
+          {lots.map((lot) => (
+            <TabsContent key={lot.id} value={lot.id} className="space-y-3">
+              <Card>
+                <CardHeader className="pb-3">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <CardTitle className="text-sm">{lot.name}</CardTitle>
+                      <CardDescription className="text-xs">{lot.description}</CardDescription>
                     </div>
-                  </CardHeader>
-                </Card>
+                    <div className="text-xs font-semibold tabular-nums">
+                      Total lot : {formatCurrency(calculateLotTotal(lot))}
+                    </div>
+                  </div>
+                </CardHeader>
+              </Card>
 
-                {lot.sections.map((section) => {
-                  const sectionTotal = calculateSectionTotal(section.lines);
-                  return (
-                    <Card key={section.id}>
-                      <CardHeader className="pb-3">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <CardTitle className="text-sm">{section.title}</CardTitle>
-                            {section.description && (
-                              <CardDescription className="text-xs">
-                                {section.description}
-                              </CardDescription>
-                            )}
-                          </div>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-7 text-[11px]"
-                            onClick={() => handleAddLine(lot.id, section.id)}
-                          >
-                            <Plus className="h-3 w-3 mr-1" />
-                            Ajouter une ligne
-                          </Button>
+              {lot.sections.map((section) => {
+                const sectionTotal = calculateSectionTotal(section.lines);
+                return (
+                  <Card key={section.id}>
+                    <CardHeader className="pb-3">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <CardTitle className="text-sm">{section.title}</CardTitle>
+                          {section.description && (
+                            <CardDescription className="text-xs">
+                              {section.description}
+                            </CardDescription>
+                          )}
                         </div>
-                      </CardHeader>
-                      <CardContent className="space-y-3">
-                        <BPUTable
-                          lines={section.lines}
-                          onLineUpdate={(lineId, updates) =>
-                            handleLineUpdate(lot.id, section.id, lineId, updates)
-                          }
-                          onLineDelete={(lineId) => handleLineDelete(lot.id, section.id, lineId)}
-                        />
-                        <div className="flex justify-end text-xs text-muted-foreground">
-                          Sous-total {section.title} :
-                          <span className="font-semibold ml-2 text-foreground">
-                            {formatCurrency(sectionTotal)}
-                          </span>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </TabsContent>
-            ))}
-          </div>
-
-          <div>
-            <CAPEXSummaryCard summary={capexSummary} contingencyRate={contingencyRate} />
-          </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 text-[11px]"
+                          onClick={() => handleAddLine(lot.id, section.id)}
+                        >
+                          <Plus className="h-3 w-3 mr-1" />
+                          Ajouter une ligne
+                        </Button>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <BPUTable
+                        lines={section.lines}
+                        onLineUpdate={(lineId, updates) =>
+                          handleLineUpdate(lot.id, section.id, lineId, updates)
+                        }
+                        onLineDelete={(lineId) => handleLineDelete(lot.id, section.id, lineId)}
+                      />
+                      <div className="flex justify-end text-xs text-muted-foreground">
+                        Sous-total {section.title} :
+                        <span className="font-semibold ml-2 text-foreground">
+                          {formatCurrency(sectionTotal)}
+                        </span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </TabsContent>
+          ))}
         </div>
       </Tabs>
     </div>

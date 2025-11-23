@@ -28,6 +28,10 @@ const formatCurrency = (value: number) => {
 export const BPUTable = ({ lines, onLineUpdate, onLineDelete }: BPUTableProps) => {
   return (
     <div className="overflow-x-auto">
+      <div className="mb-2 flex items-center gap-2 text-[11px] text-muted-foreground italic">
+        <span>💡</span>
+        <span>Double-cliquez sur une cellule pour modifier</span>
+      </div>
       <table className="w-full text-xs">
         <thead>
           <tr className="border-b">

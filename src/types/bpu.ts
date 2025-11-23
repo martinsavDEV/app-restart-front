@@ -11,18 +11,18 @@ export const bpuLineSchema = z.object({
 
 export type BPULine = z.infer<typeof bpuLineSchema>;
 
-export interface WorkLot {
-  id: string;
-  name: string;
-  description: string;
-  sections: WorkSection[];
-}
-
 export interface WorkSection {
   id: string;
   title: string;
   description?: string;
   lines: BPULine[];
+}
+
+export interface WorkLot {
+  id: string;
+  name: string;
+  description: string;
+  sections: WorkSection[];
 }
 
 export interface CAPEXSummary {

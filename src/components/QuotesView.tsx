@@ -152,6 +152,7 @@ export const QuotesView = ({
     });
     return initialMapping;
   });
+  const [documents, setDocuments] = useState(referenceDocuments);
 
   useEffect(() => {
     if (initialSelectedVersionId) {
@@ -180,6 +181,10 @@ export const QuotesView = ({
   };
 
   const documents = versionDocuments[selectedVersion] || [];
+    setDocuments((prev) =>
+      prev.map((doc) => (doc.id === id ? { ...doc, comment } : doc))
+    );
+  };
 
   return (
     <div className="p-4 space-y-3">

@@ -15,6 +15,13 @@ export interface WorkLot {
   id: string;
   name: string;
   description: string;
+  sections: WorkSection[];
+}
+
+export interface WorkSection {
+  id: string;
+  title: string;
+  description?: string;
   lines: BPULine[];
 }
 

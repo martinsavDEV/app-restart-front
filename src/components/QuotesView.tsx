@@ -53,32 +53,86 @@ const quoteVersions: QuoteVersion[] = [
   },
 ];
 
-const referenceDocuments: ReferenceDocument[] = [
-  {
-    id: "layout",
-    label: "Plan layout indice",
-    reference: "PE-LAY-012 – Indice C",
-    comment: "",
-  },
-  {
-    id: "access",
-    label: "Étude d'accès",
-    reference: "EA-TR-004 – Indice B",
-    comment: "",
-  },
-  {
-    id: "single-line",
-    label: "Unifilaire HTA",
-    reference: "ELEC-UNI-006 – Indice A",
-    comment: "",
-  },
-  {
-    id: "soil",
-    label: "Étude de sol",
-    reference: "GEO-SOND-009 – Indice D",
-    comment: "",
-  },
-];
+const referenceDocumentsByVersion: Record<string, ReferenceDocument[]> = {
+  v3: [
+    {
+      id: "layout",
+      label: "Plan layout indice",
+      reference: "PE-LAY-012 – Indice C",
+      comment: "",
+    },
+    {
+      id: "access",
+      label: "Étude d'accès",
+      reference: "EA-TR-004 – Indice B",
+      comment: "",
+    },
+    {
+      id: "single-line",
+      label: "Unifilaire HTA",
+      reference: "ELEC-UNI-006 – Indice A",
+      comment: "",
+    },
+    {
+      id: "soil",
+      label: "Étude de sol",
+      reference: "GEO-SOND-009 – Indice D",
+      comment: "",
+    },
+  ],
+  v2: [
+    {
+      id: "layout",
+      label: "Plan layout indice",
+      reference: "PE-LAY-009 – Indice B",
+      comment: "",
+    },
+    {
+      id: "access",
+      label: "Étude d'accès",
+      reference: "EA-TR-003 – Indice A",
+      comment: "",
+    },
+    {
+      id: "single-line",
+      label: "Unifilaire HTA",
+      reference: "ELEC-UNI-004 – Indice A",
+      comment: "",
+    },
+    {
+      id: "soil",
+      label: "Étude de sol",
+      reference: "GEO-SOND-009 – Indice C",
+      comment: "",
+    },
+  ],
+  v1: [
+    {
+      id: "layout",
+      label: "Plan layout indice",
+      reference: "PE-LAY-006 – Indice A",
+      comment: "",
+    },
+    {
+      id: "access",
+      label: "Étude d'accès",
+      reference: "EA-TR-001 – Indice A",
+      comment: "",
+    },
+    {
+      id: "single-line",
+      label: "Unifilaire HTA",
+      reference: "ELEC-UNI-002 – Indice A",
+      comment: "",
+    },
+    {
+      id: "soil",
+      label: "Étude de sol",
+      reference: "GEO-SOND-009 – Indice B",
+      comment: "",
+    },
+  ],
+};
 
 export const QuotesView = ({
   projectName,
@@ -88,6 +142,16 @@ export const QuotesView = ({
   const [selectedVersion, setSelectedVersion] = useState(
     initialSelectedVersionId || "v3"
   );
+  const [versionDocuments, setVersionDocuments] = useState<
+    Record<string, ReferenceDocument[]>
+  >(() => {
+    const initialMapping: Record<string, ReferenceDocument[]> = {};
+    quoteVersions.forEach((version) => {
+      const versionDocs = referenceDocumentsByVersion[version.id] || [];
+      initialMapping[version.id] = versionDocs.map((doc) => ({ ...doc }));
+    });
+    return initialMapping;
+  });
   const [documents, setDocuments] = useState(referenceDocuments);
 
   useEffect(() => {
@@ -98,10 +162,25 @@ export const QuotesView = ({
 
   const handleVersionSelect = (versionId: string) => {
     setSelectedVersion(versionId);
+    setVersionDocuments((prev) => {
+      if (prev[versionId]) return prev;
+      const fallbackDocs = referenceDocumentsByVersion[versionId] || [];
+      return { ...prev, [versionId]: fallbackDocs.map((doc) => ({ ...doc })) };
+    });
     onVersionChange?.(versionId);
   };
 
   const handleDocumentCommentChange = (id: string, comment: string) => {
+    setVersionDocuments((prev) => {
+      const docsForSelectedVersion = prev[selectedVersion] || [];
+      const updatedDocs = docsForSelectedVersion.map((doc) =>
+        doc.id === id ? { ...doc, comment } : doc
+      );
+      return { ...prev, [selectedVersion]: updatedDocs };
+    });
+  };
+
+  const documents = versionDocuments[selectedVersion] || [];
     setDocuments((prev) =>
       prev.map((doc) => (doc.id === id ? { ...doc, comment } : doc))
     );

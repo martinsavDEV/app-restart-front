@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -18,6 +18,18 @@ interface Project {
   versions: number;
   status: ProjectStatus;
   lastQuote: string;
+}
+
+interface ProjectVersion {
+  id: string;
+  name: string;
+  date: string;
+  capex: string;
+  comment: string;
+}
+
+interface ProjectsViewProps {
+  onOpenQuotes?: (projectId: string, projectName: string, versionId: string) => void;
 }
 
 const projects: Project[] = [
@@ -56,6 +68,30 @@ const projects: Project[] = [
   },
 ];
 
+const projectVersions: ProjectVersion[] = [
+  {
+    id: "v3",
+    name: "V3 – Révision accès",
+    date: "14/03/2025",
+    capex: "18,35 M€",
+    comment: "Étude d'accès mise à jour",
+  },
+  {
+    id: "v2",
+    name: "V2 – Offre turbinier",
+    date: "02/02/2025",
+    capex: "18,10 M€",
+    comment: "Intègre la dernière offre fournisseur",
+  },
+  {
+    id: "v1",
+    name: "V1 – Études préliminaires",
+    date: "15/11/2024",
+    capex: "17,60 M€",
+    comment: "Hypothèses de base",
+  },
+];
+
 const getStatusBadge = (status: ProjectStatus) => {
   const variants = {
     study: { label: "En étude", className: "bg-status-study-bg text-status-study" },
@@ -66,10 +102,24 @@ const getStatusBadge = (status: ProjectStatus) => {
   return <Badge className={cn("text-[10px] font-medium", variant.className)}>{variant.label}</Badge>;
 };
 
-export const ProjectsView = () => {
+export const ProjectsView = ({ onOpenQuotes }: ProjectsViewProps) => {
   const [selectedProject, setSelectedProject] = useState("1");
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [selectedVersionId, setSelectedVersionId] = useState(projectVersions[0]?.id);
+
+  useEffect(() => {
+    setSelectedVersionId(projectVersions[0]?.id);
+  }, [selectedProject]);
+
+  const handleViewQuotes = () => {
+    const project = projects.find((p) => p.id === selectedProject);
+    const version = projectVersions.find((v) => v.id === selectedVersionId);
+
+    if (project && version && onOpenQuotes) {
+      onOpenQuotes(project.id, project.name, version.id);
+    }
+  };
 
   return (
     <div className="p-4 space-y-3">
@@ -181,10 +231,22 @@ export const ProjectsView = () => {
 
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-sm">Versions de chiffrage du projet sélectionné</CardTitle>
-          <CardDescription className="text-xs">
-            Chaque projet embarque ses propres versions (historiques, révisions, offres)
-          </CardDescription>
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <CardTitle className="text-sm">Versions de chiffrage du projet sélectionné</CardTitle>
+              <CardDescription className="text-xs">
+                Chaque projet embarque ses propres versions (historiques, révisions, offres)
+              </CardDescription>
+            </div>
+            <Button
+              size="sm"
+              className="h-8 text-[11px]"
+              onClick={handleViewQuotes}
+              disabled={!selectedVersionId || !onOpenQuotes}
+            >
+              Voir les chiffrages
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
@@ -206,24 +268,21 @@ export const ProjectsView = () => {
                 </tr>
               </thead>
               <tbody>
-                <tr className="border-b hover:bg-muted/30">
-                  <td className="py-3 px-2">V3 – Révision accès</td>
-                  <td className="py-3 px-2">14/03/2025</td>
-                  <td className="py-3 px-2 font-medium">18,35 M€</td>
-                  <td className="py-3 px-2 text-muted-foreground">Étude d'accès mise à jour</td>
-                </tr>
-                <tr className="border-b hover:bg-muted/30">
-                  <td className="py-3 px-2">V2 – Offre turbinier</td>
-                  <td className="py-3 px-2">02/02/2025</td>
-                  <td className="py-3 px-2 font-medium">18,10 M€</td>
-                  <td className="py-3 px-2 text-muted-foreground">Intègre la dernière offre fournisseur</td>
-                </tr>
-                <tr className="border-b hover:bg-muted/30">
-                  <td className="py-3 px-2">V1 – Études préliminaires</td>
-                  <td className="py-3 px-2">15/11/2024</td>
-                  <td className="py-3 px-2 font-medium">17,60 M€</td>
-                  <td className="py-3 px-2 text-muted-foreground">Hypothèses de base</td>
-                </tr>
+                {projectVersions.map((version) => (
+                  <tr
+                    key={version.id}
+                    className={cn(
+                      "border-b hover:bg-muted/30 cursor-pointer transition-colors",
+                      selectedVersionId === version.id && "bg-accent-soft"
+                    )}
+                    onClick={() => setSelectedVersionId(version.id)}
+                  >
+                    <td className="py-3 px-2 font-medium">{version.name}</td>
+                    <td className="py-3 px-2">{version.date}</td>
+                    <td className="py-3 px-2 font-medium">{version.capex}</td>
+                    <td className="py-3 px-2 text-muted-foreground">{version.comment}</td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>

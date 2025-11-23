@@ -4,6 +4,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type ProjectStatus = "study" | "offers" | "built";
@@ -143,13 +145,7 @@ const getStatusBadge = (status: ProjectStatus) => {
 export const ProjectsView = ({ onOpenQuotes }: ProjectsViewProps) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [expandedProjectId, setExpandedProjectId] = useState(projects[0]?.id ?? null);
-
-  useEffect(() => {
-    if (!projects.find((project) => project.id === expandedProjectId)) {
-      setExpandedProjectId(projects[0]?.id ?? null);
-    }
-  }, [expandedProjectId]);
+  const [expandedProjectId, setExpandedProjectId] = useState<string | null>(null);
 
   const filteredProjects = projects.filter((project) => {
     const matchesStatus = statusFilter === "all" || project.status === statusFilter;
@@ -162,6 +158,10 @@ export const ProjectsView = ({ onOpenQuotes }: ProjectsViewProps) => {
 
     return matchesStatus && (normalizedQuery.trim().length === 0 || matchesQuery);
   });
+
+  const handleProjectClick = (projectId: string) => {
+    setExpandedProjectId(prev => prev === projectId ? null : projectId);
+  };
 
   const handleViewQuotes = (project: Project, version: ProjectVersion) => {
     if (onOpenQuotes) {
@@ -211,73 +211,86 @@ export const ProjectsView = ({ onOpenQuotes }: ProjectsViewProps) => {
 
           <div className="grid gap-3">
             {filteredProjects.map((project) => (
-              <Card
+              <Collapsible
                 key={project.id}
-                className={cn(
-                  "border shadow-sm transition-colors",
-                  expandedProjectId === project.id && "border-primary/30 bg-accent-soft"
-                )}
+                open={expandedProjectId === project.id}
+                onOpenChange={() => handleProjectClick(project.id)}
               >
-                <CardHeader className="pb-2" onClick={() => setExpandedProjectId(project.id)}>
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="space-y-1">
-                      <CardTitle className="text-sm leading-tight">{project.name}</CardTitle>
-                      <CardDescription className="text-xs text-muted-foreground">
-                        {project.code} • {project.region}
-                      </CardDescription>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="text-right text-xs">
-                        <div className="font-semibold">{project.power}</div>
-                        <div className="text-muted-foreground text-[11px]">
-                          {project.turbines} éoliennes
+                <Card
+                  className={cn(
+                    "border shadow-sm transition-all duration-200",
+                    expandedProjectId === project.id && "border-primary/30 bg-accent-soft"
+                  )}
+                >
+                  <CollapsibleTrigger asChild>
+                    <CardHeader className="pb-2 cursor-pointer hover:bg-accent/50 transition-colors">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="space-y-1 flex-1">
+                          <CardTitle className="text-sm leading-tight">{project.name}</CardTitle>
+                          <CardDescription className="text-xs text-muted-foreground">
+                            {project.code} • {project.region}
+                          </CardDescription>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <div className="text-right text-xs">
+                            <div className="font-semibold">{project.power}</div>
+                            <div className="text-muted-foreground text-[11px]">
+                              {project.turbines} éoliennes
+                            </div>
+                          </div>
+                          {getStatusBadge(project.status)}
+                          <ChevronDown
+                            className={cn(
+                              "h-4 w-4 text-muted-foreground transition-transform duration-200",
+                              expandedProjectId === project.id && "rotate-180"
+                            )}
+                          />
                         </div>
                       </div>
-                      {getStatusBadge(project.status)}
-                    </div>
-                  </div>
-                </CardHeader>
-                {expandedProjectId === project.id && (
-                  <CardContent className="pt-0 space-y-2">
-                    <div className="text-[11px] uppercase text-muted-foreground font-medium">
-                      Chiffrages du projet
-                    </div>
-                    <div className="space-y-2">
-                      {project.versions.map((version) => (
-                        <div
-                          key={version.id}
-                          className={cn(
-                            "flex items-center justify-between gap-4 rounded-md border px-3 py-2",
-                            "hover:border-primary/40"
-                          )}
-                        >
-                          <div className="space-y-0.5">
-                            <div className="text-xs font-semibold">{version.name}</div>
-                            <div className="text-[11px] text-muted-foreground">{version.comment}</div>
-                            <div className="text-[11px] text-muted-foreground">{version.date}</div>
-                          </div>
-                          <div className="flex items-center gap-3">
-                            <div className="text-right">
-                              <div className="text-xs font-semibold">{version.capex}</div>
-                              <div className="text-[11px] text-muted-foreground">CAPEX</div>
-                            </div>
-                            {onOpenQuotes && (
-                              <Button
-                                size="sm"
-                                className="h-8 text-[11px]"
-                                variant="outline"
-                                onClick={() => handleViewQuotes(project, version)}
-                              >
-                                Voir le chiffrage
-                              </Button>
+                    </CardHeader>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up">
+                    <CardContent className="pt-0 space-y-2">
+                      <div className="text-[11px] uppercase text-muted-foreground font-medium">
+                        Chiffrages du projet
+                      </div>
+                      <div className="space-y-2">
+                        {project.versions.map((version) => (
+                          <div
+                            key={version.id}
+                            className={cn(
+                              "flex items-center justify-between gap-4 rounded-md border px-3 py-2",
+                              "hover:border-primary/40 transition-colors"
                             )}
+                          >
+                            <div className="space-y-0.5">
+                              <div className="text-xs font-semibold">{version.name}</div>
+                              <div className="text-[11px] text-muted-foreground">{version.comment}</div>
+                              <div className="text-[11px] text-muted-foreground">{version.date}</div>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <div className="text-right">
+                                <div className="text-xs font-semibold">{version.capex}</div>
+                                <div className="text-[11px] text-muted-foreground">CAPEX</div>
+                              </div>
+                              {onOpenQuotes && (
+                                <Button
+                                  size="sm"
+                                  className="h-8 text-[11px]"
+                                  variant="outline"
+                                  onClick={() => handleViewQuotes(project, version)}
+                                >
+                                  Voir le chiffrage
+                                </Button>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                )}
-              </Card>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </CollapsibleContent>
+                </Card>
+              </Collapsible>
             ))}
           </div>
         </CardContent>

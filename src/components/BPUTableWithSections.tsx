@@ -5,6 +5,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { BPULine } from "@/types/bpu";
 import { Trash2, Copy, Clipboard } from "lucide-react";
 import { useLineSelection } from "@/hooks/useLineSelection";
+import { toast } from "sonner";
 
 interface BPULineWithSection extends BPULine {
   section?: string;
@@ -14,7 +15,7 @@ interface BPUTableWithSectionsProps {
   lines: BPULineWithSection[];
   onLineUpdate: (id: string, updates: Partial<BPULine>) => void;
   onLineDelete: (id: string) => void;
-  onLineAdd?: (line: Omit<BPULineWithSection, "id">) => void;
+  onLineAdd?: (line: Omit<BPULineWithSection, "id">, sectionName: string) => void;
   onBulkDelete?: (lineIds: string[]) => void;
 }
 
@@ -83,14 +84,12 @@ export const BPUTableWithSections = ({
 
   const handleCopyLine = (line: BPULineWithSection) => {
     copyLine(line);
+    toast.success("Ligne copiée");
   };
 
   const handlePasteLine = (sectionName: string) => {
     if (copiedLine && onLineAdd) {
-      onLineAdd({
-        ...copiedLine,
-        section: sectionName,
-      });
+      onLineAdd(copiedLine, sectionName);
     }
   };
 

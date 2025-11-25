@@ -69,6 +69,26 @@ export const PricingView = ({ projectId: initialProjectId, projectName: initialP
   };
 
   const handleLineUpdate = (lineId: string, updates: Partial<any>) => {
+    // Trouver la ligne actuelle pour récupérer sa section
+    let currentLine: any = null;
+    for (const lot of lots) {
+      const found = lot.lines.find((l: any) => l.id === lineId);
+      if (found) {
+        currentLine = found;
+        break;
+      }
+    }
+
+    // Extraire le préfixe de section existant du comment actuel
+    const sectionMatch = currentLine?.comment?.match(/^\[([^\]]+)\]/);
+    const sectionPrefix = sectionMatch ? sectionMatch[0] : "";
+
+    // Construire le nouveau comment en préservant la section
+    let newComment = updates.priceSource || "";
+    if (sectionPrefix && !newComment.startsWith("[")) {
+      newComment = `${sectionPrefix} ${newComment}`.trim();
+    }
+
     updateLine({
       lineId,
       updates: {
@@ -76,7 +96,7 @@ export const PricingView = ({ projectId: initialProjectId, projectName: initialP
         quantity: updates.quantity,
         unit: updates.unit,
         unit_price: updates.unitPrice,
-        comment: updates.priceSource,
+        comment: newComment,
       },
     });
   };

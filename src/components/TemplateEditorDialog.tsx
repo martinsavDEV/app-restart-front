@@ -10,6 +10,7 @@ import { Plus, Trash2, GripVertical } from "lucide-react";
 import { useState, useEffect } from "react";
 import { EditableCell } from "./EditableCell";
 import { EditableCellText } from "./EditableCellText";
+import { VariableAutocomplete } from "./VariableAutocomplete";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -87,6 +88,7 @@ export const TemplateEditorDialog = ({ open, onOpenChange, template, onSave }: T
       quantity: 0,
       unit: "u",
       unitPrice: 0,
+      linkedVariable: undefined,
     };
     setSections(sections.map(s => 
       s.id === sectionId ? { ...s, lines: [...s.lines, newLine] } : s
@@ -99,11 +101,11 @@ export const TemplateEditorDialog = ({ open, onOpenChange, template, onSave }: T
     ));
   };
 
-  const updateLine = (sectionId: string, lineId: string, field: keyof BPULine, value: any) => {
+  const updateLine = (sectionId: string, lineId: string, updates: Partial<BPULine>) => {
     setSections(sections.map(s => 
       s.id === sectionId ? {
         ...s,
-        lines: s.lines.map(l => l.id === lineId ? { ...l, [field]: value } : l)
+        lines: s.lines.map(l => l.id === lineId ? { ...l, ...updates } : l)
       } : s
     ));
   };
@@ -274,28 +276,49 @@ export const TemplateEditorDialog = ({ open, onOpenChange, template, onSave }: T
                               <td className="py-1">
                                 <EditableCellText
                                   value={line.designation}
-                                  onChange={(value) => updateLine(section.id, line.id, "designation", value)}
+                                  onChange={(value) => updateLine(section.id, line.id, { designation: value })}
                                   className="w-full"
                                 />
                               </td>
                               <td className="py-1">
-                                <EditableCell
-                                  value={qty}
-                                  onChange={(value) => updateLine(section.id, line.id, "quantity", value)}
-                                  align="right"
+                                <VariableAutocomplete
+                                  value={line.linkedVariable || String(qty)}
+                                  variables={[]}
+                                  resolvedValue={undefined}
+                                  onSelect={(variable) => {
+                                    updateLine(section.id, line.id, { 
+                                      linkedVariable: variable.name,
+                                      quantity: variable.value
+                                    });
+                                  }}
+                                  onChange={(value) => {
+                                    const trimmedValue = value.trim();
+                                    if (!trimmedValue) {
+                                      updateLine(section.id, line.id, { quantity: 0, linkedVariable: undefined });
+                                    } else if (trimmedValue.startsWith("$")) {
+                                      updateLine(section.id, line.id, { linkedVariable: trimmedValue });
+                                    } else {
+                                      const numValue = parseFloat(trimmedValue.replace(/[^\d.,]/g, "").replace(",", "."));
+                                      updateLine(section.id, line.id, { 
+                                        quantity: isNaN(numValue) ? 0 : numValue,
+                                        linkedVariable: undefined
+                                      });
+                                    }
+                                  }}
+                                  className="w-20 text-right"
                                 />
                               </td>
                               <td className="py-1">
                                 <EditableCellText
                                   value={line.unit}
-                                  onChange={(value) => updateLine(section.id, line.id, "unit", value)}
+                                  onChange={(value) => updateLine(section.id, line.id, { unit: value })}
                                   maxLength={10}
                                 />
                               </td>
                               <td className="py-1">
                                 <EditableCell
                                   value={line.unitPrice}
-                                  onChange={(value) => updateLine(section.id, line.id, "unitPrice", value)}
+                                  onChange={(value) => updateLine(section.id, line.id, { unitPrice: value })}
                                   align="right"
                                   format={(v) => v.toFixed(2)}
                                 />

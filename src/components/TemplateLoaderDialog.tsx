@@ -1,6 +1,4 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
   DialogContent,
@@ -14,35 +12,14 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
-
-interface TemplateLine {
-  designation: string;
-  unit: string;
-  unit_price: number;
-  comment?: string;
-  quantity?: number;
-}
-
-interface TemplateSection {
-  title: string;
-  lines: TemplateLine[];
-}
-
-interface LotTemplate {
-  id: string;
-  code: string;
-  label: string;
-  description?: string;
-  template_lines: {
-    sections: TemplateSection[];
-  };
-}
+import { useTemplates } from "@/hooks/useTemplates";
+import { WorkSection } from "@/types/bpu";
 
 interface TemplateLoaderDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   lotCode?: string;
-  onLoadTemplate: (sections: TemplateSection[]) => void;
+  onLoadTemplate: (sections: WorkSection[]) => void;
 }
 
 export const TemplateLoaderDialog = ({
@@ -53,30 +30,18 @@ export const TemplateLoaderDialog = ({
 }: TemplateLoaderDialogProps) => {
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
 
-  const { data: templates, isLoading } = useQuery({
-    queryKey: ["lot-templates", lotCode],
-    queryFn: async () => {
-      let query = supabase.from("lot_templates").select("*");
-      
-      if (lotCode) {
-        query = query.eq("code", lotCode);
-      }
+  const { templates, isLoading } = useTemplates();
 
-      const { data, error } = await query;
-      if (error) throw error;
-      return (data || []).map(d => ({
-        ...d,
-        template_lines: d.template_lines as unknown as { sections: TemplateSection[] }
-      }));
-    },
-    enabled: open,
-  });
+  const filteredTemplates = templates?.filter((t) => 
+    !lotCode || t.code === lotCode
+  );
 
-  const selectedTemplate = templates?.find((t) => t.id === selectedTemplateId);
+  const selectedTemplate = filteredTemplates?.find((t) => t.id === selectedTemplateId);
 
   const handleLoad = () => {
     if (selectedTemplate) {
-      onLoadTemplate(selectedTemplate.template_lines.sections);
+      const templateData = selectedTemplate.template_lines as any;
+      onLoadTemplate(templateData.sections || []);
       onOpenChange(false);
       setSelectedTemplateId(null);
     }
@@ -99,7 +64,7 @@ export const TemplateLoaderDialog = ({
         ) : (
           <div className="space-y-4">
             <RadioGroup value={selectedTemplateId || ""} onValueChange={setSelectedTemplateId}>
-              {templates?.map((template) => (
+              {filteredTemplates?.map((template) => (
                 <div key={template.id} className="flex items-start space-x-2">
                   <RadioGroupItem value={template.id} id={template.id} className="mt-1" />
                   <Label htmlFor={template.id} className="flex-1 cursor-pointer">
@@ -114,7 +79,11 @@ export const TemplateLoaderDialog = ({
                       </CardHeader>
                       <CardContent>
                         <p className="text-xs text-muted-foreground">
-                          {template.template_lines.sections.reduce((sum, section) => sum + section.lines.length, 0)} ligne(s) dans {template.template_lines.sections.length} section(s)
+                          {(() => {
+                            const templateData = template.template_lines as any;
+                            const sections = templateData.sections || [];
+                            return `${sections.reduce((sum: number, section: any) => sum + (section.lines?.length || 0), 0)} ligne(s) dans ${sections.length} section(s)`;
+                          })()}
                         </p>
                       </CardContent>
                     </Card>
@@ -123,33 +92,37 @@ export const TemplateLoaderDialog = ({
               ))}
             </RadioGroup>
 
-            {selectedTemplate && (
-              <Card className="border-primary">
-                <CardHeader>
-                  <CardTitle className="text-sm">Aperçu des lignes</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {selectedTemplate.template_lines.sections.map((section, sectionIndex) => (
-                      <div key={sectionIndex} className="space-y-2">
-                        <div className="font-semibold text-xs text-primary">{section.title}</div>
-                        {section.lines.map((line, lineIndex) => (
-                          <div
-                            key={lineIndex}
-                            className="text-xs p-2 bg-muted/50 rounded flex justify-between ml-3"
-                          >
-                            <span className="font-medium">{line.designation}</span>
-                            <span className="text-muted-foreground">
-                              {line.unit_price}€/{line.unit}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+            {selectedTemplate && (() => {
+              const templateData = selectedTemplate.template_lines as any;
+              const sections = templateData.sections || [];
+              return (
+                <Card className="border-primary">
+                  <CardHeader>
+                    <CardTitle className="text-sm">Aperçu des lignes</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {sections.map((section: any, sectionIndex: number) => (
+                        <div key={sectionIndex} className="space-y-2">
+                          <div className="font-semibold text-xs text-primary">{section.title}</div>
+                          {section.lines?.map((line: any, lineIndex: number) => (
+                            <div
+                              key={lineIndex}
+                              className="text-xs p-2 bg-muted/50 rounded flex justify-between ml-3"
+                            >
+                              <span className="font-medium">{line.designation}</span>
+                              <span className="text-muted-foreground">
+                                {line.unitPrice}€/{line.unit}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })()}
           </div>
         )}
 

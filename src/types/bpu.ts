@@ -37,3 +37,45 @@ export interface CAPEXSummary {
   contingency: number;
   total: number;
 }
+
+// Calculator Types
+export interface TurbineData {
+  name: string; // E01, E02, etc.
+  surf_PF: number;
+  acces_PF: number;
+  m3_bouger: number;
+  bypass: number;
+  fondation_type: string; // "en eau" | "sans eau"
+  g2avp: string;
+  substitution: number;
+  commentaire: string;
+}
+
+export interface AccessSegment {
+  name: string; // "Accès E03", "E03-E01", etc.
+  longueur: number;
+  surface: number;
+  renforcement: string; // "refresh" | "traitement"
+  gnt: boolean;
+  bicouche: number;
+  enrobe: number;
+}
+
+export interface CalculatorData {
+  global: {
+    nb_eol: number;
+    typ_eol: string;
+  };
+  turbines: TurbineData[];
+  access_segments: AccessSegment[];
+  design: {
+    diametre_fondation: number | null;
+  };
+}
+
+export interface CalculatorVariable {
+  name: string; // $surf_PF_E01
+  value: number;
+  label: string; // "Surface PF E01"
+  category: string; // "Éoliennes", "Accès", "Totaux"
+}

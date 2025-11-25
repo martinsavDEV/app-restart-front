@@ -264,7 +264,13 @@ const initialLots: WorkLot[] = [
   },
 ];
 
-export const PricingView = () => {
+interface PricingViewProps {
+  projectId?: string | null;
+  projectName?: string | null;
+  versionId?: string | null;
+}
+
+export const PricingView = ({ projectId, projectName, versionId }: PricingViewProps) => {
   const [lots, setLots] = useState<WorkLot[]>(initialLots);
   const [contingencyRate] = useState(10);
 
@@ -372,7 +378,8 @@ export const PricingView = () => {
           <div>
             <h1 className="text-lg font-semibold">Chiffrage projet</h1>
             <p className="text-xs text-muted-foreground mt-0.5">
-              BPU par lots pour 41 - Parc éolien La Besse
+              {projectName ? `BPU par lots pour ${projectName}` : "BPU par lots"}
+              {versionId && " - Version sélectionnée"}
             </p>
           </div>
           <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:gap-3">

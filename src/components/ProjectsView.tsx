@@ -20,22 +20,25 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { ChevronDown, Pencil, Trash2, Loader2 } from "lucide-react";
+import { ChevronDown, Pencil, Trash2, Loader2, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useProjects, useQuoteVersions, type Project } from "@/hooks/useProjects";
 import { ProjectDialog } from "./ProjectDialog";
+import { QuoteVersionDialog } from "./QuoteVersionDialog";
 
 interface ProjectsViewProps {
-  onOpenQuotes?: (projectId: string, projectName: string, versionId: string) => void;
+  onOpenPricing?: (projectId: string, projectName: string, versionId: string) => void;
 }
 
-export function ProjectsView({ onOpenQuotes }: ProjectsViewProps) {
+export function ProjectsView({ onOpenPricing }: ProjectsViewProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedProjectId, setExpandedProjectId] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [projectToDelete, setProjectToDelete] = useState<string | null>(null);
+  const [quoteDialogOpen, setQuoteDialogOpen] = useState(false);
+  const [selectedProjectForQuote, setSelectedProjectForQuote] = useState<string | null>(null);
 
   const {
     projects,
@@ -48,7 +51,7 @@ export function ProjectsView({ onOpenQuotes }: ProjectsViewProps) {
     isDeleting,
   } = useProjects();
 
-  const { data: quoteVersions = [] } = useQuoteVersions(expandedProjectId);
+  const { data: quoteVersions = [], createQuoteVersion, isCreatingQuote } = useQuoteVersions(expandedProjectId);
 
   const filteredProjects = projects.filter((project) => {
     const normalizedQuery = searchQuery.toLowerCase();
@@ -62,10 +65,28 @@ export function ProjectsView({ onOpenQuotes }: ProjectsViewProps) {
     setExpandedProjectId((prev) => (prev === projectId ? null : projectId));
   };
 
-  const handleViewQuotes = (project: Project, versionId: string) => {
-    if (onOpenQuotes) {
-      onOpenQuotes(project.id, project.name, versionId);
+  const handleOpenPricing = (project: Project, versionId: string) => {
+    if (onOpenPricing) {
+      onOpenPricing(project.id, project.name, versionId);
     }
+  };
+
+  const handleCreateQuote = (projectId: string) => {
+    setSelectedProjectForQuote(projectId);
+    setQuoteDialogOpen(true);
+  };
+
+  const handleSubmitQuoteVersion = (data: any) => {
+    createQuoteVersion(data, {
+      onSuccess: (newVersion: any) => {
+        setQuoteDialogOpen(false);
+        // Open pricing view with the new quote version
+        const project = projects.find(p => p.id === selectedProjectForQuote);
+        if (project && onOpenPricing) {
+          onOpenPricing(project.id, project.name, newVersion.id);
+        }
+      }
+    });
   };
 
   const handleCreateProject = () => {
@@ -223,8 +244,19 @@ export function ProjectsView({ onOpenQuotes }: ProjectsViewProps) {
                       </CollapsibleTrigger>
                       <CollapsibleContent className="data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up">
                         <CardContent className="pt-0 space-y-2">
-                          <div className="text-[11px] uppercase text-muted-foreground font-medium">
-                            Chiffrages du projet ({projectVersions.length})
+                          <div className="flex items-center justify-between">
+                            <div className="text-[11px] uppercase text-muted-foreground font-medium">
+                              Chiffrages du projet ({projectVersions.length})
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7 text-[11px]"
+                              onClick={() => handleCreateQuote(project.id)}
+                            >
+                              <Plus className="h-3.5 w-3.5 mr-1" />
+                              Nouveau chiffrage
+                            </Button>
                           </div>
                           {projectVersions.length === 0 ? (
                             <div className="text-xs text-muted-foreground py-2">
@@ -260,16 +292,15 @@ export function ProjectsView({ onOpenQuotes }: ProjectsViewProps) {
                                         CAPEX
                                       </div>
                                     </div>
-                                    {onOpenQuotes && (
+                                    {onOpenPricing && (
                                       <Button
                                         size="sm"
                                         className="h-8 text-[11px]"
-                                        variant="outline"
                                         onClick={() =>
-                                          handleViewQuotes(project, version.id)
+                                          handleOpenPricing(project, version.id)
                                         }
                                       >
-                                        Voir le chiffrage
+                                        Ouvrir le chiffrage
                                       </Button>
                                     )}
                                   </div>
@@ -294,6 +325,14 @@ export function ProjectsView({ onOpenQuotes }: ProjectsViewProps) {
         onSubmit={handleSubmitProject}
         project={editingProject}
         isLoading={isCreating || isUpdating}
+      />
+
+      <QuoteVersionDialog
+        open={quoteDialogOpen}
+        onOpenChange={setQuoteDialogOpen}
+        onSubmit={handleSubmitQuoteVersion}
+        projectId={selectedProjectForQuote || ""}
+        isLoading={isCreatingQuote}
       />
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

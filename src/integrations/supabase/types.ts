@@ -14,6 +14,50 @@ export type Database = {
   }
   public: {
     Tables: {
+      lots: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          id: string
+          is_enabled: boolean
+          label: string
+          order_index: number
+          quote_version_id: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_enabled?: boolean
+          label: string
+          order_index?: number
+          quote_version_id: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_enabled?: boolean
+          label?: string
+          order_index?: number
+          quote_version_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lots_quote_version_id_fkey"
+            columns: ["quote_version_id"]
+            isOneToOne: false
+            referencedRelation: "quote_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projects: {
         Row: {
           created_at: string | null
@@ -43,6 +87,103 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      quote_lines: {
+        Row: {
+          code: string
+          comment: string | null
+          created_at: string
+          designation: string
+          id: string
+          lot_id: string
+          order_index: number
+          quantity: number
+          total_price: number | null
+          unit: string
+          unit_price: number
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          comment?: string | null
+          created_at?: string
+          designation: string
+          id?: string
+          lot_id: string
+          order_index?: number
+          quantity?: number
+          total_price?: number | null
+          unit?: string
+          unit_price?: number
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          comment?: string | null
+          created_at?: string
+          designation?: string
+          id?: string
+          lot_id?: string
+          order_index?: number
+          quantity?: number
+          total_price?: number | null
+          unit?: string
+          unit_price?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quote_lines_lot_id_fkey"
+            columns: ["lot_id"]
+            isOneToOne: false
+            referencedRelation: "lots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quote_settings: {
+        Row: {
+          created_at: string
+          hub_height: number | null
+          id: string
+          n_wtg: number
+          quote_version_id: string
+          settings: Json | null
+          turbine_model: string | null
+          turbine_power: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          hub_height?: number | null
+          id?: string
+          n_wtg?: number
+          quote_version_id: string
+          settings?: Json | null
+          turbine_model?: string | null
+          turbine_power?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          hub_height?: number | null
+          id?: string
+          n_wtg?: number
+          quote_version_id?: string
+          settings?: Json | null
+          turbine_model?: string | null
+          turbine_power?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quote_settings_quote_version_id_fkey"
+            columns: ["quote_version_id"]
+            isOneToOne: true
+            referencedRelation: "quote_versions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       quote_versions: {
         Row: {

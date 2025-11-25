@@ -28,7 +28,7 @@ interface DraggableLineProps {
   formatNumber: (value: number) => string;
   formatCurrency: (value: number) => string;
   variables: CalculatorVariable[];
-  resolveQuantity: (quantity: number | string) => number;
+  resolveQuantity: (quantity: number | string, linkedVariable?: string) => number;
 }
 
 export const DraggableLine = ({
@@ -61,7 +61,7 @@ export const DraggableLine = ({
     opacity: isDragging ? 0.5 : 1,
   };
 
-  const resolvedQuantity = resolveQuantity(line.quantity);
+  const resolvedQuantity = resolveQuantity(line.quantity, line.linkedVariable);
   const total = resolvedQuantity * line.unitPrice;
 
   return (
@@ -106,21 +106,29 @@ export const DraggableLine = ({
       </td>
       <td className="py-1 px-2">
         <VariableAutocomplete
-          value={line.quantity}
+          value={line.linkedVariable || line.quantity}
           variables={variables}
           resolvedValue={resolvedQuantity}
           onSelect={(variable) => {
             onLineUpdate(line.id, { 
-              quantity: variable.name,
+              quantity: variable.value,
               linkedVariable: variable.name,
             });
           }}
           onChange={(value) => {
-            const numValue = parseFloat(value);
-            onLineUpdate(line.id, { 
-              quantity: isNaN(numValue) ? value : numValue,
-              linkedVariable: value.startsWith("$") ? value : undefined,
-            });
+            if (value.startsWith("$")) {
+              // User is typing a variable name, keep it in linkedVariable
+              onLineUpdate(line.id, { 
+                linkedVariable: value,
+              });
+            } else {
+              // User is typing a number, parse it and clear linkedVariable
+              const numValue = parseFloat(value.replace(/[^\d.,]/g, "").replace(",", "."));
+              onLineUpdate(line.id, { 
+                quantity: isNaN(numValue) ? 0 : numValue,
+                linkedVariable: undefined,
+              });
+            }
           }}
           placeholder="Quantité"
           className="text-right tabular-nums"

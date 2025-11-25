@@ -169,6 +169,7 @@ export const PricingView = ({ projectId: initialProjectId, projectName: initialP
         unit: updates.unit,
         unit_price: updates.unitPrice,
         comment: newComment,
+        linked_variable: updates.linkedVariable,
       },
     });
   };
@@ -275,6 +276,7 @@ export const PricingView = ({ projectId: initialProjectId, projectName: initialP
         unit: line.unit,
         unitPrice: line.unit_price || 0,
         priceSource: line.comment || "",
+        linkedVariable: line.linked_variable,
         section_id: line.section_id,
         lot_id: line.lot_id,
       };

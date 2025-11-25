@@ -38,6 +38,7 @@ interface BPUTableWithSectionsProps {
   onSectionUpdate?: (sectionId: string, multiplier: number) => void;
   onSectionDelete?: (sectionId: string) => void;
   onLinesReorder?: (updates: { id: string; order_index: number }[]) => void;
+  onLineSectionChange?: (lineId: string, newSectionId: string | null, newOrderIndex: number) => void;
   lotCode?: string;
 }
 
@@ -66,6 +67,7 @@ export const BPUTableWithSections = ({
   onSectionUpdate,
   onSectionDelete,
   onLinesReorder,
+  onLineSectionChange,
   lotCode,
 }: BPUTableWithSectionsProps) => {
   const {
@@ -144,22 +146,36 @@ export const BPUTableWithSections = ({
         quantity: 0,
         unit: "u",
         unitPrice: 0,
+        section_id: sectionId,
       };
       onLineAdd(emptyLine, sectionId, focusedLineId || undefined);
     }
   };
 
-  const handleDragEnd = (event: DragEndEvent, sectionId: string | null) => {
+  const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
 
-    if (over && active.id !== over.id) {
-      const sectionLines = sectionId ? (linesBySection[sectionId] || []) : (linesBySection["no-section"] || []);
+    if (!over || active.id === over.id) return;
+
+    const draggedLine = lines.find(line => line.id === active.id);
+    const targetLine = lines.find(line => line.id === over.id);
+    
+    if (!draggedLine || !targetLine) return;
+
+    const draggedSectionId = draggedLine.section_id || "no-section";
+    const targetSectionId = targetLine.section_id || "no-section";
+
+    // Case 1: Moving within the same section - reorder only
+    if (draggedSectionId === targetSectionId) {
+      const sectionLines = draggedSectionId === "no-section" 
+        ? (linesBySection["no-section"] || [])
+        : (linesBySection[draggedSectionId] || []);
+      
       const oldIndex = sectionLines.findIndex((line) => line.id === active.id);
       const newIndex = sectionLines.findIndex((line) => line.id === over.id);
 
       const reorderedLines = arrayMove(sectionLines, oldIndex, newIndex);
       
-      // Update order_index for all affected lines
       const updates = reorderedLines.map((line, index) => ({
         id: line.id,
         order_index: index,
@@ -167,6 +183,21 @@ export const BPUTableWithSections = ({
 
       if (onLinesReorder) {
         onLinesReorder(updates);
+      }
+    } 
+    // Case 2: Moving between sections - change section_id
+    else {
+      if (onLineSectionChange) {
+        const newSectionId = targetSectionId === "no-section" ? null : targetSectionId;
+        const targetSectionLines = targetSectionId === "no-section"
+          ? (linesBySection["no-section"] || [])
+          : (linesBySection[targetSectionId] || []);
+        
+        // Insert at the position of the target line
+        const targetIndex = targetSectionLines.findIndex((line) => line.id === over.id);
+        const newOrderIndex = targetIndex >= 0 ? targetIndex : targetSectionLines.length;
+        
+        onLineSectionChange(active.id as string, newSectionId, newOrderIndex);
       }
     }
   };
@@ -177,57 +208,53 @@ export const BPUTableWithSections = ({
     sectionName?: string
   ) => {
     return (
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragEnd={(event) => handleDragEnd(event, sectionId)}
-      >
-        <table className="w-full text-xs mb-2">
-          <thead>
-            <tr className="border-b">
-              <th className="text-center py-2 px-2 font-medium text-muted-foreground text-[11px] uppercase w-20">
-                <Checkbox
-                  checked={sectionLines.every(line => isSelected(line.id))}
-                  onCheckedChange={() => {
-                    const allSelected = sectionLines.every(line => isSelected(line.id));
-                    sectionLines.forEach(line => {
-                      if (allSelected) {
-                        if (isSelected(line.id)) toggleLineSelection(line.id);
-                      } else {
-                        if (!isSelected(line.id)) toggleLineSelection(line.id);
-                      }
-                    });
-                  }}
-                />
-              </th>
-              <th className="text-left py-2 px-2 font-medium text-muted-foreground text-[11px] uppercase">
-                Désignation
-              </th>
-              <th className="text-right py-2 px-2 font-medium text-muted-foreground text-[11px] uppercase">
-                Qté
-              </th>
-              <th className="text-left py-2 px-2 font-medium text-muted-foreground text-[11px] uppercase">
-                Unité
-              </th>
-              <th className="text-right py-2 px-2 font-medium text-muted-foreground text-[11px] uppercase">
-                PU
-              </th>
-              <th className="text-right py-2 px-2 font-medium text-muted-foreground text-[11px] uppercase">
-                Total
-              </th>
-              <th className="text-left py-2 px-2 font-medium text-muted-foreground text-[11px] uppercase">
-                Source prix
-              </th>
-              <th className="text-center py-2 px-2 font-medium text-muted-foreground text-[11px] uppercase">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            <SortableContext
-              items={sectionLines.map((line) => line.id)}
-              strategy={verticalListSortingStrategy}
-            >
+      <>
+        <SortableContext
+          items={sectionLines.map((line) => line.id)}
+          strategy={verticalListSortingStrategy}
+        >
+          <table className="w-full text-xs mb-2">
+            <thead>
+              <tr className="border-b">
+                <th className="text-center py-2 px-2 font-medium text-muted-foreground text-[11px] uppercase w-20">
+                  <Checkbox
+                    checked={sectionLines.every(line => isSelected(line.id))}
+                    onCheckedChange={() => {
+                      const allSelected = sectionLines.every(line => isSelected(line.id));
+                      sectionLines.forEach(line => {
+                        if (allSelected) {
+                          if (isSelected(line.id)) toggleLineSelection(line.id);
+                        } else {
+                          if (!isSelected(line.id)) toggleLineSelection(line.id);
+                        }
+                      });
+                    }}
+                  />
+                </th>
+                <th className="text-left py-2 px-2 font-medium text-muted-foreground text-[11px] uppercase">
+                  Désignation
+                </th>
+                <th className="text-right py-2 px-2 font-medium text-muted-foreground text-[11px] uppercase">
+                  Qté
+                </th>
+                <th className="text-left py-2 px-2 font-medium text-muted-foreground text-[11px] uppercase">
+                  Unité
+                </th>
+                <th className="text-right py-2 px-2 font-medium text-muted-foreground text-[11px] uppercase">
+                  PU
+                </th>
+                <th className="text-right py-2 px-2 font-medium text-muted-foreground text-[11px] uppercase">
+                  Total
+                </th>
+                <th className="text-left py-2 px-2 font-medium text-muted-foreground text-[11px] uppercase">
+                  Source prix
+                </th>
+                <th className="text-center py-2 px-2 font-medium text-muted-foreground text-[11px] uppercase">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody>
               {sectionLines.map((line) => (
                 <DraggableLine
                   key={line.id}
@@ -244,9 +271,9 @@ export const BPUTableWithSections = ({
                   formatCurrency={formatCurrency}
                 />
               ))}
-            </SortableContext>
-          </tbody>
-        </table>
+            </tbody>
+          </table>
+        </SortableContext>
         <div className="flex justify-end mt-2 mb-4">
           <Button
             variant="outline"
@@ -258,47 +285,52 @@ export const BPUTableWithSections = ({
             Ajouter ligne
           </Button>
         </div>
-      </DndContext>
+      </>
     );
   };
 
   return (
-    <div className="overflow-x-auto">
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2 text-[11px] text-muted-foreground italic">
-          <span>💡</span>
-          <span>Glissez-déposez les lignes pour les réorganiser • Double-cliquez pour modifier</span>
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      onDragEnd={handleDragEnd}
+    >
+      <div className="overflow-x-auto">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 text-[11px] text-muted-foreground italic">
+            <span>💡</span>
+            <span>Glissez-déposez les lignes pour les réorganiser (même entre sections) • Double-cliquez pour modifier</span>
+          </div>
+          <div className="flex items-center gap-2">
+            {selectedCount > 0 && (
+              <>
+                <span className="text-xs text-muted-foreground">
+                  {selectedCount} ligne{selectedCount > 1 ? "s" : ""} sélectionnée{selectedCount > 1 ? "s" : ""}
+                </span>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  className="h-7 text-[11px]"
+                  onClick={handleBulkDelete}
+                >
+                  <Trash2 className="h-3 w-3 mr-1" />
+                  Supprimer
+                </Button>
+              </>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 text-[11px]"
+              onClick={handleSelectAll}
+            >
+              {selectedCount === lines.length ? "Tout désélectionner" : "Tout sélectionner"}
+            </Button>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          {selectedCount > 0 && (
-            <>
-              <span className="text-xs text-muted-foreground">
-                {selectedCount} ligne{selectedCount > 1 ? "s" : ""} sélectionnée{selectedCount > 1 ? "s" : ""}
-              </span>
-              <Button
-                variant="destructive"
-                size="sm"
-                className="h-7 text-[11px]"
-                onClick={handleBulkDelete}
-              >
-                <Trash2 className="h-3 w-3 mr-1" />
-                Supprimer
-              </Button>
-            </>
-          )}
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-7 text-[11px]"
-            onClick={handleSelectAll}
-          >
-            {selectedCount === lines.length ? "Tout désélectionner" : "Tout sélectionner"}
-          </Button>
-        </div>
-      </div>
-      
-      {/* Render sections */}
-      {sections.map((section) => {
+        
+        {/* Render sections */}
+        {sections.map((section) => {
         const sectionLines = linesBySection[section.id] || [];
         const sectionTotal = calculateSectionTotal(sectionLines);
         
@@ -395,12 +427,13 @@ export const BPUTableWithSections = ({
         </div>
       )}
 
-      {/* Grand Total */}
-      <div className="flex justify-end py-3 px-2 bg-primary/5 rounded-md border-t-2 border-primary">
-        <div className="text-base font-bold">
-          Total général: <span className="tabular-nums">{formatCurrency(grandTotal)}</span>
+        {/* Grand Total */}
+        <div className="flex justify-end py-3 px-2 bg-primary/5 rounded-md border-t-2 border-primary">
+          <div className="text-base font-bold">
+            Total général: <span className="tabular-nums">{formatCurrency(grandTotal)}</span>
+          </div>
         </div>
       </div>
-    </div>
+    </DndContext>
   );
 };

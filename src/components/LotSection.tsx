@@ -17,6 +17,7 @@ interface LotSectionProps {
   handleLoadTemplate: (lotId: string, lotCode: string) => void;
   handleAddLine: (lotId: string) => void;
   handleLinesReorder: (updates: { id: string; order_index: number }[]) => void;
+  handleLineSectionChange: (lineId: string, newSectionId: string | null, newOrderIndex: number) => void;
   onCreateSection: (lotId: string) => void;
 }
 
@@ -32,6 +33,7 @@ export const LotSection = ({
   handleLoadTemplate,
   handleAddLine,
   handleLinesReorder,
+  handleLineSectionChange,
   onCreateSection,
 }: LotSectionProps) => {
   const { sections, updateSection, deleteSection } = useQuoteSections(lot.id);
@@ -102,6 +104,7 @@ export const LotSection = ({
             }
             onSectionDelete={(sectionId) => deleteSection(sectionId)}
             onLinesReorder={handleLinesReorder}
+            onLineSectionChange={handleLineSectionChange}
             lotCode={lot.code}
           />
         </CardContent>

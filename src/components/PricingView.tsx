@@ -54,7 +54,7 @@ export const PricingView = ({ projectId: initialProjectId, projectName: initialP
   });
 
   // Use the quote pricing hook
-  const { lots, isLoading, updateLine, addLine, deleteLine, loadTemplate, updateLinesOrder } = useQuotePricing(selectedVersionId);
+  const { lots, isLoading, updateLine, addLine, deleteLine, loadTemplate, updateLinesOrder, updateLineSection } = useQuotePricing(selectedVersionId);
 
   const selectedProject = projects?.find((p) => p.id === selectedProjectId);
   const projectName = initialProjectName || selectedProject?.name;
@@ -243,6 +243,14 @@ export const PricingView = ({ projectId: initialProjectId, projectName: initialP
     });
   };
 
+  const handleLineSectionChange = (lineId: string, newSectionId: string | null, newOrderIndex: number) => {
+    updateLineSection({
+      lineId,
+      newSectionId,
+      newOrderIndex,
+    });
+  };
+
   const handleLoadTemplate = (lotId: string, lotCode: string) => {
     setSelectedLotForTemplate({ id: lotId, code: lotCode });
     setTemplateDialogOpen(true);
@@ -371,6 +379,7 @@ export const PricingView = ({ projectId: initialProjectId, projectName: initialP
                   handleLoadTemplate={handleLoadTemplate}
                   handleAddLine={handleAddLine}
                   handleLinesReorder={updateLinesOrder}
+                  handleLineSectionChange={handleLineSectionChange}
                   onCreateSection={(lotId) => {
                     setSelectedLotForSection(lotId);
                     setSectionDialogOpen(true);

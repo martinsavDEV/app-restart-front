@@ -5,6 +5,7 @@ import { toast } from "sonner";
 interface QuoteLine {
   id: string;
   lot_id: string;
+  section_id?: string | null;
   designation: string;
   quantity: number;
   unit: string;
@@ -173,6 +174,7 @@ export const useQuotePricing = (quoteVersionId?: string | null) => {
         code: line.designation.substring(0, 20).toLowerCase().replace(/\s+/g, '_'),
         comment: line.comment || "",
         order_index: line.order_index,
+        section_id: line.section_id || null,
         lot_id: lotId,
       });
 
@@ -227,6 +229,37 @@ export const useQuotePricing = (quoteVersionId?: string | null) => {
     },
     onError: (error) => {
       toast.error("Erreur lors de la mise à jour de l'ordre");
+      console.error(error);
+    },
+  });
+
+  // Update a line's section_id (for drag & drop between sections)
+  const updateLineSectionMutation = useMutation({
+    mutationFn: async ({
+      lineId,
+      newSectionId,
+      newOrderIndex,
+    }: {
+      lineId: string;
+      newSectionId: string | null;
+      newOrderIndex: number;
+    }) => {
+      const { error } = await supabase
+        .from("quote_lines")
+        .update({ 
+          section_id: newSectionId,
+          order_index: newOrderIndex,
+        })
+        .eq("id", lineId);
+
+      if (error) throw error;
+    },
+    onSuccess: async () => {
+      queryClient.invalidateQueries({ queryKey: ["quote-pricing", quoteVersionId] });
+      toast.success("Ligne déplacée");
+    },
+    onError: (error) => {
+      toast.error("Erreur lors du déplacement");
       console.error(error);
     },
   });
@@ -305,6 +338,7 @@ export const useQuotePricing = (quoteVersionId?: string | null) => {
     deleteLine: deleteLineMutation.mutate,
     loadTemplate: loadTemplateMutation.mutate,
     updateLinesOrder: updateLinesOrderMutation.mutate,
+    updateLineSection: updateLineSectionMutation.mutate,
     isUpdating: updateLineMutation.isPending,
     isAdding: addLineMutation.isPending,
     isDeleting: deleteLineMutation.isPending,

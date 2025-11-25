@@ -54,7 +54,13 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
   // Initialize form when settings are loaded
   useEffect(() => {
     if (settings?.calculator_data) {
-      setCalculatorData(settings.calculator_data as unknown as CalculatorData);
+      const data = settings.calculator_data as unknown as Partial<CalculatorData>;
+      
+      // Validate structure before using
+      if (data.global && data.turbines && data.access_segments && data.design) {
+        setCalculatorData(data as CalculatorData);
+      }
+      // Otherwise, keep default values initialized in useState
     }
   }, [settings]);
 

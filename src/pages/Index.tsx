@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 import { Sidebar } from "@/components/Sidebar";
 import { Topbar } from "@/components/Topbar";
 import { ProjectsView } from "@/components/ProjectsView";
@@ -6,12 +8,33 @@ import { QuotesView } from "@/components/QuotesView";
 import { PricingView } from "@/components/PricingView";
 import { PriceDBView } from "@/components/PriceDBView";
 import { TemplatesView } from "@/components/TemplatesView";
+import { Loader2 } from "lucide-react";
 
 const Index = () => {
+  const { user, isLoading } = useAuth();
+  const navigate = useNavigate();
   const [activeView, setActiveView] = useState("projects");
   const [quotesEnabled, setQuotesEnabled] = useState(false);
   const [selectedProjectName, setSelectedProjectName] = useState<string | null>(null);
   const [selectedQuoteVersion, setSelectedQuoteVersion] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isLoading && !user) {
+      navigate("/auth");
+    }
+  }, [user, isLoading, navigate]);
+
+  if (isLoading) {
+    return (
+      <div className="h-screen w-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return null;
+  }
 
   const handleViewChange = (view: string) => {
     if (view === "quotes" && !quotesEnabled) return;

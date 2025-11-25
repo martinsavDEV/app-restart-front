@@ -1,5 +1,8 @@
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
+import { Button } from "@/components/ui/button";
+import { LogOut } from "lucide-react";
 
 interface NavItem {
   id: string;
@@ -22,6 +25,8 @@ interface SidebarProps {
 }
 
 export const Sidebar = ({ activeView, onViewChange, quotesEnabled = false }: SidebarProps) => {
+  const { signOut } = useAuth();
+  
   return (
     <aside className="w-[260px] bg-sidebar text-sidebar-foreground flex flex-col min-h-screen">
       <div className="p-4 border-b border-sidebar-border">
@@ -59,8 +64,19 @@ export const Sidebar = ({ activeView, onViewChange, quotesEnabled = false }: Sid
         })}
       </nav>
 
-      <div className="p-4 border-t border-sidebar-border text-[11px] text-muted-foreground">
-        v0.2 – Maquette UX interactive
+      <div className="p-4 border-t border-sidebar-border">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="w-full justify-start text-muted-foreground hover:text-foreground mb-2"
+          onClick={() => signOut()}
+        >
+          <LogOut className="mr-2 h-4 w-4" />
+          Déconnexion
+        </Button>
+        <div className="text-[11px] text-muted-foreground">
+          v0.2 – Maquette UX interactive
+        </div>
       </div>
     </aside>
   );

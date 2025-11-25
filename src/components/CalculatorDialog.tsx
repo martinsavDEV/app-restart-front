@@ -95,6 +95,7 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["quote-settings"] });
       queryClient.invalidateQueries({ queryKey: ["quote-sections"] });
+      queryClient.invalidateQueries({ queryKey: ["quote-pricing"] });
       toast.success("Calculator enregistré");
       onOpenChange(false);
     },

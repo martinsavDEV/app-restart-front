@@ -34,7 +34,7 @@ export const LotSection = ({
   handleLinesReorder,
   onCreateSection,
 }: LotSectionProps) => {
-  const { sections, updateSection } = useQuoteSections(lot.id);
+  const { sections, updateSection, deleteSection } = useQuoteSections(lot.id);
 
   return (
     <>
@@ -100,6 +100,7 @@ export const LotSection = ({
             onSectionUpdate={(sectionId, multiplier) => 
               updateSection({ sectionId, updates: { multiplier } })
             }
+            onSectionDelete={(sectionId) => deleteSection(sectionId)}
             onLinesReorder={handleLinesReorder}
             lotCode={lot.code}
           />

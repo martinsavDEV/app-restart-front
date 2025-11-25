@@ -36,6 +36,7 @@ interface BPUTableWithSectionsProps {
   onLineAdd?: (line: Omit<BPULineWithSection, "id">, sectionId: string | null, afterLineId?: string) => void;
   onBulkDelete?: (lineIds: string[]) => void;
   onSectionUpdate?: (sectionId: string, multiplier: number) => void;
+  onSectionDelete?: (sectionId: string) => void;
   onLinesReorder?: (updates: { id: string; order_index: number }[]) => void;
   lotCode?: string;
 }
@@ -63,6 +64,7 @@ export const BPUTableWithSections = ({
   onLineAdd,
   onBulkDelete,
   onSectionUpdate,
+  onSectionDelete,
   onLinesReorder,
   lotCode,
 }: BPUTableWithSectionsProps) => {
@@ -319,17 +321,33 @@ export const BPUTableWithSections = ({
                   </div>
                 )}
               </div>
-              {copiedLine && onLineAdd && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-6 text-[11px]"
-                  onClick={() => handlePasteLine(section.id)}
-                >
-                  <Clipboard className="h-3 w-3 mr-1" />
-                  Coller ligne
-                </Button>
-              )}
+              <div className="flex items-center gap-2">
+                {copiedLine && onLineAdd && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 text-[11px]"
+                    onClick={() => handlePasteLine(section.id)}
+                  >
+                    <Clipboard className="h-3 w-3 mr-1" />
+                    Coller ligne
+                  </Button>
+                )}
+                {onSectionDelete && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 text-[11px] text-destructive hover:text-destructive"
+                    onClick={() => {
+                      if (confirm(`Supprimer la section "${section.name}" ? Les lignes de cette section ne seront pas supprimées.`)) {
+                        onSectionDelete(section.id);
+                      }
+                    }}
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                )}
+              </div>
             </div>
             
             {/* Section Table */}

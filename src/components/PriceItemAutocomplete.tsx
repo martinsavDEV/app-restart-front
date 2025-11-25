@@ -67,10 +67,14 @@ export const PriceItemAutocomplete = ({
     }
   };
 
-  const handleBlur = () => {
-    setTimeout(() => {
-      setOpen(false);
-    }, 200);
+  const handleBlur = (e: React.FocusEvent) => {
+    // Ne fermer que si le focus ne va pas vers le popover
+    const relatedTarget = e.relatedTarget as HTMLElement;
+    if (!relatedTarget || !relatedTarget.closest('[role="dialog"]')) {
+      setTimeout(() => {
+        setOpen(false);
+      }, 150);
+    }
   };
 
   return (
@@ -88,7 +92,11 @@ export const PriceItemAutocomplete = ({
           />
         </div>
       </PopoverTrigger>
-      <PopoverContent className="w-[400px] p-0" align="start">
+      <PopoverContent 
+        className="w-[400px] p-0 z-50 bg-popover" 
+        align="start"
+        onOpenAutoFocus={(e) => e.preventDefault()}
+      >
         <Command shouldFilter={false}>
           <CommandList>
             {isLoading ? (
@@ -101,7 +109,10 @@ export const PriceItemAutocomplete = ({
                   <CommandItem
                     key={item.id}
                     value={item.item}
-                    onSelect={() => handleSelect(item)}
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      handleSelect(item);
+                    }}
                     className="cursor-pointer text-xs"
                   >
                     <div className="flex flex-col gap-1 w-full">

@@ -5,13 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { BPUTableWithSections } from "@/components/BPUTableWithSections";
 import { BPULine } from "@/types/bpu";
 import { toast } from "sonner";
-import { Plus, FileUp } from "lucide-react";
 import { useQuotePricing } from "@/hooks/useQuotePricing";
 import { TemplateLoaderDialog } from "@/components/TemplateLoaderDialog";
 import { QuoteSummaryCard } from "@/components/QuoteSummaryCard";
+import { SectionDialog } from "@/components/SectionDialog";
+import { LotSection } from "@/components/LotSection";
 
 interface PricingViewProps {
   projectId?: string | null;
@@ -25,6 +25,8 @@ export const PricingView = ({ projectId: initialProjectId, projectName: initialP
   const [selectedVersionId, setSelectedVersionId] = useState<string | null>(initialVersionId || null);
   const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
   const [selectedLotForTemplate, setSelectedLotForTemplate] = useState<{ id: string; code: string } | null>(null);
+  const [sectionDialogOpen, setSectionDialogOpen] = useState(false);
+  const [selectedLotForSection, setSelectedLotForSection] = useState<string | null>(null);
 
   // Fetch projects
   const { data: projects } = useQuery({
@@ -54,22 +56,6 @@ export const PricingView = ({ projectId: initialProjectId, projectName: initialP
   // Use the quote pricing hook
   const { lots, isLoading, updateLine, addLine, deleteLine, loadTemplate } = useQuotePricing(selectedVersionId);
 
-  // Fetch quote settings for foundations multiplier
-  const { data: quoteSettings } = useQuery({
-    queryKey: ["quote-settings", selectedVersionId],
-    queryFn: async () => {
-      if (!selectedVersionId) return null;
-      const { data, error } = await supabase
-        .from("quote_settings")
-        .select("*")
-        .eq("quote_version_id", selectedVersionId)
-        .maybeSingle();
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!selectedVersionId,
-  });
-
   const selectedProject = projects?.find((p) => p.id === selectedProjectId);
   const projectName = initialProjectName || selectedProject?.name;
 
@@ -81,43 +67,78 @@ export const PricingView = ({ projectId: initialProjectId, projectName: initialP
     }).format(value);
   };
 
-  const calculateLotTotal = (lines: any[]): number => {
-    return lines.reduce((sum, line) => sum + (line.quantity || 0) * (line.unit_price || 0), 0);
+  const calculateLotTotal = (lines: any[], sections: any[] = []): number => {
+    // Group lines by section_id
+    const linesBySection = lines.reduce((acc, line) => {
+      const sectionId = line.section_id || "no-section";
+      if (!acc[sectionId]) acc[sectionId] = [];
+      acc[sectionId].push(line);
+      return acc;
+    }, {} as Record<string, any[]>);
+
+    // Calculate total with multipliers
+    let total = 0;
+    sections.forEach(section => {
+      const sectionLines = linesBySection[section.id] || [];
+      const sectionTotal = sectionLines.reduce((sum, line) => 
+        sum + (line.quantity || 0) * (line.unit_price || 0), 0
+      );
+      const multiplier = section.is_multiple ? section.multiplier : 1;
+      total += sectionTotal * multiplier;
+    });
+
+    // Add lines without section
+    const noSectionLines = linesBySection["no-section"] || [];
+    total += noSectionLines.reduce((sum, line) => 
+      sum + (line.quantity || 0) * (line.unit_price || 0), 0
+    );
+
+    return total;
   };
 
-  // Mutation to update foundations count
-  const updateFoundationsMutation = useMutation({
-    mutationFn: async (nFoundations: number) => {
-      if (!selectedVersionId) return;
-      
-      const { data: existing } = await supabase
-        .from("quote_settings")
-        .select("id")
-        .eq("quote_version_id", selectedVersionId)
-        .maybeSingle();
+  const handleSectionUpdate = (lotId: string) => (sectionId: string, multiplier: number) => {
+    queryClient.invalidateQueries({ queryKey: ["quote-sections", lotId] });
+    queryClient.invalidateQueries({ queryKey: ["quote-pricing", selectedVersionId] });
+    queryClient.invalidateQueries({ queryKey: ["quote-versions"] });
+  };
 
-      if (existing) {
-        const { error } = await supabase
-          .from("quote_settings")
-          .update({ n_foundations: nFoundations })
-          .eq("quote_version_id", selectedVersionId);
-        if (error) throw error;
+  const handleCreateSection = (name: string, isMultiple: boolean, multiplier: number) => {
+    if (!selectedLotForSection) return;
+    
+    // This will be handled by the useQuoteSections hook in LotSection
+    const createSectionMutation = async () => {
+      const { data: existingSections } = await supabase
+        .from("quote_sections")
+        .select("order_index")
+        .eq("lot_id", selectedLotForSection)
+        .order("order_index", { ascending: false })
+        .limit(1);
+
+      const nextOrderIndex = existingSections && existingSections.length > 0 
+        ? existingSections[0].order_index + 1 
+        : 0;
+
+      const { error } = await supabase
+        .from("quote_sections")
+        .insert({
+          lot_id: selectedLotForSection,
+          name,
+          is_multiple: isMultiple,
+          multiplier: isMultiple ? multiplier : 1,
+          order_index: nextOrderIndex,
+        });
+
+      if (error) {
+        toast.error("Erreur lors de la création de la section");
+        console.error(error);
       } else {
-        const { error } = await supabase
-          .from("quote_settings")
-          .insert({
-            quote_version_id: selectedVersionId,
-            n_foundations: nFoundations,
-            n_wtg: selectedProject?.n_wtg || 1,
-          });
-        if (error) throw error;
+        queryClient.invalidateQueries({ queryKey: ["quote-sections"] });
+        toast.success("Section créée");
       }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["quote-settings", selectedVersionId] });
-      toast.success("Nombre de fondations mis à jour");
-    },
-  });
+    };
+
+    createSectionMutation();
+  };
 
   const handleLineUpdate = (lineId: string, updates: Partial<any>) => {
     // Trouver la ligne actuelle pour récupérer sa section
@@ -160,22 +181,30 @@ export const PricingView = ({ projectId: initialProjectId, projectName: initialP
     lineIds.forEach(lineId => deleteLine(lineId));
   };
 
-  const handleLinePaste = (lotId: string) => (line: Omit<any, "id">, sectionName: string) => {
+  const handleLinePaste = (lotId: string) => (line: Omit<any, "id">, sectionId: string | null) => {
     const currentLot = lots.find((l) => l.id === lotId);
     if (!currentLot) return;
 
     const nextOrderIndex = currentLot.lines.length || 0;
 
+    // Create a new line object with section_id
+    const newLine: any = {
+      designation: line.designation,
+      quantity: line.quantity,
+      unit: line.unit,
+      unit_price: line.unitPrice,
+      comment: line.priceSource || "",
+      order_index: nextOrderIndex,
+    };
+
+    // Add section_id if provided
+    if (sectionId) {
+      newLine.section_id = sectionId;
+    }
+
     addLine({
       lotId: currentLot.id,
-      line: {
-        designation: line.designation,
-        quantity: line.quantity,
-        unit: line.unit,
-        unit_price: line.unitPrice,
-        comment: sectionName !== "Sans section" ? `[${sectionName}] ${line.priceSource || ""}` : line.priceSource || "",
-        order_index: nextOrderIndex,
-      },
+      line: newLine,
     });
   };
 
@@ -210,24 +239,17 @@ export const PricingView = ({ projectId: initialProjectId, projectName: initialP
     }
   };
 
-  // Convert lot lines to BPULine format with section extraction
-  const convertToBPULines = (lines: any[]): (BPULine & { section?: string })[] => {
+  // Convert lot lines to BPULine format with section_id
+  const convertToBPULines = (lines: any[]): (BPULine & { section_id?: string | null })[] => {
     return lines.map((line) => {
-      // Extract section from comment (format: "[Section Name] comment")
-      const sectionMatch = line.comment?.match(/^\[([^\]]+)\]/);
-      const section = sectionMatch ? sectionMatch[1] : undefined;
-      const priceSource = sectionMatch 
-        ? line.comment.replace(/^\[[^\]]+\]\s*/, "")
-        : line.comment || "";
-      
       return {
         id: line.id,
         designation: line.designation,
         quantity: line.quantity || 0,
         unit: line.unit,
         unitPrice: line.unit_price || 0,
-        priceSource,
-        section,
+        priceSource: line.comment || "",
+        section_id: line.section_id,
       };
     });
   };
@@ -319,59 +341,22 @@ export const PricingView = ({ projectId: initialProjectId, projectName: initialP
           <div className="space-y-3">
             {lots.map((lot) => (
               <TabsContent key={lot.id} value={lot.id} className="space-y-3">
-                <Card>
-                  <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <CardTitle className="text-sm">{lot.label}</CardTitle>
-                        <CardDescription className="text-xs">{lot.description}</CardDescription>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-7 text-[11px]"
-                          onClick={() => handleLoadTemplate(lot.id, lot.code)}
-                        >
-                          <FileUp className="h-3 w-3 mr-1" />
-                          Charger template
-                        </Button>
-                        <div className="text-xs font-semibold tabular-nums">
-                          Total : {formatCurrency(calculateLotTotal(lot.lines))}
-                        </div>
-                      </div>
-                    </div>
-                  </CardHeader>
-                </Card>
-
-                <Card>
-                  <CardHeader className="pb-3">
-                    <div className="flex justify-between items-start">
-                      <CardTitle className="text-sm">Lignes de chiffrage</CardTitle>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-7 text-[11px]"
-                        onClick={() => handleAddLine(lot.id)}
-                      >
-                        <Plus className="h-3 w-3 mr-1" />
-                        Ajouter une ligne
-                      </Button>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <BPUTableWithSections
-                      lines={convertToBPULines(lot.lines)}
-                      onLineUpdate={handleLineUpdate}
-                      onLineDelete={handleLineDelete}
-                      onBulkDelete={handleBulkDelete}
-                      onLineAdd={handleLinePaste(lot.id)}
-                      lotCode={lot.code}
-                      nFoundations={quoteSettings?.n_foundations || 1}
-                      onNFoundationsChange={(n) => updateFoundationsMutation.mutate(n)}
-                    />
-                  </CardContent>
-                </Card>
+                <LotSection
+                  lot={lot}
+                  convertToBPULines={convertToBPULines}
+                  formatCurrency={formatCurrency}
+                  calculateLotTotal={calculateLotTotal}
+                  handleLineUpdate={handleLineUpdate}
+                  handleLineDelete={handleLineDelete}
+                  handleBulkDelete={handleBulkDelete}
+                  handleLinePaste={handleLinePaste}
+                  handleLoadTemplate={handleLoadTemplate}
+                  handleAddLine={handleAddLine}
+                  onCreateSection={(lotId) => {
+                    setSelectedLotForSection(lotId);
+                    setSectionDialogOpen(true);
+                  }}
+                />
               </TabsContent>
             ))}
           </div>
@@ -393,6 +378,12 @@ export const PricingView = ({ projectId: initialProjectId, projectName: initialP
         onOpenChange={setTemplateDialogOpen}
         lotCode={selectedLotForTemplate?.code}
         onLoadTemplate={handleTemplateSelected}
+      />
+
+      <SectionDialog
+        open={sectionDialogOpen}
+        onOpenChange={setSectionDialogOpen}
+        onConfirm={handleCreateSection}
       />
     </div>
   );

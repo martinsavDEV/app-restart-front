@@ -51,20 +51,35 @@ export const useQuotePricing = (quoteVersionId?: string | null) => {
 
     if (lotsError || !lotsData) return;
 
-    // Fetch all lines for these lots
+    // Fetch all lines with their sections for these lots
     const lotIds = lotsData.map(lot => lot.id);
     const { data: linesData, error: linesError } = await supabase
       .from("quote_lines")
-      .select("quantity, unit_price")
+      .select("quantity, unit_price, section_id")
       .in("lot_id", lotIds);
 
     if (linesError || !linesData) return;
 
-    // Calculate total
-    const total = linesData.reduce(
-      (sum, line) => sum + (line.quantity || 0) * (line.unit_price || 0),
-      0
-    );
+    // Fetch all sections with their multipliers
+    const { data: sectionsData, error: sectionsError } = await supabase
+      .from("quote_sections")
+      .select("id, is_multiple, multiplier")
+      .in("lot_id", lotIds);
+
+    if (sectionsError) return;
+
+    // Create a map of section_id -> multiplier
+    const sectionMultipliers = new Map<string, number>();
+    sectionsData?.forEach(section => {
+      sectionMultipliers.set(section.id, section.is_multiple ? section.multiplier : 1);
+    });
+
+    // Calculate total with section multipliers
+    const total = linesData.reduce((sum, line) => {
+      const lineTotal = (line.quantity || 0) * (line.unit_price || 0);
+      const multiplier = line.section_id ? (sectionMultipliers.get(line.section_id) || 1) : 1;
+      return sum + (lineTotal * multiplier);
+    }, 0);
 
     // Update quote version
     await supabase

@@ -168,6 +168,7 @@ export type Database = {
           order_index: number
           price_source: string | null
           quantity: number
+          section_id: string | null
           total_price: number | null
           unit: string
           unit_price: number
@@ -183,6 +184,7 @@ export type Database = {
           order_index?: number
           price_source?: string | null
           quantity?: number
+          section_id?: string | null
           total_price?: number | null
           unit?: string
           unit_price?: number
@@ -198,6 +200,7 @@ export type Database = {
           order_index?: number
           price_source?: string | null
           quantity?: number
+          section_id?: string | null
           total_price?: number | null
           unit?: string
           unit_price?: number
@@ -206,6 +209,54 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "quote_lines_lot_id_fkey"
+            columns: ["lot_id"]
+            isOneToOne: false
+            referencedRelation: "lots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quote_lines_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "quote_sections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quote_sections: {
+        Row: {
+          created_at: string
+          id: string
+          is_multiple: boolean
+          lot_id: string
+          multiplier: number
+          name: string
+          order_index: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_multiple?: boolean
+          lot_id: string
+          multiplier?: number
+          name: string
+          order_index?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_multiple?: boolean
+          lot_id?: string
+          multiplier?: number
+          name?: string
+          order_index?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quote_sections_lot_id_fkey"
             columns: ["lot_id"]
             isOneToOne: false
             referencedRelation: "lots"

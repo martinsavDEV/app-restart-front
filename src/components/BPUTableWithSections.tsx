@@ -1,7 +1,9 @@
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { BPULine } from "@/types/bpu";
-import { Trash2, Clipboard, Plus } from "lucide-react";
+import { Trash2, Clipboard, Plus, Link2 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { useLineSelection } from "@/hooks/useLineSelection";
 import { toast } from "sonner";
 import { QuoteSection } from "@/hooks/useQuoteSections";
@@ -26,6 +28,7 @@ import { DraggableLine } from "./DraggableLine";
 interface BPULineWithSection extends BPULine {
   section?: string;
   section_id?: string | null;
+  lot_id?: string;
 }
 
 interface BPUTableWithSectionsProps {
@@ -82,6 +85,33 @@ export const BPUTableWithSections = ({
     focusedLineId,
     setFocusedLine,
   } = useLineSelection();
+
+  // Fetch quote settings to get linked values
+  const { data: quoteSettings } = useQuery({
+    queryKey: ["quote-settings-for-sections", lines[0]?.lot_id],
+    queryFn: async () => {
+      if (!lines[0]?.lot_id) return null;
+      
+      // Get the quote_version_id from the lot
+      const { data: lotData, error: lotError } = await supabase
+        .from("lots")
+        .select("quote_version_id")
+        .eq("id", lines[0].lot_id)
+        .single();
+      
+      if (lotError || !lotData) return null;
+
+      const { data, error } = await supabase
+        .from("quote_settings")
+        .select("*")
+        .eq("quote_version_id", lotData.quote_version_id)
+        .maybeSingle();
+      
+      if (error) return null;
+      return data;
+    },
+    enabled: lines.length > 0,
+  });
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -343,13 +373,23 @@ export const BPUTableWithSections = ({
                 {section.is_multiple && onSectionUpdate && (
                   <div className="flex items-center gap-2">
                     <label className="text-xs text-muted-foreground">Nombre:</label>
-                    <input
-                      type="number"
-                      min="1"
-                      value={section.multiplier}
-                      onChange={(e) => onSectionUpdate(section.id, Math.max(1, parseInt(e.target.value) || 1))}
-                      className="w-16 h-7 px-2 text-xs border rounded-md bg-background"
-                    />
+                    <div className="flex items-center gap-1">
+                      <input
+                        type="number"
+                        min="1"
+                        value={section.linked_field && quoteSettings ? (quoteSettings as any)[section.linked_field] || section.multiplier : section.multiplier}
+                        onChange={(e) => onSectionUpdate(section.id, Math.max(1, parseInt(e.target.value) || 1))}
+                        disabled={!!section.linked_field}
+                        className={`w-16 h-7 px-2 text-xs border rounded-md ${
+                          section.linked_field 
+                            ? 'bg-muted text-orange-500 font-medium cursor-not-allowed' 
+                            : 'bg-background'
+                        }`}
+                      />
+                      {section.linked_field && (
+                        <Link2 className="h-3 w-3 text-orange-500 flex-shrink-0" />
+                      )}
+                    </div>
                   </div>
                 )}
               </div>

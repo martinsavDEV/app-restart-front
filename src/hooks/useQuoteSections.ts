@@ -9,6 +9,7 @@ export interface QuoteSection {
   is_multiple: boolean;
   multiplier: number;
   order_index: number;
+  linked_field?: string | null;
 }
 
 export const useQuoteSections = (lotId?: string | null) => {

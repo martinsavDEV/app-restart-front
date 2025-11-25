@@ -141,31 +141,39 @@ export const VariableAutocomplete = ({
 
   return (
     <div className="flex items-center gap-1 w-full relative">
-      {isEditing ? (
-        <Input
-          ref={inputRef}
-          value={searchValue}
-          onChange={(e) => handleInputChange(e.target.value)}
-          onKeyDown={handleKeyDown}
-          onBlur={handleBlur}
-          onClick={(e) => e.stopPropagation()}
-          disabled={disabled}
-          placeholder={placeholder}
-          className={inputClasses}
-        />
-      ) : (
-        <div 
-          onClick={handleClick}
-          onFocus={handleClick}
-          tabIndex={disabled ? -1 : 0}
-          className={displayClasses}
-        >
-          {displayText || placeholder}
-        </div>
-      )}
-      
       <Popover open={open} onOpenChange={setOpen}>
-        <PopoverContent className="w-80 p-0" align="start">
+        <PopoverTrigger asChild>
+          <div className="w-full">
+            {isEditing ? (
+              <Input
+                ref={inputRef}
+                value={searchValue}
+                onChange={(e) => handleInputChange(e.target.value)}
+                onKeyDown={handleKeyDown}
+                onBlur={handleBlur}
+                onClick={(e) => e.stopPropagation()}
+                disabled={disabled}
+                placeholder={placeholder}
+                className={inputClasses}
+              />
+            ) : (
+              <div 
+                onClick={handleClick}
+                onFocus={handleClick}
+                tabIndex={disabled ? -1 : 0}
+                className={displayClasses}
+              >
+                {displayText || placeholder}
+              </div>
+            )}
+          </div>
+        </PopoverTrigger>
+        
+        <PopoverContent 
+          className="w-80 p-0 z-50 bg-popover" 
+          align="start"
+          onOpenAutoFocus={(e) => e.preventDefault()}
+        >
           <Command>
             <CommandList>
               <CommandEmpty>Aucune variable trouvée</CommandEmpty>

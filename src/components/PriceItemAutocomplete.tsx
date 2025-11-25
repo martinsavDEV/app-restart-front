@@ -28,7 +28,7 @@ export const PriceItemAutocomplete = ({
 }: PriceItemAutocompleteProps) => {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState(value);
-  const { priceItems, isLoading } = usePriceItems(lotCode);
+  const { priceItems, isLoading } = usePriceItems(); // Recherche dans TOUS les prix
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -52,7 +52,7 @@ export const PriceItemAutocomplete = ({
 
   const handleInputChange = (newValue: string) => {
     setSearch(newValue);
-    onChange(newValue);
+    // Ne pas appeler onChange ici - seulement au blur
     if (newValue.length > 0) {
       setOpen(true);
     } else {
@@ -71,6 +71,10 @@ export const PriceItemAutocomplete = ({
     // Ne fermer que si le focus ne va pas vers le popover
     const relatedTarget = e.relatedTarget as HTMLElement;
     if (!relatedTarget || !relatedTarget.closest('[role="dialog"]')) {
+      // Mettre à jour la valeur seulement au blur si elle a changé
+      if (search !== value) {
+        onChange(search);
+      }
       setTimeout(() => {
         setOpen(false);
       }, 150);

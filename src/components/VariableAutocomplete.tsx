@@ -38,8 +38,18 @@ export const VariableAutocomplete = ({
     : null;
 
   useEffect(() => {
-    setSearchValue(String(value));
-  }, [value]);
+    // When editing, show the variable name, otherwise show the resolved value
+    if (document.activeElement === inputRef.current) {
+      setSearchValue(String(value));
+    } else {
+      // When not editing, show resolved value if it's a linked variable
+      if (isLinkedVariable && resolvedValue !== undefined) {
+        setSearchValue(String(resolvedValue));
+      } else {
+        setSearchValue(String(value));
+      }
+    }
+  }, [value, isLinkedVariable, resolvedValue]);
 
   const handleInputChange = (newValue: string) => {
     setSearchValue(newValue);
@@ -67,6 +77,11 @@ export const VariableAutocomplete = ({
       }
     }
     
+    // Update display to show resolved value when not editing
+    if (isLinkedVariable && resolvedValue !== undefined) {
+      setSearchValue(String(resolvedValue));
+    }
+    
     // Don't close immediately if focus moves to the popover
     const relatedTarget = e.relatedTarget as HTMLElement;
     if (!relatedTarget || !relatedTarget.closest('[role="dialog"]')) {
@@ -74,6 +89,11 @@ export const VariableAutocomplete = ({
         setOpen(false);
       }, 150);
     }
+  };
+
+  const handleFocus = () => {
+    // When focusing, show the variable name or current value for editing
+    setSearchValue(String(value));
   };
 
   const handleSelect = (variable: CalculatorVariable) => {
@@ -120,11 +140,13 @@ export const VariableAutocomplete = ({
               ref={inputRef}
               value={searchValue}
               onChange={(e) => handleInputChange(e.target.value)}
+              onFocus={handleFocus}
               onBlur={handleBlur}
               onClick={(e) => e.stopPropagation()}
               disabled={disabled}
               placeholder={placeholder}
               className={inputClasses}
+              title={isLinkedVariable ? `Variable liée: ${value} = ${resolvedValue}` : undefined}
             />
           </div>
         </PopoverTrigger>

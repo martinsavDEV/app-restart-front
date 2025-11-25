@@ -28,6 +28,12 @@ interface TemplateLine {
   unit: string;
   unit_price: number;
   comment?: string;
+  quantity?: number;
+}
+
+interface TemplateSection {
+  title: string;
+  lines: TemplateLine[];
 }
 
 export const useQuotePricing = (quoteVersionId?: string | null) => {
@@ -144,27 +150,35 @@ export const useQuotePricing = (quoteVersionId?: string | null) => {
     },
   });
 
-  // Load template lines into a lot
+  // Load template sections into a lot (creates sections as quote_lines with proper grouping)
   const loadTemplateMutation = useMutation({
     mutationFn: async ({
       lotId,
-      templateLines,
+      templateSections,
     }: {
       lotId: string;
-      templateLines: TemplateLine[];
+      templateSections: TemplateSection[];
     }) => {
-      const linesToInsert = templateLines.map((line, index) => ({
-        lot_id: lotId,
-        code: line.designation.substring(0, 20).toLowerCase().replace(/\s+/g, '_'),
-        designation: line.designation,
-        unit: line.unit,
-        unit_price: line.unit_price,
-        comment: line.comment || "",
-        quantity: 0,
-        order_index: index,
-      }));
+      let orderIndex = 0;
+      const allLinesToInsert: any[] = [];
 
-      const { error } = await supabase.from("quote_lines").insert(linesToInsert);
+      // Flatten all sections into lines with section info in comment
+      templateSections.forEach((section) => {
+        section.lines.forEach((line) => {
+          allLinesToInsert.push({
+            lot_id: lotId,
+            code: line.designation.substring(0, 20).toLowerCase().replace(/\s+/g, '_'),
+            designation: line.designation,
+            unit: line.unit,
+            unit_price: line.unit_price,
+            comment: `[${section.title}] ${line.comment || ""}`.trim(),
+            quantity: line.quantity || 0,
+            order_index: orderIndex++,
+          });
+        });
+      });
+
+      const { error } = await supabase.from("quote_lines").insert(allLinesToInsert);
 
       if (error) throw error;
     },

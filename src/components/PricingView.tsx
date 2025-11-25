@@ -106,11 +106,11 @@ export const PricingView = ({ projectId: initialProjectId, projectName: initialP
     setTemplateDialogOpen(true);
   };
 
-  const handleTemplateSelected = (templateLines: any[]) => {
+  const handleTemplateSelected = (templateSections: any[]) => {
     if (selectedLotForTemplate) {
       loadTemplate({
         lotId: selectedLotForTemplate.id,
-        templateLines,
+        templateSections,
       });
     }
   };

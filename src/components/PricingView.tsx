@@ -89,15 +89,8 @@ export const PricingView = ({ projectId: initialProjectId, projectName: initialP
     lineIds.forEach(lineId => deleteLine(lineId));
   };
 
-  const handleLinePaste = (line: Omit<any, "id">) => {
-    const currentLot = lots.find((l) => 
-      l.lines.some(existingLine => {
-        const sectionMatch = existingLine.comment?.match(/^\[([^\]]+)\]/);
-        const section = sectionMatch ? sectionMatch[1] : undefined;
-        return section === line.section;
-      })
-    );
-    
+  const handleLinePaste = (lotId: string) => (line: Omit<any, "id">, sectionName: string) => {
+    const currentLot = lots.find((l) => l.id === lotId);
     if (!currentLot) return;
 
     const nextOrderIndex = currentLot.lines.length || 0;
@@ -109,7 +102,7 @@ export const PricingView = ({ projectId: initialProjectId, projectName: initialP
         quantity: line.quantity,
         unit: line.unit,
         unit_price: line.unitPrice,
-        comment: line.section ? `[${line.section}] ${line.priceSource || ""}` : line.priceSource || "",
+        comment: sectionName !== "Sans section" ? `[${sectionName}] ${line.priceSource || ""}` : line.priceSource || "",
         order_index: nextOrderIndex,
       },
     });
@@ -298,7 +291,7 @@ export const PricingView = ({ projectId: initialProjectId, projectName: initialP
                       onLineUpdate={handleLineUpdate}
                       onLineDelete={handleLineDelete}
                       onBulkDelete={handleBulkDelete}
-                      onLineAdd={handleLinePaste}
+                      onLineAdd={handleLinePaste(lot.id)}
                     />
                   </CardContent>
                 </Card>

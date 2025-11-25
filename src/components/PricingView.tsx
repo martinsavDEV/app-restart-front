@@ -53,6 +53,22 @@ export const PricingView = ({ projectId: initialProjectId, projectName: initialP
   // Use the quote pricing hook
   const { lots, isLoading, updateLine, addLine, deleteLine, loadTemplate } = useQuotePricing(selectedVersionId);
 
+  // Fetch quote settings for foundations multiplier
+  const { data: quoteSettings } = useQuery({
+    queryKey: ["quote-settings", selectedVersionId],
+    queryFn: async () => {
+      if (!selectedVersionId) return null;
+      const { data, error } = await supabase
+        .from("quote_settings")
+        .select("*")
+        .eq("quote_version_id", selectedVersionId)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!selectedVersionId,
+  });
+
   const selectedProject = projects?.find((p) => p.id === selectedProjectId);
   const projectName = initialProjectName || selectedProject?.name;
 
@@ -64,8 +80,13 @@ export const PricingView = ({ projectId: initialProjectId, projectName: initialP
     }).format(value);
   };
 
-  const calculateLotTotal = (lines: any[]): number => {
-    return lines.reduce((sum, line) => sum + (line.quantity || 0) * (line.unit_price || 0), 0);
+  const calculateLotTotal = (lines: any[], lotCode?: string): number => {
+    const baseTotal = lines.reduce((sum, line) => sum + (line.quantity || 0) * (line.unit_price || 0), 0);
+    // Multiply by number of foundations if it's the foundations lot
+    if (lotCode === "fondations" && quoteSettings?.n_foundations) {
+      return baseTotal * quoteSettings.n_foundations;
+    }
+    return baseTotal;
   };
 
   const handleLineUpdate = (lineId: string, updates: Partial<any>) => {
@@ -197,6 +218,9 @@ export const PricingView = ({ projectId: initialProjectId, projectName: initialP
           versionId={selectedVersionId} 
           projectName={projectName} 
           nWtg={selectedProject?.n_wtg}
+          onSettingsUpdate={() => {
+            // Refresh quote settings and lots when foundations count changes
+          }}
         />
       )}
 
@@ -283,7 +307,12 @@ export const PricingView = ({ projectId: initialProjectId, projectName: initialP
                           Charger template
                         </Button>
                         <div className="text-xs font-semibold tabular-nums">
-                          Total : {formatCurrency(calculateLotTotal(lot.lines))}
+                          Total : {formatCurrency(calculateLotTotal(lot.lines, lot.code))}
+                          {lot.code === "fondations" && quoteSettings?.n_foundations && quoteSettings.n_foundations > 1 && (
+                            <span className="text-muted-foreground font-normal ml-1">
+                              (×{quoteSettings.n_foundations})
+                            </span>
+                          )}
                         </div>
                       </div>
                     </div>

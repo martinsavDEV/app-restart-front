@@ -16,14 +16,17 @@ interface QuoteSummaryCardProps {
   versionId: string;
   projectName?: string;
   nWtg?: number;
+  onSettingsUpdate?: () => void;
 }
 
 const DOCUMENT_CATEGORIES = ["Plan", "Etude de sol", "Unifilaire", "Road Survey"];
 
-export const QuoteSummaryCard = ({ versionId, projectName, nWtg }: QuoteSummaryCardProps) => {
+export const QuoteSummaryCard = ({ versionId, projectName, nWtg, onSettingsUpdate }: QuoteSummaryCardProps) => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingDoc, setEditingDoc] = useState<any>(null);
   const [formData, setFormData] = useState({ label: "", reference: "", comment: "" });
+  const [editingFoundations, setEditingFoundations] = useState(false);
+  const [nFoundations, setNFoundations] = useState<number>(1);
   const queryClient = useQueryClient();
 
   // Fetch quote version details
@@ -35,6 +38,21 @@ export const QuoteSummaryCard = ({ versionId, projectName, nWtg }: QuoteSummaryC
         .select("*")
         .eq("id", versionId)
         .single();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!versionId,
+  });
+
+  // Fetch quote settings
+  const { data: quoteSettings } = useQuery({
+    queryKey: ["quote-settings", versionId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("quote_settings")
+        .select("*")
+        .eq("quote_version_id", versionId)
+        .maybeSingle();
       if (error) throw error;
       return data;
     },
@@ -121,6 +139,46 @@ export const QuoteSummaryCard = ({ versionId, projectName, nWtg }: QuoteSummaryC
     });
   };
 
+  // Update foundations mutation
+  const updateFoundationsMutation = useMutation({
+    mutationFn: async (nFoundations: number) => {
+      if (quoteSettings?.id) {
+        const { error } = await supabase
+          .from("quote_settings")
+          .update({ n_foundations: nFoundations })
+          .eq("id", quoteSettings.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("quote_settings")
+          .insert({ quote_version_id: versionId, n_wtg: nWtg || 1, n_foundations: nFoundations });
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["quote-settings", versionId] });
+      toast.success("Nombre de fondations mis à jour");
+      setEditingFoundations(false);
+      onSettingsUpdate?.();
+    },
+    onError: () => {
+      toast.error("Erreur lors de la mise à jour");
+    },
+  });
+
+  const handleFoundationsEdit = () => {
+    setNFoundations(quoteSettings?.n_foundations || 1);
+    setEditingFoundations(true);
+  };
+
+  const handleFoundationsSave = () => {
+    if (nFoundations < 1) {
+      toast.error("Le nombre de fondations doit être au moins 1");
+      return;
+    }
+    updateFoundationsMutation.mutate(nFoundations);
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -147,6 +205,48 @@ export const QuoteSummaryCard = ({ versionId, projectName, nWtg }: QuoteSummaryC
               {versionDetails?.last_update
                 ? format(new Date(versionDetails.last_update), "dd/MM/yyyy HH:mm", { locale: fr })
                 : "—"}
+            </p>
+          </div>
+        </div>
+
+        {/* Foundations Settings */}
+        <div className="pt-2 border-t border-border">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <p className="text-xs font-medium">Nombre de fondations</p>
+              {editingFoundations ? (
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="number"
+                    min="1"
+                    value={nFoundations}
+                    onChange={(e) => setNFoundations(parseInt(e.target.value) || 1)}
+                    className="h-7 w-20 text-xs"
+                    autoFocus
+                  />
+                  <Button variant="ghost" size="sm" className="h-7 text-[11px]" onClick={handleFoundationsSave}>
+                    Valider
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-[11px]"
+                    onClick={() => setEditingFoundations(false)}
+                  >
+                    Annuler
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  <p className="font-medium text-sm">{quoteSettings?.n_foundations || 1}</p>
+                  <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={handleFoundationsEdit}>
+                    <Pencil className="h-3 w-3" />
+                  </Button>
+                </>
+              )}
+            </div>
+            <p className="text-[11px] text-muted-foreground italic">
+              Multiplie le total du lot Fondations
             </p>
           </div>
         </div>

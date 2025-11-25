@@ -134,8 +134,8 @@ export const BPUTableWithSections = ({
         return (
           <div key={sectionName} className="mb-6">
             {/* Section Header */}
-            <div className="bg-muted/50 px-3 py-2 mb-2 rounded-md flex items-center justify-between">
-              <h3 className="text-sm font-semibold">{sectionName}</h3>
+            <div className="bg-emerald-500/20 px-3 py-2 mb-2 rounded-md flex items-center justify-between border border-emerald-500/30">
+              <h3 className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">{sectionName}</h3>
               {copiedLine && onLineAdd && (
                 <Button
                   variant="ghost"
@@ -196,17 +196,17 @@ export const BPUTableWithSections = ({
                   const total = line.quantity * line.unitPrice;
                   const selected = isSelected(line.id);
                   return (
-                    <tr 
+                     <tr 
                       key={line.id} 
                       className={`border-b hover:bg-muted/30 group ${selected ? "bg-accent/20" : ""}`}
                     >
-                      <td className="py-3 px-2 text-center">
+                      <td className="py-1 px-2 text-center">
                         <Checkbox
                           checked={selected}
                           onCheckedChange={() => toggleLineSelection(line.id)}
                         />
                       </td>
-                      <td className="py-3 px-2">
+                      <td className="py-1 px-2">
                         <EditableCellText
                           value={line.designation}
                           onChange={(value) => onLineUpdate(line.id, { designation: value })}
@@ -214,7 +214,7 @@ export const BPUTableWithSections = ({
                           placeholder="Désignation"
                         />
                       </td>
-                      <td className="py-3 px-2">
+                      <td className="py-1 px-2">
                         <EditableCell
                           value={line.quantity}
                           onChange={(value) => onLineUpdate(line.id, { quantity: value })}
@@ -223,7 +223,7 @@ export const BPUTableWithSections = ({
                           className="tabular-nums"
                         />
                       </td>
-                      <td className="py-3 px-2">
+                      <td className="py-1 px-2">
                         <EditableCellText
                           value={line.unit}
                           onChange={(value) => onLineUpdate(line.id, { unit: value })}
@@ -231,7 +231,7 @@ export const BPUTableWithSections = ({
                           placeholder="Unité"
                         />
                       </td>
-                      <td className="py-3 px-2">
+                      <td className="py-1 px-2">
                         <EditableCell
                           value={line.unitPrice}
                           onChange={(value) => onLineUpdate(line.id, { unitPrice: value })}
@@ -240,17 +240,17 @@ export const BPUTableWithSections = ({
                           className="tabular-nums"
                         />
                       </td>
-                      <td className="py-3 px-2 text-right tabular-nums font-semibold">
+                      <td className="py-1 px-2 text-right tabular-nums font-semibold">
                         {formatCurrency(total)}
                       </td>
-                      <td className="py-3 px-2">
+                      <td className="py-1 px-2">
                         <EditableCellText
                           value={line.priceSource || ""}
                           onChange={(value) => onLineUpdate(line.id, { priceSource: value })}
                           placeholder="Source prix"
                         />
                       </td>
-                      <td className="py-3 px-2 text-center">
+                      <td className="py-1 px-2 text-center">
                         <div className="flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                           <Button
                             variant="ghost"

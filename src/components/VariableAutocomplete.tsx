@@ -93,7 +93,11 @@ export const VariableAutocomplete = ({
     setIsEditing(false);
   };
 
-  const handleClick = () => {
+  const handleClick = (e?: React.MouseEvent | React.FocusEvent) => {
+    if (e) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
     if (!disabled) {
       setIsEditing(true);
     }
@@ -144,12 +148,18 @@ export const VariableAutocomplete = ({
           onChange={(e) => handleInputChange(e.target.value)}
           onKeyDown={handleKeyDown}
           onBlur={handleBlur}
+          onClick={(e) => e.stopPropagation()}
           disabled={disabled}
           placeholder={placeholder}
           className={inputClasses}
         />
       ) : (
-        <div onClick={handleClick} className={displayClasses}>
+        <div 
+          onClick={handleClick}
+          onFocus={handleClick}
+          tabIndex={disabled ? -1 : 0}
+          className={displayClasses}
+        >
           {displayText || placeholder}
         </div>
       )}

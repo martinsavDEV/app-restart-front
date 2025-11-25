@@ -310,6 +310,7 @@ export const useQuotePricing = (quoteVersionId?: string | null) => {
             unit_price: line.unitPrice ?? line.unit_price ?? 0,
             comment: line.comment || "", // No more [Section Title] prefix
             quantity: line.quantity ?? 0,
+            linked_variable: line.linkedVariable || null,
             order_index: orderIndex++,
           });
         });

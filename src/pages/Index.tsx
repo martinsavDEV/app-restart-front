@@ -61,6 +61,7 @@ const Index = () => {
       case "quotes":
         return (
           <QuotesView
+            projectId={selectedProjectId || undefined}
             projectName={selectedProjectName || undefined}
             initialSelectedVersionId={selectedQuoteVersion || undefined}
             onVersionChange={setSelectedQuoteVersion}

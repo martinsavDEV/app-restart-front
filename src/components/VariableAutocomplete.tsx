@@ -3,14 +3,16 @@ import { Input } from "@/components/ui/input";
 import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CalculatorVariable } from "@/types/bpu";
-import { Link2 } from "lucide-react";
+import { Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 interface VariableAutocompleteProps {
   value: string | number;
   variables: CalculatorVariable[];
   onSelect: (variable: CalculatorVariable) => void;
   onChange: (value: string) => void;
+  resolvedValue?: number;
   className?: string;
   placeholder?: string;
   disabled?: boolean;
@@ -21,6 +23,7 @@ export const VariableAutocomplete = ({
   variables,
   onSelect,
   onChange,
+  resolvedValue,
   className,
   placeholder = "Quantité ou $variable",
   disabled = false,
@@ -30,6 +33,9 @@ export const VariableAutocomplete = ({
   const inputRef = useRef<HTMLInputElement>(null);
 
   const isLinkedVariable = String(value).startsWith("$");
+  const linkedVariable = isLinkedVariable 
+    ? variables.find(v => v.name === String(value))
+    : null;
 
   useEffect(() => {
     setSearchValue(String(value));
@@ -39,10 +45,10 @@ export const VariableAutocomplete = ({
     setSearchValue(newValue);
     onChange(newValue);
 
-    // Open dropdown automatically when user types $
-    if (newValue.startsWith("$") || newValue === "$") {
+    // Open dropdown ONLY when user types $
+    if (newValue.includes("$")) {
       setOpen(true);
-    } else if (!newValue.includes("$")) {
+    } else {
       setOpen(false);
     }
   };
@@ -51,6 +57,21 @@ export const VariableAutocomplete = ({
     // Open dropdown when user types $
     if (e.key === "$" || (e.key === "4" && e.shiftKey)) {
       setOpen(true);
+    }
+  };
+
+  const handleBlur = () => {
+    const trimmedValue = searchValue.trim();
+    
+    // Check if it's supposed to be a variable
+    if (trimmedValue.startsWith("$")) {
+      const variableExists = variables.some(v => v.name === trimmedValue);
+      
+      if (!variableExists && variables.length > 0) {
+        toast.error("Variable introuvable", {
+          description: `La variable "${trimmedValue}" n'existe pas dans le calculateur.`,
+        });
+      }
     }
   };
 
@@ -84,15 +105,21 @@ export const VariableAutocomplete = ({
     className
   );
 
+  // Display value for linked variables: $name = value 🔒
+  const displayValue = isLinkedVariable && linkedVariable && resolvedValue !== undefined
+    ? `${linkedVariable.name} = ${resolvedValue}`
+    : searchValue;
+
   return (
-    <div className="flex items-center gap-1">
+    <div className="flex items-center gap-1 w-full">
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Input
             ref={inputRef}
-            value={searchValue}
+            value={displayValue}
             onChange={(e) => handleInputChange(e.target.value)}
             onKeyDown={handleKeyDown}
+            onBlur={handleBlur}
             disabled={disabled}
             placeholder={placeholder}
             className={cellClasses}
@@ -125,7 +152,7 @@ export const VariableAutocomplete = ({
         </PopoverContent>
       </Popover>
       {isLinkedVariable && (
-        <Link2 className="h-3 w-3 text-orange-500 flex-shrink-0" />
+        <Lock className="h-3 w-3 text-orange-500 flex-shrink-0" />
       )}
     </div>
   );

@@ -108,6 +108,7 @@ export const DraggableLine = ({
         <VariableAutocomplete
           value={line.quantity}
           variables={variables}
+          resolvedValue={resolvedQuantity}
           onSelect={(variable) => {
             onLineUpdate(line.id, { 
               quantity: variable.name,

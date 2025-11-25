@@ -3,6 +3,7 @@ import { useState } from "react";
 export const useLineSelection = () => {
   const [selectedLines, setSelectedLines] = useState<Set<string>>(new Set());
   const [copiedLine, setCopiedLine] = useState<any>(null);
+  const [focusedLineId, setFocusedLineId] = useState<string | null>(null);
 
   const toggleLineSelection = (lineId: string) => {
     setSelectedLines((prev) => {
@@ -14,6 +15,10 @@ export const useLineSelection = () => {
       }
       return newSet;
     });
+  };
+  
+  const setFocusedLine = (lineId: string | null) => {
+    setFocusedLineId(lineId);
   };
 
   const selectAll = (lineIds: string[]) => {
@@ -48,5 +53,7 @@ export const useLineSelection = () => {
     selectedCount: selectedLines.size,
     copiedLine,
     copyLine,
+    focusedLineId,
+    setFocusedLine,
   };
 };

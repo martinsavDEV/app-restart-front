@@ -1,15 +1,27 @@
 import { Button } from "@/components/ui/button";
-import { EditableCell } from "@/components/EditableCell";
-import { EditableCellText } from "@/components/EditableCellText";
-import { PriceItemAutocomplete } from "@/components/PriceItemAutocomplete";
-import { PriceSourceIndicator } from "@/components/PriceSourceIndicator";
 import { Checkbox } from "@/components/ui/checkbox";
 import { BPULine } from "@/types/bpu";
-import { Trash2, Copy, Clipboard, Plus } from "lucide-react";
+import { Trash2, Clipboard, Plus } from "lucide-react";
 import { useLineSelection } from "@/hooks/useLineSelection";
 import { toast } from "sonner";
 import { QuoteSection } from "@/hooks/useQuoteSections";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { DraggableLine } from "./DraggableLine";
 
 interface BPULineWithSection extends BPULine {
   section?: string;
@@ -21,9 +33,10 @@ interface BPUTableWithSectionsProps {
   sections: QuoteSection[];
   onLineUpdate: (id: string, updates: Partial<BPULine>) => void;
   onLineDelete: (id: string) => void;
-  onLineAdd?: (line: Omit<BPULineWithSection, "id">, sectionId: string | null) => void;
+  onLineAdd?: (line: Omit<BPULineWithSection, "id">, sectionId: string | null, afterLineId?: string) => void;
   onBulkDelete?: (lineIds: string[]) => void;
   onSectionUpdate?: (sectionId: string, multiplier: number) => void;
+  onLinesReorder?: (updates: { id: string; order_index: number }[]) => void;
   lotCode?: string;
 }
 
@@ -50,9 +63,9 @@ export const BPUTableWithSections = ({
   onLineAdd,
   onBulkDelete,
   onSectionUpdate,
+  onLinesReorder,
   lotCode,
 }: BPUTableWithSectionsProps) => {
-  const [editingMultiplier, setEditingMultiplier] = useState<string | null>(null);
   const {
     selectedLines,
     toggleLineSelection,
@@ -62,7 +75,17 @@ export const BPUTableWithSections = ({
     selectedCount,
     copiedLine,
     copyLine,
+    focusedLineId,
+    setFocusedLine,
   } = useLineSelection();
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
   // Group lines by section_id
   const linesBySection = lines.reduce((acc, line) => {
     const sectionId = line.section_id || "no-section";
@@ -72,6 +95,22 @@ export const BPUTableWithSections = ({
     acc[sectionId].push(line);
     return acc;
   }, {} as Record<string, BPULineWithSection[]>);
+
+  // Ensure each section has at least one empty line
+  useEffect(() => {
+    sections.forEach((section) => {
+      const sectionLines = linesBySection[section.id] || [];
+      if (sectionLines.length === 0 && onLineAdd) {
+        const emptyLine = {
+          designation: "",
+          quantity: 0,
+          unit: "u",
+          unitPrice: 0,
+        };
+        onLineAdd(emptyLine, section.id);
+      }
+    });
+  }, [sections]);
 
   const calculateSectionTotal = (sectionLines: BPULineWithSection[]) => {
     return sectionLines.reduce((sum, line) => sum + (line.quantity * line.unitPrice), 0);
@@ -106,8 +145,134 @@ export const BPUTableWithSections = ({
 
   const handlePasteLine = (sectionId: string | null) => {
     if (copiedLine && onLineAdd) {
-      onLineAdd(copiedLine, sectionId);
+      onLineAdd(copiedLine, sectionId, focusedLineId || undefined);
+      toast.success("Ligne collée");
     }
+  };
+
+  const handleAddLine = (sectionId: string | null) => {
+    if (onLineAdd) {
+      const emptyLine = {
+        designation: "",
+        quantity: 0,
+        unit: "u",
+        unitPrice: 0,
+      };
+      onLineAdd(emptyLine, sectionId, focusedLineId || undefined);
+    }
+  };
+
+  const handleDragEnd = (event: DragEndEvent, sectionId: string | null) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      const sectionLines = sectionId ? (linesBySection[sectionId] || []) : (linesBySection["no-section"] || []);
+      const oldIndex = sectionLines.findIndex((line) => line.id === active.id);
+      const newIndex = sectionLines.findIndex((line) => line.id === over.id);
+
+      const reorderedLines = arrayMove(sectionLines, oldIndex, newIndex);
+      
+      // Update order_index for all affected lines
+      const updates = reorderedLines.map((line, index) => ({
+        id: line.id,
+        order_index: index,
+      }));
+
+      if (onLinesReorder) {
+        onLinesReorder(updates);
+      }
+    }
+  };
+
+  const renderSectionTable = (
+    sectionId: string | null,
+    sectionLines: BPULineWithSection[],
+    sectionName?: string
+  ) => {
+    return (
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={(event) => handleDragEnd(event, sectionId)}
+      >
+        <table className="w-full text-xs mb-2">
+          <thead>
+            <tr className="border-b">
+              <th className="text-center py-2 px-2 font-medium text-muted-foreground text-[11px] uppercase w-20">
+                <Checkbox
+                  checked={sectionLines.every(line => isSelected(line.id))}
+                  onCheckedChange={() => {
+                    const allSelected = sectionLines.every(line => isSelected(line.id));
+                    sectionLines.forEach(line => {
+                      if (allSelected) {
+                        if (isSelected(line.id)) toggleLineSelection(line.id);
+                      } else {
+                        if (!isSelected(line.id)) toggleLineSelection(line.id);
+                      }
+                    });
+                  }}
+                />
+              </th>
+              <th className="text-left py-2 px-2 font-medium text-muted-foreground text-[11px] uppercase">
+                Désignation
+              </th>
+              <th className="text-right py-2 px-2 font-medium text-muted-foreground text-[11px] uppercase">
+                Qté
+              </th>
+              <th className="text-left py-2 px-2 font-medium text-muted-foreground text-[11px] uppercase">
+                Unité
+              </th>
+              <th className="text-right py-2 px-2 font-medium text-muted-foreground text-[11px] uppercase">
+                PU
+              </th>
+              <th className="text-right py-2 px-2 font-medium text-muted-foreground text-[11px] uppercase">
+                Total
+              </th>
+              <th className="text-left py-2 px-2 font-medium text-muted-foreground text-[11px] uppercase">
+                Source prix
+              </th>
+              <th className="text-center py-2 px-2 font-medium text-muted-foreground text-[11px] uppercase">
+                Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <SortableContext
+              items={sectionLines.map((line) => line.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              {sectionLines.map((line) => (
+                <DraggableLine
+                  key={line.id}
+                  line={line}
+                  selected={isSelected(line.id)}
+                  focused={focusedLineId === line.id}
+                  onToggleSelection={toggleLineSelection}
+                  onLineUpdate={onLineUpdate}
+                  onLineDelete={onLineDelete}
+                  onCopyLine={handleCopyLine}
+                  onFocus={setFocusedLine}
+                  lotCode={lotCode}
+                  formatNumber={formatNumber}
+                  formatCurrency={formatCurrency}
+                />
+              ))}
+            </SortableContext>
+          </tbody>
+        </table>
+        <div className="flex justify-end mt-2 mb-4">
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 text-[11px]"
+            onClick={() => handleAddLine(sectionId)}
+          >
+            <Plus className="h-3 w-3 mr-1" />
+            Ajouter ligne
+          </Button>
+        </div>
+      </DndContext>
+    );
   };
 
   return (
@@ -115,7 +280,7 @@ export const BPUTableWithSections = ({
       <div className="mb-3 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2 text-[11px] text-muted-foreground italic">
           <span>💡</span>
-          <span>Double-cliquez sur une cellule pour modifier</span>
+          <span>Glissez-déposez les lignes pour les réorganiser • Double-cliquez pour modifier</span>
         </div>
         <div className="flex items-center gap-2">
           {selectedCount > 0 && (
@@ -183,149 +348,7 @@ export const BPUTableWithSections = ({
             </div>
             
             {/* Section Table */}
-            <table className="w-full text-xs mb-2">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-center py-2 px-2 font-medium text-muted-foreground text-[11px] uppercase w-10">
-                    <Checkbox
-                      checked={sectionLines.every(line => isSelected(line.id))}
-                      onCheckedChange={() => {
-                        const allSelected = sectionLines.every(line => isSelected(line.id));
-                        sectionLines.forEach(line => {
-                          if (allSelected) {
-                            if (isSelected(line.id)) toggleLineSelection(line.id);
-                          } else {
-                            if (!isSelected(line.id)) toggleLineSelection(line.id);
-                          }
-                        });
-                      }}
-                    />
-                  </th>
-                  <th className="text-left py-2 px-2 font-medium text-muted-foreground text-[11px] uppercase">
-                    Désignation
-                  </th>
-                  <th className="text-right py-2 px-2 font-medium text-muted-foreground text-[11px] uppercase">
-                    Qté
-                  </th>
-                  <th className="text-left py-2 px-2 font-medium text-muted-foreground text-[11px] uppercase">
-                    Unité
-                  </th>
-                  <th className="text-right py-2 px-2 font-medium text-muted-foreground text-[11px] uppercase">
-                    PU
-                  </th>
-                  <th className="text-right py-2 px-2 font-medium text-muted-foreground text-[11px] uppercase">
-                    Total
-                  </th>
-                  <th className="text-left py-2 px-2 font-medium text-muted-foreground text-[11px] uppercase">
-                    Source prix
-                  </th>
-                  <th className="text-center py-2 px-2 font-medium text-muted-foreground text-[11px] uppercase">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {sectionLines.map((line) => {
-                  const total = line.quantity * line.unitPrice;
-                  const selected = isSelected(line.id);
-                  return (
-                     <tr 
-                      key={line.id} 
-                      className={`border-b hover:bg-muted/30 group ${selected ? "bg-accent/20" : ""}`}
-                    >
-                      <td className="py-1 px-2 text-center">
-                        <Checkbox
-                          checked={selected}
-                          onCheckedChange={() => toggleLineSelection(line.id)}
-                        />
-                      </td>
-                      <td className="py-1 px-2">
-                        <PriceItemAutocomplete
-                          value={line.designation}
-                          lotCode={lotCode}
-                          onSelect={(item) => {
-                            onLineUpdate(line.id, {
-                              designation: item.designation,
-                              unit: item.unit,
-                              unitPrice: item.unitPrice,
-                              priceSource: item.priceSource,
-                            });
-                          }}
-                          onChange={(value) => onLineUpdate(line.id, { designation: value })}
-                          placeholder="Désignation"
-                        />
-                      </td>
-                      <td className="py-1 px-2">
-                        <EditableCell
-                          value={line.quantity}
-                          onChange={(value) => onLineUpdate(line.id, { quantity: value })}
-                          align="right"
-                          format={(v) => formatNumber(v)}
-                          className="tabular-nums"
-                        />
-                      </td>
-                      <td className="py-1 px-2">
-                        <EditableCellText
-                          value={line.unit}
-                          onChange={(value) => onLineUpdate(line.id, { unit: value })}
-                          maxLength={20}
-                          placeholder="Unité"
-                        />
-                      </td>
-                      <td className="py-1 px-2">
-                        <EditableCell
-                          value={line.unitPrice}
-                          onChange={(value) => onLineUpdate(line.id, { unitPrice: value })}
-                          align="right"
-                          format={(v) => formatCurrency(v)}
-                          className="tabular-nums"
-                        />
-                      </td>
-                      <td className="py-1 px-2 text-right tabular-nums font-semibold">
-                        {formatCurrency(total)}
-                      </td>
-                      <td className="py-1 px-2">
-                        <PriceSourceIndicator
-                          designation={line.designation}
-                          currentUnitPrice={line.unitPrice}
-                          priceSource={line.priceSource || ""}
-                          lotCode={lotCode}
-                          onUpdate={(newPrice, newSource) => {
-                            onLineUpdate(line.id, { 
-                              unitPrice: newPrice, 
-                              priceSource: newSource 
-                            });
-                          }}
-                          onChange={(value) => onLineUpdate(line.id, { priceSource: value })}
-                        />
-                      </td>
-                      <td className="py-1 px-2 text-center">
-                        <div className="flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 w-7 p-0"
-                            onClick={() => handleCopyLine(line)}
-                            title="Copier la ligne"
-                          >
-                            <Copy className="h-3 w-3" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 w-7 p-0"
-                            onClick={() => onLineDelete(line.id)}
-                            title="Supprimer la ligne"
-                          >
-                            <Trash2 className="h-3 w-3 text-destructive" />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+            {renderSectionTable(section.id, sectionLines, section.name)}
             
             {/* Section Subtotal */}
             <div className="px-2 py-2 bg-accent/10 rounded-md space-y-1">
@@ -365,175 +388,16 @@ export const BPUTableWithSections = ({
           </div>
           
           {/* Section Table */}
-          <table className="w-full text-xs mb-2">
-            <thead>
-              <tr className="border-b">
-                <th className="text-center py-2 px-2 font-medium text-muted-foreground text-[11px] uppercase w-10">
-                  <Checkbox
-                    checked={linesBySection["no-section"].every(line => isSelected(line.id))}
-                    onCheckedChange={() => {
-                      const allSelected = linesBySection["no-section"].every(line => isSelected(line.id));
-                      linesBySection["no-section"].forEach(line => {
-                        if (allSelected) {
-                          if (isSelected(line.id)) toggleLineSelection(line.id);
-                        } else {
-                          if (!isSelected(line.id)) toggleLineSelection(line.id);
-                        }
-                      });
-                    }}
-                  />
-                </th>
-                <th className="text-left py-2 px-2 font-medium text-muted-foreground text-[11px] uppercase">
-                  Désignation
-                </th>
-                <th className="text-right py-2 px-2 font-medium text-muted-foreground text-[11px] uppercase">
-                  Qté
-                </th>
-                <th className="text-left py-2 px-2 font-medium text-muted-foreground text-[11px] uppercase">
-                  Unité
-                </th>
-                <th className="text-right py-2 px-2 font-medium text-muted-foreground text-[11px] uppercase">
-                  PU
-                </th>
-                <th className="text-right py-2 px-2 font-medium text-muted-foreground text-[11px] uppercase">
-                  Total
-                </th>
-                <th className="text-left py-2 px-2 font-medium text-muted-foreground text-[11px] uppercase">
-                  Source prix
-                </th>
-                <th className="text-center py-2 px-2 font-medium text-muted-foreground text-[11px] uppercase">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {linesBySection["no-section"].map((line) => {
-                const total = line.quantity * line.unitPrice;
-                const selected = isSelected(line.id);
-                return (
-                  <tr 
-                    key={line.id} 
-                    className={`border-b hover:bg-muted/30 group ${selected ? "bg-accent/20" : ""}`}
-                  >
-                    <td className="py-1 px-2 text-center">
-                      <Checkbox
-                        checked={selected}
-                        onCheckedChange={() => toggleLineSelection(line.id)}
-                      />
-                    </td>
-                    <td className="py-1 px-2">
-                      <PriceItemAutocomplete
-                        value={line.designation}
-                        lotCode={lotCode}
-                        onSelect={(item) => {
-                          onLineUpdate(line.id, {
-                            designation: item.designation,
-                            unit: item.unit,
-                            unitPrice: item.unitPrice,
-                            priceSource: item.priceSource,
-                          });
-                        }}
-                        onChange={(value) => onLineUpdate(line.id, { designation: value })}
-                        placeholder="Désignation"
-                      />
-                    </td>
-                    <td className="py-1 px-2">
-                      <EditableCell
-                        value={line.quantity}
-                        onChange={(value) => onLineUpdate(line.id, { quantity: value })}
-                        align="right"
-                        format={(v) => formatNumber(v)}
-                        className="tabular-nums"
-                      />
-                    </td>
-                    <td className="py-1 px-2">
-                      <EditableCellText
-                        value={line.unit}
-                        onChange={(value) => onLineUpdate(line.id, { unit: value })}
-                        maxLength={20}
-                        placeholder="Unité"
-                      />
-                    </td>
-                    <td className="py-1 px-2">
-                      <EditableCell
-                        value={line.unitPrice}
-                        onChange={(value) => onLineUpdate(line.id, { unitPrice: value })}
-                        align="right"
-                        format={(v) => formatCurrency(v)}
-                        className="tabular-nums"
-                      />
-                    </td>
-                    <td className="py-1 px-2 text-right tabular-nums font-semibold">
-                      {formatCurrency(total)}
-                    </td>
-                    <td className="py-1 px-2">
-                      <PriceSourceIndicator
-                        designation={line.designation}
-                        currentUnitPrice={line.unitPrice}
-                        priceSource={line.priceSource || ""}
-                        lotCode={lotCode}
-                        onUpdate={(newPrice, newSource) => {
-                          onLineUpdate(line.id, { 
-                            unitPrice: newPrice, 
-                            priceSource: newSource 
-                          });
-                        }}
-                        onChange={(value) => onLineUpdate(line.id, { priceSource: value })}
-                      />
-                    </td>
-                    <td className="py-1 px-2 text-center">
-                      <div className="flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 w-7 p-0"
-                          onClick={() => handleCopyLine(line)}
-                          title="Copier la ligne"
-                        >
-                          <Copy className="h-3 w-3" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 w-7 p-0"
-                          onClick={() => onLineDelete(line.id)}
-                          title="Supprimer la ligne"
-                        >
-                          <Trash2 className="h-3 w-3 text-destructive" />
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-          
-          {/* Section Subtotal */}
-          <div className="px-2 py-2 bg-accent/10 rounded-md">
-            <div className="flex justify-end">
-              <div className="text-sm font-semibold">
-                Sous-total Sans section: <span className="tabular-nums">{formatCurrency(calculateSectionTotal(linesBySection["no-section"]))}</span>
-              </div>
-            </div>
-          </div>
+          {renderSectionTable(null, linesBySection["no-section"])}
         </div>
       )}
-      
+
       {/* Grand Total */}
-      {(sections.length > 0 || (linesBySection["no-section"] && linesBySection["no-section"].length > 0)) && (
-        <div className="flex justify-end px-2 py-3 mt-4 bg-accent/20 rounded-md border border-accent/30">
-          <div className="text-base font-bold">
-            Total: <span className="tabular-nums">{formatCurrency(grandTotal)}</span>
-          </div>
+      <div className="flex justify-end py-3 px-2 bg-primary/5 rounded-md border-t-2 border-primary">
+        <div className="text-base font-bold">
+          Total général: <span className="tabular-nums">{formatCurrency(grandTotal)}</span>
         </div>
-      )}
-      
-      {lines.length === 0 && (
-        <div className="text-center py-8 text-xs text-muted-foreground">
-          Aucune ligne. Cliquez sur "+ Ajouter une ligne" pour commencer.
-        </div>
-      )}
+      </div>
     </div>
   );
 };

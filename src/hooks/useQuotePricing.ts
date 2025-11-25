@@ -205,6 +205,30 @@ export const useQuotePricing = (quoteVersionId?: string | null) => {
     },
   });
 
+  // Update lines order
+  const updateLinesOrderMutation = useMutation({
+    mutationFn: async (updates: { id: string; order_index: number }[]) => {
+      // We need to update each line individually since upsert requires all fields
+      const promises = updates.map(({ id, order_index }) =>
+        supabase
+          .from("quote_lines")
+          .update({ order_index })
+          .eq("id", id)
+      );
+      
+      const results = await Promise.all(promises);
+      const error = results.find(r => r.error)?.error;
+      if (error) throw error;
+    },
+    onSuccess: async () => {
+      queryClient.invalidateQueries({ queryKey: ["quote-pricing", quoteVersionId] });
+    },
+    onError: (error) => {
+      toast.error("Erreur lors de la mise à jour de l'ordre");
+      console.error(error);
+    },
+  });
+
   // Load template sections into a lot (creates sections as quote_lines with proper grouping)
   const loadTemplateMutation = useMutation({
     mutationFn: async ({
@@ -255,6 +279,7 @@ export const useQuotePricing = (quoteVersionId?: string | null) => {
     addLine: addLineMutation.mutate,
     deleteLine: deleteLineMutation.mutate,
     loadTemplate: loadTemplateMutation.mutate,
+    updateLinesOrder: updateLinesOrderMutation.mutate,
     isUpdating: updateLineMutation.isPending,
     isAdding: addLineMutation.isPending,
     isDeleting: deleteLineMutation.isPending,

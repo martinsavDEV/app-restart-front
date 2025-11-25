@@ -88,6 +88,42 @@ export type Database = {
           },
         ]
       }
+      price_items: {
+        Row: {
+          created_at: string
+          date_modif: string | null
+          id: string
+          item: string
+          item_id: string | null
+          lot_code: string
+          unit: string
+          unit_price: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          date_modif?: string | null
+          id?: string
+          item: string
+          item_id?: string | null
+          lot_code?: string
+          unit: string
+          unit_price?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          date_modif?: string | null
+          id?: string
+          item?: string
+          item_id?: string | null
+          lot_code?: string
+          unit?: string
+          unit_price?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       projects: {
         Row: {
           created_at: string | null

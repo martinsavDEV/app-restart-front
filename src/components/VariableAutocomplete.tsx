@@ -30,6 +30,7 @@ export const VariableAutocomplete = ({
 }: VariableAutocompleteProps) => {
   const [open, setOpen] = useState(false);
   const [searchValue, setSearchValue] = useState(String(value));
+  const [isEditing, setIsEditing] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const isLinkedVariable = String(value).startsWith("$");
@@ -40,6 +41,12 @@ export const VariableAutocomplete = ({
   useEffect(() => {
     setSearchValue(String(value));
   }, [value]);
+
+  useEffect(() => {
+    if (isEditing && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [isEditing]);
 
   const handleInputChange = (newValue: string) => {
     setSearchValue(newValue);
@@ -73,6 +80,9 @@ export const VariableAutocomplete = ({
         });
       }
     }
+    
+    setIsEditing(false);
+    setOpen(false);
   };
 
   const handleSelect = (variable: CalculatorVariable) => {
@@ -80,6 +90,13 @@ export const VariableAutocomplete = ({
     onChange(variable.name);
     onSelect(variable);
     setOpen(false);
+    setIsEditing(false);
+  };
+
+  const handleClick = () => {
+    if (!disabled) {
+      setIsEditing(true);
+    }
   };
 
   // Filter variables based on search
@@ -98,33 +115,46 @@ export const VariableAutocomplete = ({
     return acc;
   }, {} as Record<string, CalculatorVariable[]>);
 
-  const cellClasses = cn(
+  const displayClasses = cn(
+    "h-9 px-2 text-sm border rounded-md flex items-center cursor-pointer hover:bg-muted/50 transition-colors",
+    isLinkedVariable && "bg-muted text-orange-500 font-medium",
+    !isLinkedVariable && "bg-background",
+    disabled && "opacity-50 cursor-not-allowed",
+    className
+  );
+
+  const inputClasses = cn(
     "h-9 px-2 text-sm border rounded-md",
     isLinkedVariable && "bg-muted text-orange-500 font-medium",
     !isLinkedVariable && "bg-background",
     className
   );
 
-  // Display value for linked variables: $name = value 🔒
-  const displayValue = isLinkedVariable && linkedVariable && resolvedValue !== undefined
+  // Display text for linked variables
+  const displayText = isLinkedVariable && linkedVariable && resolvedValue !== undefined
     ? `${linkedVariable.name} = ${resolvedValue}`
-    : searchValue;
+    : String(value);
 
   return (
-    <div className="flex items-center gap-1 w-full">
+    <div className="flex items-center gap-1 w-full relative">
+      {isEditing ? (
+        <Input
+          ref={inputRef}
+          value={searchValue}
+          onChange={(e) => handleInputChange(e.target.value)}
+          onKeyDown={handleKeyDown}
+          onBlur={handleBlur}
+          disabled={disabled}
+          placeholder={placeholder}
+          className={inputClasses}
+        />
+      ) : (
+        <div onClick={handleClick} className={displayClasses}>
+          {displayText || placeholder}
+        </div>
+      )}
+      
       <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <Input
-            ref={inputRef}
-            value={displayValue}
-            onChange={(e) => handleInputChange(e.target.value)}
-            onKeyDown={handleKeyDown}
-            onBlur={handleBlur}
-            disabled={disabled}
-            placeholder={placeholder}
-            className={cellClasses}
-          />
-        </PopoverTrigger>
         <PopoverContent className="w-80 p-0" align="start">
           <Command>
             <CommandList>
@@ -151,6 +181,7 @@ export const VariableAutocomplete = ({
           </Command>
         </PopoverContent>
       </Popover>
+      
       {isLinkedVariable && (
         <Lock className="h-3 w-3 text-orange-500 flex-shrink-0" />
       )}

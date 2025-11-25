@@ -38,18 +38,21 @@ export const VariableAutocomplete = ({
     : null;
 
   useEffect(() => {
-    // When editing, show the variable name, otherwise show the resolved value
+    const valueStr = String(value);
+    const isVar = valueStr.startsWith("$");
+    
+    // When editing, show the variable name or current value
     if (document.activeElement === inputRef.current) {
-      setSearchValue(String(value));
+      setSearchValue(valueStr);
     } else {
       // When not editing, show resolved value if it's a linked variable
-      if (isLinkedVariable && resolvedValue !== undefined) {
+      if (isVar && resolvedValue !== undefined) {
         setSearchValue(String(resolvedValue));
       } else {
-        setSearchValue(String(value));
+        setSearchValue(valueStr);
       }
     }
-  }, [value, isLinkedVariable, resolvedValue]);
+  }, [value, resolvedValue]);
 
   const handleInputChange = (newValue: string) => {
     setSearchValue(newValue);

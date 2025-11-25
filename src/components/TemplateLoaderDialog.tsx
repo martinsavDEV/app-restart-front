@@ -32,9 +32,8 @@ export const TemplateLoaderDialog = ({
 
   const { templates, isLoading } = useTemplates();
 
-  const filteredTemplates = templates?.filter((t) => 
-    !lotCode || t.code === lotCode
-  );
+  // Show all templates, no filtering by lot code
+  const filteredTemplates = templates;
 
   const selectedTemplate = filteredTemplates?.find((t) => t.id === selectedTemplateId);
 

@@ -30,7 +30,6 @@ export const VariableAutocomplete = ({
 }: VariableAutocompleteProps) => {
   const [open, setOpen] = useState(false);
   const [searchValue, setSearchValue] = useState(String(value));
-  const [isEditing, setIsEditing] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const isLinkedVariable = String(value).startsWith("$");
@@ -42,17 +41,11 @@ export const VariableAutocomplete = ({
     setSearchValue(String(value));
   }, [value]);
 
-  useEffect(() => {
-    if (isEditing && inputRef.current) {
-      inputRef.current.focus();
-    }
-  }, [isEditing]);
-
   const handleInputChange = (newValue: string) => {
     setSearchValue(newValue);
     onChange(newValue);
 
-    // Open dropdown ONLY when user types $
+    // Open dropdown when user types $
     if (newValue.includes("$")) {
       setOpen(true);
     } else {
@@ -60,14 +53,7 @@ export const VariableAutocomplete = ({
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    // Open dropdown when user types $
-    if (e.key === "$" || (e.key === "4" && e.shiftKey)) {
-      setOpen(true);
-    }
-  };
-
-  const handleBlur = () => {
+  const handleBlur = (e: React.FocusEvent) => {
     const trimmedValue = searchValue.trim();
     
     // Check if it's supposed to be a variable
@@ -81,8 +67,13 @@ export const VariableAutocomplete = ({
       }
     }
     
-    setIsEditing(false);
-    setOpen(false);
+    // Don't close immediately if focus moves to the popover
+    const relatedTarget = e.relatedTarget as HTMLElement;
+    if (!relatedTarget || !relatedTarget.closest('[role="dialog"]')) {
+      setTimeout(() => {
+        setOpen(false);
+      }, 150);
+    }
   };
 
   const handleSelect = (variable: CalculatorVariable) => {
@@ -90,22 +81,14 @@ export const VariableAutocomplete = ({
     onChange(variable.name);
     onSelect(variable);
     setOpen(false);
-    setIsEditing(false);
-  };
-
-  const handleClick = (e?: React.MouseEvent | React.FocusEvent) => {
-    if (e) {
-      e.stopPropagation();
-      e.preventDefault();
-    }
-    if (!disabled) {
-      setIsEditing(true);
+    if (inputRef.current) {
+      inputRef.current.blur();
     }
   };
 
   // Filter variables based on search
   const searchTerm = searchValue.startsWith("$") ? searchValue : `$${searchValue}`;
-  const filteredVariables = searchValue.length > 0
+  const filteredVariables = searchValue.length > 0 && searchValue.includes("$")
     ? variables.filter((v) =>
         v.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         v.label.toLowerCase().includes(searchValue.replace("$", "").toLowerCase())
@@ -119,53 +102,29 @@ export const VariableAutocomplete = ({
     return acc;
   }, {} as Record<string, CalculatorVariable[]>);
 
-  const displayClasses = cn(
-    "h-9 px-2 text-sm border rounded-md flex items-center cursor-pointer hover:bg-muted/50 transition-colors",
+  const inputClasses = cn(
+    "h-9 px-2 text-sm border rounded-md",
     isLinkedVariable && "bg-muted text-orange-500 font-medium",
     !isLinkedVariable && "bg-background",
     disabled && "opacity-50 cursor-not-allowed",
     className
   );
 
-  const inputClasses = cn(
-    "h-9 px-2 text-sm border rounded-md",
-    isLinkedVariable && "bg-muted text-orange-500 font-medium",
-    !isLinkedVariable && "bg-background",
-    className
-  );
-
-  // Display text for linked variables
-  const displayText = isLinkedVariable && linkedVariable && resolvedValue !== undefined
-    ? `${linkedVariable.name} = ${resolvedValue}`
-    : String(value);
-
   return (
     <div className="flex items-center gap-1 w-full relative">
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
-          <div className="w-full">
-            {isEditing ? (
-              <Input
-                ref={inputRef}
-                value={searchValue}
-                onChange={(e) => handleInputChange(e.target.value)}
-                onKeyDown={handleKeyDown}
-                onBlur={handleBlur}
-                onClick={(e) => e.stopPropagation()}
-                disabled={disabled}
-                placeholder={placeholder}
-                className={inputClasses}
-              />
-            ) : (
-              <div 
-                onClick={handleClick}
-                onFocus={handleClick}
-                tabIndex={disabled ? -1 : 0}
-                className={displayClasses}
-              >
-                {displayText || placeholder}
-              </div>
-            )}
+          <div className="relative w-full">
+            <Input
+              ref={inputRef}
+              value={searchValue}
+              onChange={(e) => handleInputChange(e.target.value)}
+              onBlur={handleBlur}
+              onClick={(e) => e.stopPropagation()}
+              disabled={disabled}
+              placeholder={placeholder}
+              className={inputClasses}
+            />
           </div>
         </PopoverTrigger>
         
@@ -174,7 +133,7 @@ export const VariableAutocomplete = ({
           align="start"
           onOpenAutoFocus={(e) => e.preventDefault()}
         >
-          <Command>
+          <Command shouldFilter={false}>
             <CommandList>
               <CommandEmpty>Aucune variable trouvée</CommandEmpty>
               {Object.entries(groupedVariables).map(([category, vars]) => (
@@ -183,8 +142,11 @@ export const VariableAutocomplete = ({
                     <CommandItem
                       key={variable.name}
                       value={variable.name}
-                      onSelect={() => handleSelect(variable)}
-                      className="flex justify-between"
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        handleSelect(variable);
+                      }}
+                      className="flex justify-between cursor-pointer"
                     >
                       <div className="flex flex-col">
                         <span className="font-mono text-orange-500">{variable.name}</span>

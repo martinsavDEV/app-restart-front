@@ -54,7 +54,7 @@ export const PricingView = ({ projectId: initialProjectId, projectName: initialP
   });
 
   // Use the quote pricing hook
-  const { lots, isLoading, updateLine, addLine, deleteLine, loadTemplate } = useQuotePricing(selectedVersionId);
+  const { lots, isLoading, updateLine, addLine, deleteLine, loadTemplate, updateLinesOrder } = useQuotePricing(selectedVersionId);
 
   const selectedProject = projects?.find((p) => p.id === selectedProjectId);
   const projectName = initialProjectName || selectedProject?.name;
@@ -181,11 +181,29 @@ export const PricingView = ({ projectId: initialProjectId, projectName: initialP
     lineIds.forEach(lineId => deleteLine(lineId));
   };
 
-  const handleLinePaste = (lotId: string) => (line: Omit<any, "id">, sectionId: string | null) => {
+  const handleLinePaste = (lotId: string) => (line: Omit<any, "id">, sectionId: string | null, afterLineId?: string) => {
     const currentLot = lots.find((l) => l.id === lotId);
     if (!currentLot) return;
 
-    const nextOrderIndex = currentLot.lines.length || 0;
+    // If afterLineId is provided, find the order_index of that line and insert after it
+    let nextOrderIndex = currentLot.lines.length || 0;
+    if (afterLineId) {
+      const afterLine = currentLot.lines.find((l: any) => l.id === afterLineId);
+      if (afterLine) {
+        nextOrderIndex = afterLine.order_index + 1;
+        // Update order_index for all lines that come after
+        const linesToUpdate = currentLot.lines
+          .filter((l: any) => l.order_index >= nextOrderIndex)
+          .map((l: any) => ({
+            id: l.id,
+            order_index: l.order_index + 1,
+          }));
+        
+        if (linesToUpdate.length > 0 && updateLinesOrder) {
+          updateLinesOrder(linesToUpdate);
+        }
+      }
+    }
 
     // Create a new line object with section_id
     const newLine: any = {
@@ -352,6 +370,7 @@ export const PricingView = ({ projectId: initialProjectId, projectName: initialP
                   handleLinePaste={handleLinePaste}
                   handleLoadTemplate={handleLoadTemplate}
                   handleAddLine={handleAddLine}
+                  handleLinesReorder={updateLinesOrder}
                   onCreateSection={(lotId) => {
                     setSelectedLotForSection(lotId);
                     setSectionDialogOpen(true);

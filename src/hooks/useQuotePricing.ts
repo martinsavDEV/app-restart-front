@@ -204,15 +204,15 @@ export const useQuotePricing = (quoteVersionId?: string | null) => {
 
       // Flatten all sections into lines with section info in comment
       templateSections.forEach((section) => {
-        section.lines.forEach((line) => {
+        section.lines.forEach((line: any) => {
           allLinesToInsert.push({
             lot_id: lotId,
             code: line.designation.substring(0, 20).toLowerCase().replace(/\s+/g, '_'),
             designation: line.designation,
-            unit: line.unit,
-            unit_price: line.unit_price,
+            unit: line.unit || 'u',
+            unit_price: line.unitPrice ?? line.unit_price ?? 0,
             comment: `[${section.title}] ${line.comment || ""}`.trim(),
-            quantity: line.quantity || 0,
+            quantity: line.quantity ?? 0,
             order_index: orderIndex++,
           });
         });

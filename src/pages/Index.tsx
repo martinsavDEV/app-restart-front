@@ -8,6 +8,7 @@ import { QuotesView } from "@/components/QuotesView";
 import { PricingView } from "@/components/PricingView";
 import { PriceDBView } from "@/components/PriceDBView";
 import { TemplatesView } from "@/components/TemplatesView";
+import { DataAdminView } from "@/components/DataAdminView";
 import { Loader2 } from "lucide-react";
 
 const Index = () => {
@@ -70,6 +71,8 @@ const Index = () => {
         return <PriceDBView />;
       case "templates":
         return <TemplatesView />;
+      case "data-admin":
+        return <DataAdminView />;
       default:
         return <ProjectsView />;
     }

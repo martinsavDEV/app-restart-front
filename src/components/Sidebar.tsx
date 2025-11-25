@@ -16,6 +16,7 @@ const navItems: NavItem[] = [
   { id: "pricing", label: "Chiffrage projet", description: "Lots & BPU" },
   { id: "price-db", label: "Base de prix", description: "Historiques & tendances" },
   { id: "templates", label: "Templates", description: "Chantiers types / sous-lots" },
+  { id: "data-admin", label: "Admin Data", description: "Import/Export CSV" },
 ];
 
 interface SidebarProps {

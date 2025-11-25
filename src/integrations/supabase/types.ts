@@ -14,6 +14,51 @@ export type Database = {
   }
   public: {
     Tables: {
+      calculator_variables: {
+        Row: {
+          created_at: string | null
+          full_name: string
+          id: string
+          project_id: string | null
+          quote_version_id: string | null
+          value: number | null
+          variable_name: string
+        }
+        Insert: {
+          created_at?: string | null
+          full_name: string
+          id?: string
+          project_id?: string | null
+          quote_version_id?: string | null
+          value?: number | null
+          variable_name: string
+        }
+        Update: {
+          created_at?: string | null
+          full_name?: string
+          id?: string
+          project_id?: string | null
+          quote_version_id?: string | null
+          value?: number | null
+          variable_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calculator_variables_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calculator_variables_quote_version_id_fkey"
+            columns: ["quote_version_id"]
+            isOneToOne: false
+            referencedRelation: "quote_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lot_templates: {
         Row: {
           code: string
@@ -164,6 +209,7 @@ export type Database = {
           created_at: string
           designation: string
           id: string
+          linked_variable: string | null
           lot_id: string
           order_index: number
           price_source: string | null
@@ -180,6 +226,7 @@ export type Database = {
           created_at?: string
           designation: string
           id?: string
+          linked_variable?: string | null
           lot_id: string
           order_index?: number
           price_source?: string | null
@@ -196,6 +243,7 @@ export type Database = {
           created_at?: string
           designation?: string
           id?: string
+          linked_variable?: string | null
           lot_id?: string
           order_index?: number
           price_source?: string | null

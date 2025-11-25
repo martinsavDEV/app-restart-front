@@ -1,0 +1,119 @@
+import { useMemo } from "react";
+import { CalculatorData, CalculatorVariable } from "@/types/bpu";
+
+/**
+ * Hook to generate all available variables from Calculator data
+ * and provide their current values
+ */
+export const useCalculatorVariables = (calculatorData: CalculatorData | null): {
+  variables: CalculatorVariable[];
+  getVariableValue: (varName: string) => number | null;
+} => {
+  const variables = useMemo(() => {
+    if (!calculatorData) return [];
+
+    const vars: CalculatorVariable[] = [];
+
+    // Global variables
+    vars.push({
+      name: "$nb_eol",
+      value: calculatorData.global.nb_eol,
+      label: "Nombre d'éoliennes",
+      category: "Global",
+    });
+
+    // Per-turbine variables
+    calculatorData.turbines.forEach((turbine) => {
+      vars.push(
+        {
+          name: `$surf_PF_${turbine.name}`,
+          value: turbine.surf_PF,
+          label: `Surface PF ${turbine.name}`,
+          category: "Éoliennes",
+        },
+        {
+          name: `$acces_PF_${turbine.name}`,
+          value: turbine.acces_PF,
+          label: `Accès PF ${turbine.name}`,
+          category: "Éoliennes",
+        },
+        {
+          name: `$m3_bouger_${turbine.name}`,
+          value: turbine.m3_bouger,
+          label: `m³ à bouger ${turbine.name}`,
+          category: "Éoliennes",
+        },
+        {
+          name: `$bypass_${turbine.name}`,
+          value: turbine.bypass,
+          label: `Bypass ${turbine.name}`,
+          category: "Éoliennes",
+        }
+      );
+    });
+
+    // Totals for turbines
+    const sum_surf_PF = calculatorData.turbines.reduce((sum, t) => sum + t.surf_PF, 0);
+    const sum_acces_PF = calculatorData.turbines.reduce((sum, t) => sum + t.acces_PF, 0);
+    const sum_m3_bouger = calculatorData.turbines.reduce((sum, t) => sum + t.m3_bouger, 0);
+    const sum_bypass = calculatorData.turbines.reduce((sum, t) => sum + t.bypass, 0);
+
+    vars.push(
+      { name: "$sum_surf_PF", value: sum_surf_PF, label: "Total Surface PF", category: "Totaux" },
+      { name: "$sum_acces_PF", value: sum_acces_PF, label: "Total Accès PF", category: "Totaux" },
+      { name: "$sum_m3_bouger", value: sum_m3_bouger, label: "Total m³ à bouger", category: "Totaux" },
+      { name: "$sum_bypass", value: sum_bypass, label: "Total Bypass", category: "Totaux" }
+    );
+
+    // Conditional totals (fondation type)
+    const nb_eol_en_eau = calculatorData.turbines.filter((t) => t.fondation_type === "en eau").length;
+    const nb_eol_sans_eau = calculatorData.turbines.filter((t) => t.fondation_type === "sans eau").length;
+
+    vars.push(
+      { name: "$nb_eol_en_eau", value: nb_eol_en_eau, label: "Nb éoliennes en eau", category: "Totaux" },
+      { name: "$nb_eol_sans_eau", value: nb_eol_sans_eau, label: "Nb éoliennes sans eau", category: "Totaux" }
+    );
+
+    // Access segments variables
+    calculatorData.access_segments.forEach((segment) => {
+      vars.push(
+        {
+          name: `$longueur_${segment.name.replace(/\s+/g, "_")}`,
+          value: segment.longueur,
+          label: `Longueur ${segment.name}`,
+          category: "Accès",
+        },
+        {
+          name: `$surface_${segment.name.replace(/\s+/g, "_")}`,
+          value: segment.surface,
+          label: `Surface ${segment.name}`,
+          category: "Accès",
+        }
+      );
+    });
+
+    // Totals for access segments
+    const sum_longueur = calculatorData.access_segments.reduce((sum, s) => sum + s.longueur, 0);
+    const sum_surface_chemins = calculatorData.access_segments.reduce((sum, s) => sum + s.surface, 0);
+    const sum_GNT = calculatorData.access_segments.filter((s) => s.gnt).reduce((sum, s) => sum + s.surface, 0);
+    const sum_bicouche = calculatorData.access_segments.reduce((sum, s) => sum + s.bicouche, 0);
+    const sum_enrobe = calculatorData.access_segments.reduce((sum, s) => sum + s.enrobe, 0);
+
+    vars.push(
+      { name: "$sum_longueur_chemins", value: sum_longueur, label: "Total Longueur chemins", category: "Totaux" },
+      { name: "$sum_surface_chemins", value: sum_surface_chemins, label: "Total Surface chemins", category: "Totaux" },
+      { name: "$sum_GNT", value: sum_GNT, label: "Total Surface GNT", category: "Totaux" },
+      { name: "$sum_bicouche", value: sum_bicouche, label: "Total Bicouche", category: "Totaux" },
+      { name: "$sum_enrobe", value: sum_enrobe, label: "Total Enrobé", category: "Totaux" }
+    );
+
+    return vars;
+  }, [calculatorData]);
+
+  const getVariableValue = (varName: string): number | null => {
+    const variable = variables.find((v) => v.name === varName);
+    return variable?.value ?? null;
+  };
+
+  return { variables, getVariableValue };
+};

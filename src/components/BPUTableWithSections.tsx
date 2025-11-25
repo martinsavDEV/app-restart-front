@@ -20,6 +20,8 @@ interface BPUTableWithSectionsProps {
   onLineAdd?: (line: Omit<BPULineWithSection, "id">, sectionName: string) => void;
   onBulkDelete?: (lineIds: string[]) => void;
   lotCode?: string;
+  nFoundations?: number;
+  onNFoundationsChange?: (n: number) => void;
 }
 
 const formatNumber = (value: number) => {
@@ -43,7 +45,9 @@ export const BPUTableWithSections = ({
   onLineDelete, 
   onLineAdd,
   onBulkDelete,
-  lotCode
+  lotCode,
+  nFoundations = 1,
+  onNFoundationsChange
 }: BPUTableWithSectionsProps) => {
   const {
     selectedLines,
@@ -69,7 +73,15 @@ export const BPUTableWithSections = ({
     return sectionLines.reduce((sum, line) => sum + (line.quantity * line.unitPrice), 0);
   };
 
-  const grandTotal = lines.reduce((sum, line) => sum + (line.quantity * line.unitPrice), 0);
+  const grandTotal = Object.entries(sections).reduce((sum, [sectionName, sectionLines]) => {
+    const sectionTotal = calculateSectionTotal(sectionLines);
+    const isFoundationSection = sectionName.toLowerCase().includes("fondation");
+    
+    if (isFoundationSection && nFoundations > 1) {
+      return sum + (sectionTotal * nFoundations);
+    }
+    return sum + sectionTotal;
+  }, 0);
 
   const handleBulkDelete = () => {
     if (onBulkDelete && selectedCount > 0) {
@@ -134,12 +146,27 @@ export const BPUTableWithSections = ({
       
       {Object.entries(sections).map(([sectionName, sectionLines]) => {
         const sectionTotal = calculateSectionTotal(sectionLines);
+        const isFoundationSection = sectionName.toLowerCase().includes("fondation");
         
         return (
           <div key={sectionName} className="mb-6">
             {/* Section Header */}
             <div className="bg-emerald-500/20 px-3 py-2 mb-2 rounded-md flex items-center justify-between border border-emerald-500/30">
-              <h3 className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">{sectionName}</h3>
+              <div className="flex items-center gap-3">
+                <h3 className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">{sectionName}</h3>
+                {isFoundationSection && onNFoundationsChange && (
+                  <div className="flex items-center gap-2">
+                    <label className="text-xs text-muted-foreground">Nombre:</label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={nFoundations}
+                      onChange={(e) => onNFoundationsChange(Math.max(1, parseInt(e.target.value) || 1))}
+                      className="w-16 h-7 px-2 text-xs border rounded-md bg-background"
+                    />
+                  </div>
+                )}
+              </div>
               {copiedLine && onLineAdd && (
                 <Button
                   variant="ghost"
@@ -299,10 +326,18 @@ export const BPUTableWithSections = ({
             </table>
             
             {/* Section Subtotal */}
-            <div className="flex justify-end px-2 py-2 bg-accent/10 rounded-md">
-              <div className="text-sm font-semibold">
-                Sous-total {sectionName}: <span className="tabular-nums">{formatCurrency(sectionTotal)}</span>
+            <div className="px-2 py-2 bg-accent/10 rounded-md space-y-1">
+              <div className="flex justify-end">
+                <div className="text-sm font-semibold">
+                  Sous-total {isFoundationSection ? "unitaire" : ""} {sectionName}: <span className="tabular-nums">{formatCurrency(sectionTotal)}</span>
+                </div>
               </div>
+              {isFoundationSection && nFoundations > 1 && (
+                <div className="flex justify-end text-sm">
+                  <span className="text-muted-foreground mr-2">× {nFoundations} fondations =</span>
+                  <span className="font-bold tabular-nums">{formatCurrency(sectionTotal * nFoundations)}</span>
+                </div>
+              )}
             </div>
           </div>
         );

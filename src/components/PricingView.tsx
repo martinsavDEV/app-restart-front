@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,6 +20,7 @@ interface PricingViewProps {
 }
 
 export const PricingView = ({ projectId: initialProjectId, projectName: initialProjectName, versionId: initialVersionId }: PricingViewProps) => {
+  const queryClient = useQueryClient();
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(initialProjectId || null);
   const [selectedVersionId, setSelectedVersionId] = useState<string | null>(initialVersionId || null);
   const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
@@ -80,14 +81,43 @@ export const PricingView = ({ projectId: initialProjectId, projectName: initialP
     }).format(value);
   };
 
-  const calculateLotTotal = (lines: any[], lotCode?: string): number => {
-    const baseTotal = lines.reduce((sum, line) => sum + (line.quantity || 0) * (line.unit_price || 0), 0);
-    // Multiply by number of foundations if it's the foundations lot
-    if (lotCode === "fondations" && quoteSettings?.n_foundations) {
-      return baseTotal * quoteSettings.n_foundations;
-    }
-    return baseTotal;
+  const calculateLotTotal = (lines: any[]): number => {
+    return lines.reduce((sum, line) => sum + (line.quantity || 0) * (line.unit_price || 0), 0);
   };
+
+  // Mutation to update foundations count
+  const updateFoundationsMutation = useMutation({
+    mutationFn: async (nFoundations: number) => {
+      if (!selectedVersionId) return;
+      
+      const { data: existing } = await supabase
+        .from("quote_settings")
+        .select("id")
+        .eq("quote_version_id", selectedVersionId)
+        .maybeSingle();
+
+      if (existing) {
+        const { error } = await supabase
+          .from("quote_settings")
+          .update({ n_foundations: nFoundations })
+          .eq("quote_version_id", selectedVersionId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("quote_settings")
+          .insert({
+            quote_version_id: selectedVersionId,
+            n_foundations: nFoundations,
+            n_wtg: selectedProject?.n_wtg || 1,
+          });
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["quote-settings", selectedVersionId] });
+      toast.success("Nombre de fondations mis à jour");
+    },
+  });
 
   const handleLineUpdate = (lineId: string, updates: Partial<any>) => {
     // Trouver la ligne actuelle pour récupérer sa section
@@ -307,12 +337,7 @@ export const PricingView = ({ projectId: initialProjectId, projectName: initialP
                           Charger template
                         </Button>
                         <div className="text-xs font-semibold tabular-nums">
-                          Total : {formatCurrency(calculateLotTotal(lot.lines, lot.code))}
-                          {lot.code === "fondations" && quoteSettings?.n_foundations && quoteSettings.n_foundations > 1 && (
-                            <span className="text-muted-foreground font-normal ml-1">
-                              (×{quoteSettings.n_foundations})
-                            </span>
-                          )}
+                          Total : {formatCurrency(calculateLotTotal(lot.lines))}
                         </div>
                       </div>
                     </div>
@@ -342,6 +367,8 @@ export const PricingView = ({ projectId: initialProjectId, projectName: initialP
                       onBulkDelete={handleBulkDelete}
                       onLineAdd={handleLinePaste(lot.id)}
                       lotCode={lot.code}
+                      nFoundations={quoteSettings?.n_foundations || 1}
+                      onNFoundationsChange={(n) => updateFoundationsMutation.mutate(n)}
                     />
                   </CardContent>
                 </Card>

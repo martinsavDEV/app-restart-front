@@ -1,173 +1,126 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ChevronDown } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { ChevronDown, Pencil, Trash2, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-type ProjectStatus = "study" | "offers" | "built";
-
-interface ProjectVersion {
-  id: string;
-  name: string;
-  date: string;
-  capex: string;
-  comment: string;
-}
-
-interface Project {
-  id: string;
-  name: string;
-  code: string;
-  region: string;
-  power: string;
-  turbines: number;
-  status: ProjectStatus;
-  versions: ProjectVersion[];
-}
+import { useProjects, useQuoteVersions, type Project } from "@/hooks/useProjects";
+import { ProjectDialog } from "./ProjectDialog";
 
 interface ProjectsViewProps {
   onOpenQuotes?: (projectId: string, projectName: string, versionId: string) => void;
 }
 
-const projects: Project[] = [
-  {
-    id: "1",
-    name: "41 - Parc éolien La Besse",
-    code: "FR-PE-001",
-    region: "France – Centre-Val de Loire",
-    power: "18 MW",
-    turbines: 6,
-    status: "study",
-    versions: [
-      {
-        id: "v3",
-        name: "V3 – Révision accès",
-        date: "14/03/2025",
-        capex: "18,35 M€",
-        comment: "Étude d'accès mise à jour",
-      },
-      {
-        id: "v2",
-        name: "V2 – Offre turbinier",
-        date: "02/02/2025",
-        capex: "18,10 M€",
-        comment: "Intègre la dernière offre fournisseur",
-      },
-      {
-        id: "v1",
-        name: "V1 – Études préliminaires",
-        date: "15/11/2024",
-        capex: "17,60 M€",
-        comment: "Hypothèses de base",
-      },
-    ],
-  },
-  {
-    id: "2",
-    name: "02 - Parc éolien Épine-aux-Bois",
-    code: "FR-PE-002",
-    region: "France – Hauts-de-France",
-    power: "24 MW",
-    turbines: 8,
-    status: "offers",
-    versions: [
-      {
-        id: "v5",
-        name: "V5 – Alignement fournisseurs",
-        date: "02/02/2025",
-        capex: "21,45 M€",
-        comment: "Version consolidée après retours",
-      },
-      {
-        id: "v4",
-        name: "V4 – Révision géotech",
-        date: "18/12/2024",
-        capex: "21,20 M€",
-        comment: "Prise en compte des nouveaux sondages",
-      },
-      {
-        id: "v3",
-        name: "V3 – Offre turbinier",
-        date: "05/11/2024",
-        capex: "20,80 M€",
-        comment: "Mise à jour prix machines",
-      },
-    ],
-  },
-  {
-    id: "3",
-    name: "16 - Parc éolien Cherves-Châtelars",
-    code: "FR-PE-003",
-    region: "France – Nouvelle-Aquitaine",
-    power: "30 MW",
-    turbines: 10,
-    status: "built",
-    versions: [
-      {
-        id: "v12",
-        name: "V12 – As built",
-        date: "11/09/2024",
-        capex: "25,30 M€",
-        comment: "Chiffrage final après construction",
-      },
-      {
-        id: "v9",
-        name: "V9 – Révision planning",
-        date: "22/05/2024",
-        capex: "24,90 M€",
-        comment: "Optimisation du calendrier travaux",
-      },
-      {
-        id: "v6",
-        name: "V6 – Offre EPC",
-        date: "14/03/2024",
-        capex: "24,10 M€",
-        comment: "Intègre l'offre EPC finale",
-      },
-    ],
-  },
-];
-
-const getStatusBadge = (status: ProjectStatus) => {
-  const variants = {
-    study: { label: "En étude", className: "bg-status-study-bg text-status-study" },
-    offers: { label: "Offres en cours", className: "bg-status-offers-bg text-status-offers" },
-    built: { label: "Construit", className: "bg-status-built-bg text-status-built" },
-  };
-  const variant = variants[status];
-  return <Badge className={cn("text-[10px] font-medium", variant.className)}>{variant.label}</Badge>;
-};
-
-export const ProjectsView = ({ onOpenQuotes }: ProjectsViewProps) => {
+export function ProjectsView({ onOpenQuotes }: ProjectsViewProps) {
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
   const [expandedProjectId, setExpandedProjectId] = useState<string | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingProject, setEditingProject] = useState<Project | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [projectToDelete, setProjectToDelete] = useState<string | null>(null);
+
+  const {
+    projects,
+    isLoading,
+    createProject,
+    updateProject,
+    deleteProject,
+    isCreating,
+    isUpdating,
+    isDeleting,
+  } = useProjects();
+
+  const { data: quoteVersions = [] } = useQuoteVersions(expandedProjectId);
 
   const filteredProjects = projects.filter((project) => {
-    const matchesStatus = statusFilter === "all" || project.status === statusFilter;
     const normalizedQuery = searchQuery.toLowerCase();
-
-    const matchesQuery =
+    return (
       project.name.toLowerCase().includes(normalizedQuery) ||
-      project.code.toLowerCase().includes(normalizedQuery) ||
-      project.region.toLowerCase().includes(normalizedQuery);
-
-    return matchesStatus && (normalizedQuery.trim().length === 0 || matchesQuery);
+      (project.department?.toLowerCase() || "").includes(normalizedQuery)
+    );
   });
 
   const handleProjectClick = (projectId: string) => {
-    setExpandedProjectId(prev => prev === projectId ? null : projectId);
+    setExpandedProjectId((prev) => (prev === projectId ? null : projectId));
   };
 
-  const handleViewQuotes = (project: Project, version: ProjectVersion) => {
+  const handleViewQuotes = (project: Project, versionId: string) => {
     if (onOpenQuotes) {
-      onOpenQuotes(project.id, project.name, version.id);
+      onOpenQuotes(project.id, project.name, versionId);
     }
   };
+
+  const handleCreateProject = () => {
+    setEditingProject(null);
+    setDialogOpen(true);
+  };
+
+  const handleEditProject = (project: Project, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditingProject(project);
+    setDialogOpen(true);
+  };
+
+  const handleDeleteClick = (projectId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setProjectToDelete(projectId);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (projectToDelete) {
+      deleteProject(projectToDelete);
+      setDeleteDialogOpen(false);
+      setProjectToDelete(null);
+    }
+  };
+
+  const handleSubmitProject = (data: Partial<Project>) => {
+    if (editingProject) {
+      updateProject(data as Project & { id: string });
+    } else {
+      createProject(data as Omit<Project, "id" | "created_at" | "updated_at">);
+    }
+    setDialogOpen(false);
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString("fr-FR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
+  };
+
+  const formatAmount = (amount: number) => {
+    return (amount / 1_000_000).toFixed(2) + " M€";
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 space-y-3">
@@ -178,7 +131,9 @@ export const ProjectsView = ({ onOpenQuotes }: ProjectsViewProps) => {
             Vue portefeuille, sélection du projet à chiffrer
           </p>
         </div>
-        <Button size="sm">+ Nouveau projet</Button>
+        <Button size="sm" onClick={handleCreateProject}>
+          + Nouveau projet
+        </Button>
       </div>
 
       <Card>
@@ -191,110 +146,179 @@ export const ProjectsView = ({ onOpenQuotes }: ProjectsViewProps) => {
         <CardContent className="space-y-3">
           <div className="flex flex-wrap gap-2">
             <Input
-              placeholder="Rechercher par nom, code, région..."
+              placeholder="Rechercher par nom, département..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="flex-1 min-w-[260px] h-9 text-xs"
             />
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[160px] h-9 text-xs">
-                <SelectValue placeholder="Tous les statuts" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tous les statuts</SelectItem>
-                <SelectItem value="study">En étude</SelectItem>
-                <SelectItem value="offers">Offres en cours</SelectItem>
-                <SelectItem value="built">Construit</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
 
-          <div className="grid gap-3">
-            {filteredProjects.map((project) => (
-              <Collapsible
-                key={project.id}
-                open={expandedProjectId === project.id}
-                onOpenChange={() => handleProjectClick(project.id)}
-              >
-                <Card
-                  className={cn(
-                    "border shadow-sm transition-all duration-200",
-                    expandedProjectId === project.id && "border-primary/30 bg-accent-soft"
-                  )}
-                >
-                  <CollapsibleTrigger asChild>
-                    <CardHeader className="pb-2 cursor-pointer hover:bg-accent/50 transition-colors">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="space-y-1 flex-1">
-                          <CardTitle className="text-sm leading-tight">{project.name}</CardTitle>
-                          <CardDescription className="text-xs text-muted-foreground">
-                            {project.code} • {project.region}
-                          </CardDescription>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <div className="text-right text-xs">
-                            <div className="font-semibold">{project.power}</div>
-                            <div className="text-muted-foreground text-[11px]">
-                              {project.turbines} éoliennes
+          {filteredProjects.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground text-sm">
+              {searchQuery
+                ? "Aucun projet trouvé"
+                : "Aucun projet. Créez votre premier projet."}
+            </div>
+          ) : (
+            <div className="grid gap-3">
+              {filteredProjects.map((project) => {
+                const projectVersions =
+                  expandedProjectId === project.id ? quoteVersions : [];
+
+                return (
+                  <Collapsible
+                    key={project.id}
+                    open={expandedProjectId === project.id}
+                    onOpenChange={() => handleProjectClick(project.id)}
+                  >
+                    <Card
+                      className={cn(
+                        "border shadow-sm transition-all duration-200",
+                        expandedProjectId === project.id &&
+                          "border-primary/30 bg-accent-soft"
+                      )}
+                    >
+                      <CollapsibleTrigger asChild>
+                        <CardHeader className="pb-2 cursor-pointer hover:bg-accent/50 transition-colors">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="space-y-1 flex-1">
+                              <CardTitle className="text-sm leading-tight">
+                                {project.name}
+                              </CardTitle>
+                              <CardDescription className="text-xs text-muted-foreground">
+                                {project.department || "Département non spécifié"}
+                              </CardDescription>
                             </div>
-                          </div>
-                          {getStatusBadge(project.status)}
-                          <ChevronDown
-                            className={cn(
-                              "h-4 w-4 text-muted-foreground transition-transform duration-200",
-                              expandedProjectId === project.id && "rotate-180"
-                            )}
-                          />
-                        </div>
-                      </div>
-                    </CardHeader>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent className="data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up">
-                    <CardContent className="pt-0 space-y-2">
-                      <div className="text-[11px] uppercase text-muted-foreground font-medium">
-                        Chiffrages du projet
-                      </div>
-                      <div className="space-y-2">
-                        {project.versions.map((version) => (
-                          <div
-                            key={version.id}
-                            className={cn(
-                              "flex items-center justify-between gap-4 rounded-md border px-3 py-2",
-                              "hover:border-primary/40 transition-colors"
-                            )}
-                          >
-                            <div className="space-y-0.5">
-                              <div className="text-xs font-semibold">{version.name}</div>
-                              <div className="text-[11px] text-muted-foreground">{version.comment}</div>
-                              <div className="text-[11px] text-muted-foreground">{version.date}</div>
-                            </div>
-                            <div className="flex items-center gap-3">
-                              <div className="text-right">
-                                <div className="text-xs font-semibold">{version.capex}</div>
-                                <div className="text-[11px] text-muted-foreground">CAPEX</div>
+                            <div className="flex items-center gap-2">
+                              <div className="text-right text-xs">
+                                <div className="font-semibold">
+                                  {project.n_wtg} éolienne{project.n_wtg > 1 ? "s" : ""}
+                                </div>
                               </div>
-                              {onOpenQuotes && (
-                                <Button
-                                  size="sm"
-                                  className="h-8 text-[11px]"
-                                  variant="outline"
-                                  onClick={() => handleViewQuotes(project, version)}
-                                >
-                                  Voir le chiffrage
-                                </Button>
-                              )}
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 w-7 p-0"
+                                onClick={(e) => handleEditProject(project, e)}
+                              >
+                                <Pencil className="h-3.5 w-3.5" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+                                onClick={(e) => handleDeleteClick(project.id, e)}
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                              <ChevronDown
+                                className={cn(
+                                  "h-4 w-4 text-muted-foreground transition-transform duration-200",
+                                  expandedProjectId === project.id && "rotate-180"
+                                )}
+                              />
                             </div>
                           </div>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </CollapsibleContent>
-                </Card>
-              </Collapsible>
-            ))}
-          </div>
+                        </CardHeader>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent className="data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up">
+                        <CardContent className="pt-0 space-y-2">
+                          <div className="text-[11px] uppercase text-muted-foreground font-medium">
+                            Chiffrages du projet ({projectVersions.length})
+                          </div>
+                          {projectVersions.length === 0 ? (
+                            <div className="text-xs text-muted-foreground py-2">
+                              Aucune version de chiffrage
+                            </div>
+                          ) : (
+                            <div className="space-y-2">
+                              {projectVersions.map((version) => (
+                                <div
+                                  key={version.id}
+                                  className={cn(
+                                    "flex items-center justify-between gap-4 rounded-md border px-3 py-2",
+                                    "hover:border-primary/40 transition-colors"
+                                  )}
+                                >
+                                  <div className="space-y-0.5">
+                                    <div className="text-xs font-semibold">
+                                      {version.version_label}
+                                    </div>
+                                    <div className="text-[11px] text-muted-foreground">
+                                      {version.comment || "Pas de commentaire"}
+                                    </div>
+                                    <div className="text-[11px] text-muted-foreground">
+                                      {formatDate(version.date_creation)}
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-3">
+                                    <div className="text-right">
+                                      <div className="text-xs font-semibold">
+                                        {formatAmount(version.total_amount)}
+                                      </div>
+                                      <div className="text-[11px] text-muted-foreground">
+                                        CAPEX
+                                      </div>
+                                    </div>
+                                    {onOpenQuotes && (
+                                      <Button
+                                        size="sm"
+                                        className="h-8 text-[11px]"
+                                        variant="outline"
+                                        onClick={() =>
+                                          handleViewQuotes(project, version.id)
+                                        }
+                                      >
+                                        Voir le chiffrage
+                                      </Button>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </CardContent>
+                      </CollapsibleContent>
+                    </Card>
+                  </Collapsible>
+                );
+              })}
+            </div>
+          )}
         </CardContent>
       </Card>
+
+      <ProjectDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        onSubmit={handleSubmitProject}
+        project={editingProject}
+        isLoading={isCreating || isUpdating}
+      />
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
+            <AlertDialogDescription>
+              Êtes-vous sûr de vouloir supprimer ce projet ? Cette action est
+              irréversible et supprimera également toutes les versions de chiffrage
+              associées.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={isDeleting}
+            >
+              {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
-};
+}

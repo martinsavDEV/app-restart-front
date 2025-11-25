@@ -14,6 +14,7 @@ const navItems: NavItem[] = [
   { id: "projects", label: "Projets", description: "Portfolio + métadonnées" },
   { id: "quotes", label: "Versions de chiffrage", description: "Historique par projet" },
   { id: "pricing", label: "Chiffrage projet", description: "Lots & BPU" },
+  { id: "summary", label: "Export CAPEX", description: "Récap & export PDF/CSV" },
   { id: "price-db", label: "Base de prix", description: "Historiques & tendances" },
   { id: "templates", label: "Templates", description: "Chantiers types / sous-lots" },
   { id: "data-admin", label: "Admin Data", description: "Import/Export CSV" },

@@ -118,6 +118,67 @@ const parseCSVLine = (line: string): string[] => {
   return result;
 };
 
+export const exportCapexToCSV = (data: any) => {
+  let csvContent = "";
+  
+  // Header with project info
+  csvContent += `EXPORT CAPEX\n`;
+  csvContent += `Projet,${data.project?.name || "N/A"}\n`;
+  csvContent += `Nombre d'éoliennes,${data.quoteSettings?.n_wtg || data.project?.n_wtg || 0}\n`;
+  csvContent += `Version,${data.quoteVersion?.version_label || "N/A"}\n`;
+  csvContent += `Dernière modification,${data.quoteVersion?.last_update || "N/A"}\n`;
+  csvContent += `\n`;
+  
+  // Reference documents
+  csvContent += `Documents de référence\n`;
+  data.referenceDocuments.forEach((doc: any) => {
+    csvContent += `${doc.label},${doc.reference || "N/A"},${doc.comment || ""}\n`;
+  });
+  csvContent += `\n`;
+  
+  // Summary
+  csvContent += `RÉSUMÉ PAR LOT\n`;
+  csvContent += `Lot,Montant\n`;
+  data.lots.forEach((lot: any) => {
+    csvContent += `${lot.label},${lot.total.toFixed(2)}\n`;
+  });
+  csvContent += `TOTAL CAPEX,${data.totalCapex.toFixed(2)}\n`;
+  csvContent += `\n`;
+  
+  // Detailed breakdown
+  data.lots.forEach((lot: any) => {
+    csvContent += `\nLOT: ${lot.label}\n`;
+    
+    lot.sections.forEach((section: any) => {
+      const sectionTitle = section.is_multiple
+        ? `Section: ${section.name} (x${section.multiplier})`
+        : `Section: ${section.name}`;
+      csvContent += `${sectionTitle}\n`;
+      csvContent += `Désignation,Qté,Unité,P.U.,Total\n`;
+      
+      section.lines.forEach((line: any) => {
+        csvContent += `${line.designation},${line.quantity},${line.unit},${line.unit_price.toFixed(2)},${line.total_price.toFixed(2)}\n`;
+      });
+      
+      csvContent += `Sous-total section,,,${section.subtotal.toFixed(2)}\n`;
+      csvContent += `\n`;
+    });
+    
+    csvContent += `Total Lot,,,${lot.total.toFixed(2)}\n`;
+    csvContent += `\n`;
+  });
+  
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const link = document.createElement("a");
+  const url = URL.createObjectURL(blob);
+  link.setAttribute("href", url);
+  link.setAttribute("download", `CAPEX_${data.project?.name || "export"}_${new Date().toISOString().split('T')[0]}.csv`);
+  link.style.visibility = "hidden";
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
+
 export const validateData = (data: any[], requiredColumns: string[]): { valid: boolean; errors: string[] } => {
   const errors: string[] = [];
   

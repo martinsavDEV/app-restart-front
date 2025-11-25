@@ -3,10 +3,11 @@ import { z } from "zod";
 export const bpuLineSchema = z.object({
   id: z.string(),
   designation: z.string().min(1, "La désignation est requise").max(200),
-  quantity: z.number().min(0, "La quantité doit être positive"),
+  quantity: z.union([z.number().min(0, "La quantité doit être positive"), z.string()]),
   unit: z.string().min(1, "L'unité est requise").max(20),
   unitPrice: z.number().min(0, "Le prix unitaire doit être positif"),
   priceSource: z.string().optional(),
+  linkedVariable: z.string().optional(),
 });
 
 export type BPULine = z.infer<typeof bpuLineSchema>;

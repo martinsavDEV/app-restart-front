@@ -26,6 +26,10 @@ const formatCurrency = (value: number) => {
 };
 
 export const BPUTable = ({ lines, onLineUpdate, onLineDelete }: BPUTableProps) => {
+  const resolveQuantity = (quantity: number | string): number => {
+    return typeof quantity === "number" ? quantity : parseFloat(quantity) || 0;
+  };
+
   return (
     <div className="overflow-x-auto">
       <div className="mb-2 flex items-center gap-2 text-[11px] text-muted-foreground italic">
@@ -60,7 +64,8 @@ export const BPUTable = ({ lines, onLineUpdate, onLineDelete }: BPUTableProps) =
         </thead>
         <tbody>
           {lines.map((line) => {
-            const total = line.quantity * line.unitPrice;
+            const qty = resolveQuantity(line.quantity);
+            const total = qty * line.unitPrice;
             return (
               <tr key={line.id} className="border-b hover:bg-muted/30 group">
                 <td className="py-3 px-2">
@@ -73,7 +78,7 @@ export const BPUTable = ({ lines, onLineUpdate, onLineDelete }: BPUTableProps) =
                 </td>
                 <td className="py-3 px-2">
                   <EditableCell
-                    value={line.quantity}
+                    value={qty}
                     onChange={(value) => onLineUpdate(line.id, { quantity: value })}
                     align="right"
                     format={(v) => formatNumber(v)}

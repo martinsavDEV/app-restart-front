@@ -228,6 +228,7 @@ export type Database = {
           created_at: string
           id: string
           is_multiple: boolean
+          linked_field: string | null
           lot_id: string
           multiplier: number
           name: string
@@ -238,6 +239,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_multiple?: boolean
+          linked_field?: string | null
           lot_id: string
           multiplier?: number
           name: string
@@ -248,6 +250,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_multiple?: boolean
+          linked_field?: string | null
           lot_id?: string
           multiplier?: number
           name?: string

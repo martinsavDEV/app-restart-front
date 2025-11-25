@@ -93,7 +93,11 @@ const Index = () => {
         quotesEnabled={quotesEnabled}
       />
       <div className="flex-1 flex flex-col min-w-0">
-        <Topbar projectName="41 - Parc éolien La Besse" projectCode="FR-PE-001" />
+        {selectedProjectName ? (
+          <Topbar projectName={selectedProjectName} projectCode={selectedProjectId || ""} />
+        ) : (
+          <Topbar projectName="Sélectionnez un projet" projectCode="" />
+        )}
         <main className="flex-1 overflow-auto">{renderView()}</main>
       </div>
     </div>

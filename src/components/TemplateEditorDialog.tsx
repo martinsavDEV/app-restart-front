@@ -57,7 +57,17 @@ export const TemplateEditorDialog = ({ open, onOpenChange, template, onSave }: T
       setCode(template.code);
       setLabel(template.label);
       setDescription(template.description || "");
-      setSections((template.template_lines as WorkLot)?.sections || []);
+      // Ensure all lines have proper default values
+      const templateSections = (template.template_lines as WorkLot)?.sections || [];
+      const normalizedSections = templateSections.map(section => ({
+        ...section,
+        lines: section.lines.map(line => ({
+          ...line,
+          unitPrice: line.unitPrice ?? 0,
+          quantity: line.quantity ?? 0,
+        }))
+      }));
+      setSections(normalizedSections);
     } else {
       setCode("fondation");
       setLabel("");
@@ -333,10 +343,10 @@ export const TemplateEditorDialog = ({ open, onOpenChange, template, onSave }: T
                               </td>
                               <td className="py-1">
                                 <EditableCell
-                                  value={line.unitPrice}
+                                  value={line.unitPrice || 0}
                                   onChange={(value) => updateLine(section.id, line.id, { unitPrice: value })}
                                   align="right"
-                                  format={(v) => v.toFixed(2)}
+                                  format={(v) => (v || 0).toFixed(2)}
                                 />
                               </td>
                               <td className="py-1 text-right font-medium">

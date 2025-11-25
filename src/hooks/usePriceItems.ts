@@ -10,6 +10,7 @@ export interface PriceItem {
   unit_price: number;
   date_modif?: string;
   lot_code: string;
+  price_reference?: string;
   created_at: string;
   updated_at: string;
 }

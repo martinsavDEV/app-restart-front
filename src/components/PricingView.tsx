@@ -292,6 +292,7 @@ export const PricingView = ({ projectId: initialProjectId, projectName: initialP
                       onLineDelete={handleLineDelete}
                       onBulkDelete={handleBulkDelete}
                       onLineAdd={handleLinePaste(lot.id)}
+                      lotCode={lot.code}
                     />
                   </CardContent>
                 </Card>

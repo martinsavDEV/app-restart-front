@@ -125,11 +125,13 @@ export const BPUTableWithSections = ({
   console.log("Generated Variables:", variables);
 
   // Resolve quantity (number or variable)
-  const resolveQuantity = (quantity: number | string): number => {
-    if (typeof quantity === "string" && quantity.startsWith("$")) {
-      return getVariableValue(quantity) ?? 0;
+  const resolveQuantity = (quantity: number | string, linkedVariable?: string): number => {
+    // If there's a linked variable, resolve it
+    if (linkedVariable && linkedVariable.startsWith("$")) {
+      return getVariableValue(linkedVariable) ?? 0;
     }
-    return typeof quantity === "number" ? quantity : parseFloat(quantity) || 0;
+    // Otherwise use the quantity value directly
+    return typeof quantity === "number" ? quantity : parseFloat(String(quantity)) || 0;
   };
 
   const sensors = useSensors(
@@ -152,7 +154,7 @@ export const BPUTableWithSections = ({
 
   const calculateSectionTotal = (sectionLines: BPULineWithSection[]) => {
     return sectionLines.reduce((sum, line) => {
-      const qty = resolveQuantity(line.quantity);
+      const qty = resolveQuantity(line.quantity, line.linkedVariable);
       return sum + (qty * line.unitPrice);
     }, 0);
   };

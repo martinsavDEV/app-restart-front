@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { EditableCell } from "@/components/EditableCell";
 import { EditableCellText } from "@/components/EditableCellText";
 import { PriceItemAutocomplete } from "@/components/PriceItemAutocomplete";
+import { PriceSourceIndicator } from "@/components/PriceSourceIndicator";
 import { Checkbox } from "@/components/ui/checkbox";
 import { BPULine } from "@/types/bpu";
 import { Trash2, Copy, Clipboard } from "lucide-react";
@@ -255,10 +256,18 @@ export const BPUTableWithSections = ({
                         {formatCurrency(total)}
                       </td>
                       <td className="py-1 px-2">
-                        <EditableCellText
-                          value={line.priceSource || ""}
+                        <PriceSourceIndicator
+                          designation={line.designation}
+                          currentUnitPrice={line.unitPrice}
+                          priceSource={line.priceSource || ""}
+                          lotCode={lotCode}
+                          onUpdate={(newPrice, newSource) => {
+                            onLineUpdate(line.id, { 
+                              unitPrice: newPrice, 
+                              priceSource: newSource 
+                            });
+                          }}
                           onChange={(value) => onLineUpdate(line.id, { priceSource: value })}
-                          placeholder="Source prix"
                         />
                       </td>
                       <td className="py-1 px-2 text-center">

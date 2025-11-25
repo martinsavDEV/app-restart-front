@@ -20,6 +20,12 @@ interface TemplateLine {
   unit: string;
   unit_price: number;
   comment?: string;
+  quantity?: number;
+}
+
+interface TemplateSection {
+  title: string;
+  lines: TemplateLine[];
 }
 
 interface LotTemplate {
@@ -27,14 +33,16 @@ interface LotTemplate {
   code: string;
   label: string;
   description?: string;
-  template_lines: TemplateLine[];
+  template_lines: {
+    sections: TemplateSection[];
+  };
 }
 
 interface TemplateLoaderDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   lotCode?: string;
-  onLoadTemplate: (templateLines: TemplateLine[]) => void;
+  onLoadTemplate: (sections: TemplateSection[]) => void;
 }
 
 export const TemplateLoaderDialog = ({
@@ -58,7 +66,7 @@ export const TemplateLoaderDialog = ({
       if (error) throw error;
       return (data || []).map(d => ({
         ...d,
-        template_lines: d.template_lines as unknown as TemplateLine[]
+        template_lines: d.template_lines as unknown as { sections: TemplateSection[] }
       }));
     },
     enabled: open,
@@ -68,7 +76,7 @@ export const TemplateLoaderDialog = ({
 
   const handleLoad = () => {
     if (selectedTemplate) {
-      onLoadTemplate(selectedTemplate.template_lines);
+      onLoadTemplate(selectedTemplate.template_lines.sections);
       onOpenChange(false);
       setSelectedTemplateId(null);
     }
@@ -106,7 +114,7 @@ export const TemplateLoaderDialog = ({
                       </CardHeader>
                       <CardContent>
                         <p className="text-xs text-muted-foreground">
-                          {template.template_lines.length} ligne(s) type
+                          {template.template_lines.sections.reduce((sum, section) => sum + section.lines.length, 0)} ligne(s) dans {template.template_lines.sections.length} section(s)
                         </p>
                       </CardContent>
                     </Card>
@@ -121,16 +129,21 @@ export const TemplateLoaderDialog = ({
                   <CardTitle className="text-sm">Aperçu des lignes</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-2">
-                    {selectedTemplate.template_lines.map((line, index) => (
-                      <div
-                        key={index}
-                        className="text-xs p-2 bg-muted/50 rounded flex justify-between"
-                      >
-                        <span className="font-medium">{line.designation}</span>
-                        <span className="text-muted-foreground">
-                          {line.unit_price}€/{line.unit}
-                        </span>
+                  <div className="space-y-4">
+                    {selectedTemplate.template_lines.sections.map((section, sectionIndex) => (
+                      <div key={sectionIndex} className="space-y-2">
+                        <div className="font-semibold text-xs text-primary">{section.title}</div>
+                        {section.lines.map((line, lineIndex) => (
+                          <div
+                            key={lineIndex}
+                            className="text-xs p-2 bg-muted/50 rounded flex justify-between ml-3"
+                          >
+                            <span className="font-medium">{line.designation}</span>
+                            <span className="text-muted-foreground">
+                              {line.unit_price}€/{line.unit}
+                            </span>
+                          </div>
+                        ))}
                       </div>
                     ))}
                   </div>

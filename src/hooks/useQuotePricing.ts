@@ -39,6 +39,43 @@ interface TemplateSection {
 export const useQuotePricing = (quoteVersionId?: string | null) => {
   const queryClient = useQueryClient();
 
+  // Update quote version total amount
+  const updateQuoteVersionTotal = async () => {
+    if (!quoteVersionId) return;
+
+    // Fetch all lots for this quote version
+    const { data: lotsData, error: lotsError } = await supabase
+      .from("lots")
+      .select("id")
+      .eq("quote_version_id", quoteVersionId);
+
+    if (lotsError || !lotsData) return;
+
+    // Fetch all lines for these lots
+    const lotIds = lotsData.map(lot => lot.id);
+    const { data: linesData, error: linesError } = await supabase
+      .from("quote_lines")
+      .select("quantity, unit_price")
+      .in("lot_id", lotIds);
+
+    if (linesError || !linesData) return;
+
+    // Calculate total
+    const total = linesData.reduce(
+      (sum, line) => sum + (line.quantity || 0) * (line.unit_price || 0),
+      0
+    );
+
+    // Update quote version
+    await supabase
+      .from("quote_versions")
+      .update({ total_amount: total })
+      .eq("id", quoteVersionId);
+
+    // Invalidate quote versions queries
+    queryClient.invalidateQueries({ queryKey: ["quote-versions"] });
+  };
+
   // Fetch lots and quote_lines for a quote version
   const { data: lots, isLoading } = useQuery({
     queryKey: ["quote-pricing", quoteVersionId],
@@ -91,8 +128,9 @@ export const useQuotePricing = (quoteVersionId?: string | null) => {
 
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       queryClient.invalidateQueries({ queryKey: ["quote-pricing", quoteVersionId] });
+      await updateQuoteVersionTotal();
       toast.success("Ligne mise à jour");
     },
     onError: (error) => {
@@ -123,8 +161,9 @@ export const useQuotePricing = (quoteVersionId?: string | null) => {
 
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       queryClient.invalidateQueries({ queryKey: ["quote-pricing", quoteVersionId] });
+      await updateQuoteVersionTotal();
       toast.success("Ligne ajoutée");
     },
     onError: (error) => {
@@ -140,8 +179,9 @@ export const useQuotePricing = (quoteVersionId?: string | null) => {
 
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       queryClient.invalidateQueries({ queryKey: ["quote-pricing", quoteVersionId] });
+      await updateQuoteVersionTotal();
       toast.success("Ligne supprimée");
     },
     onError: (error) => {
@@ -182,8 +222,9 @@ export const useQuotePricing = (quoteVersionId?: string | null) => {
 
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       queryClient.invalidateQueries({ queryKey: ["quote-pricing", quoteVersionId] });
+      await updateQuoteVersionTotal();
       toast.success("Template chargé avec succès");
     },
     onError: (error) => {

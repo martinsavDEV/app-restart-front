@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { BPUTable } from "@/components/BPUTable";
+import { BPUTableWithSections } from "@/components/BPUTableWithSections";
 import { BPULine } from "@/types/bpu";
 import { toast } from "sonner";
 import { Plus, FileUp } from "lucide-react";
@@ -115,16 +115,26 @@ export const PricingView = ({ projectId: initialProjectId, projectName: initialP
     }
   };
 
-  // Convert lot lines to BPULine format for BPUTable
-  const convertToBPULines = (lines: any[]): BPULine[] => {
-    return lines.map((line) => ({
-      id: line.id,
-      designation: line.designation,
-      quantity: line.quantity || 0,
-      unit: line.unit,
-      unitPrice: line.unit_price || 0,
-      priceSource: line.comment || "",
-    }));
+  // Convert lot lines to BPULine format with section extraction
+  const convertToBPULines = (lines: any[]): (BPULine & { section?: string })[] => {
+    return lines.map((line) => {
+      // Extract section from comment (format: "[Section Name] comment")
+      const sectionMatch = line.comment?.match(/^\[([^\]]+)\]/);
+      const section = sectionMatch ? sectionMatch[1] : undefined;
+      const priceSource = sectionMatch 
+        ? line.comment.replace(/^\[[^\]]+\]\s*/, "")
+        : line.comment || "";
+      
+      return {
+        id: line.id,
+        designation: line.designation,
+        quantity: line.quantity || 0,
+        unit: line.unit,
+        unitPrice: line.unit_price || 0,
+        priceSource,
+        section,
+      };
+    });
   };
 
   if (isLoading) {
@@ -243,7 +253,7 @@ export const PricingView = ({ projectId: initialProjectId, projectName: initialP
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-3">
-                    <BPUTable
+                    <BPUTableWithSections
                       lines={convertToBPULines(lot.lines)}
                       onLineUpdate={handleLineUpdate}
                       onLineDelete={handleLineDelete}

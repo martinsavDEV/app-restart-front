@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -21,37 +23,11 @@ interface ReferenceDocument {
 }
 
 interface QuotesViewProps {
+  projectId?: string;
   projectName?: string;
   initialSelectedVersionId?: string;
   onVersionChange?: (versionId: string) => void;
 }
-
-const quoteVersions: QuoteVersion[] = [
-  {
-    id: "v3",
-    name: "V3 – Révision accès",
-    date: "14/03/2025",
-    author: "Martin Savouré",
-    capex: "18,35 M€",
-    comment: "Étude d'accès mise à jour",
-  },
-  {
-    id: "v2",
-    name: "V2 – Offre turbinier",
-    date: "02/02/2025",
-    author: "Martin Savouré",
-    capex: "18,10 M€",
-    comment: "Intègre la dernière offre fournisseur",
-  },
-  {
-    id: "v1",
-    name: "V1 – Études préliminaires",
-    date: "15/11/2024",
-    author: "Martin Savouré",
-    capex: "17,60 M€",
-    comment: "Hypothèses de base",
-  },
-];
 
 const referenceDocumentsByVersion: Record<string, ReferenceDocument[]> = {
   v3: [
@@ -135,51 +111,79 @@ const referenceDocumentsByVersion: Record<string, ReferenceDocument[]> = {
 };
 
 export const QuotesView = ({
+  projectId,
   projectName,
   initialSelectedVersionId,
   onVersionChange,
 }: QuotesViewProps) => {
-  const [selectedVersion, setSelectedVersion] = useState(
-    initialSelectedVersionId || "v3"
+  const [selectedVersion, setSelectedVersion] = useState<string | null>(
+    initialSelectedVersionId || null
   );
-  const [versionDocuments, setVersionDocuments] = useState<
-    Record<string, ReferenceDocument[]>
-  >(() => {
-    const initialMapping: Record<string, ReferenceDocument[]> = {};
-    quoteVersions.forEach((version) => {
-      const versionDocs = referenceDocumentsByVersion[version.id] || [];
-      initialMapping[version.id] = versionDocs.map((doc) => ({ ...doc }));
-    });
-    return initialMapping;
+
+  // Fetch quote versions from Supabase
+  const { data: quoteVersions } = useQuery({
+    queryKey: ["quote-versions", projectId],
+    queryFn: async () => {
+      if (!projectId) return [];
+      const { data, error } = await supabase
+        .from("quote_versions")
+        .select("*")
+        .eq("project_id", projectId)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!projectId,
+  });
+
+  // Fetch reference documents for selected version
+  const { data: referenceDocuments } = useQuery({
+    queryKey: ["reference-documents", selectedVersion],
+    queryFn: async () => {
+      if (!selectedVersion) return [];
+      const { data, error } = await supabase
+        .from("reference_documents")
+        .select("*")
+        .eq("version_id", selectedVersion);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!selectedVersion,
   });
 
   useEffect(() => {
     if (initialSelectedVersionId) {
       setSelectedVersion(initialSelectedVersionId);
+    } else if (quoteVersions && quoteVersions.length > 0 && !selectedVersion) {
+      setSelectedVersion(quoteVersions[0].id);
     }
-  }, [initialSelectedVersionId]);
+  }, [initialSelectedVersionId, quoteVersions, selectedVersion]);
 
   const handleVersionSelect = (versionId: string) => {
     setSelectedVersion(versionId);
-    setVersionDocuments((prev) => {
-      if (prev[versionId]) return prev;
-      const fallbackDocs = referenceDocumentsByVersion[versionId] || [];
-      return { ...prev, [versionId]: fallbackDocs.map((doc) => ({ ...doc })) };
-    });
     onVersionChange?.(versionId);
   };
 
-  const handleDocumentCommentChange = (id: string, comment: string) => {
-    setVersionDocuments((prev) => {
-      const docsForSelectedVersion = prev[selectedVersion] || [];
-      const updatedDocs = docsForSelectedVersion.map((doc) =>
-        doc.id === id ? { ...doc, comment } : doc
-      );
-      return { ...prev, [selectedVersion]: updatedDocs };
-    });
+  const handleDocumentCommentChange = async (id: string, comment: string) => {
+    await supabase
+      .from("reference_documents")
+      .update({ comment })
+      .eq("id", id);
   };
 
-  const documents = versionDocuments[selectedVersion] || [];
+  const formatCurrency = (value: number | null) => {
+    if (!value) return "0,00 €";
+    return new Intl.NumberFormat("fr-FR", {
+      style: "currency",
+      currency: "EUR",
+      minimumFractionDigits: 2,
+    }).format(value);
+  };
+
+  const formatDate = (date: string | null) => {
+    if (!date) return "-";
+    return new Date(date).toLocaleDateString("fr-FR");
+  };
 
   return (
     <div className="p-4 space-y-3">
@@ -223,7 +227,7 @@ export const QuotesView = ({
                 </tr>
               </thead>
               <tbody>
-                {quoteVersions.map((version) => (
+                {quoteVersions?.map((version) => (
                   <tr
                     key={version.id}
                     onClick={() => handleVersionSelect(version.id)}
@@ -232,11 +236,11 @@ export const QuotesView = ({
                       selectedVersion === version.id && "bg-accent-soft"
                     )}
                   >
-                    <td className="py-3 px-2 font-medium">{version.name}</td>
-                    <td className="py-3 px-2">{version.date}</td>
-                    <td className="py-3 px-2">{version.author}</td>
-                    <td className="py-3 px-2 font-semibold">{version.capex}</td>
-                    <td className="py-3 px-2 text-muted-foreground">{version.comment}</td>
+                    <td className="py-3 px-2 font-medium">{version.version_label}</td>
+                    <td className="py-3 px-2">{formatDate(version.date_creation)}</td>
+                    <td className="py-3 px-2">-</td>
+                    <td className="py-3 px-2 font-semibold tabular-nums">{formatCurrency(version.total_amount)}</td>
+                    <td className="py-3 px-2 text-muted-foreground">{version.comment || "-"}</td>
                   </tr>
                 ))}
               </tbody>
@@ -269,14 +273,14 @@ export const QuotesView = ({
                 </tr>
               </thead>
               <tbody>
-                {documents.map((doc) => (
+                {referenceDocuments?.map((doc) => (
                   <tr key={doc.id} className="border-b align-top">
                     <td className="py-3 px-2 font-medium">{doc.label}</td>
-                    <td className="py-3 px-2">{doc.reference}</td>
+                    <td className="py-3 px-2">{doc.reference || "-"}</td>
                     <td className="py-3 px-2">
                       <Textarea
                         placeholder="Ajouter un commentaire ou un point de vigilance"
-                        value={doc.comment}
+                        value={doc.comment || ""}
                         onChange={(e) => handleDocumentCommentChange(doc.id, e.target.value)}
                         className="text-xs"
                         rows={2}
@@ -284,6 +288,13 @@ export const QuotesView = ({
                     </td>
                   </tr>
                 ))}
+                {(!referenceDocuments || referenceDocuments.length === 0) && (
+                  <tr>
+                    <td colSpan={3} className="py-6 text-center text-xs text-muted-foreground">
+                      Aucun document de référence pour cette version
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>

@@ -118,6 +118,11 @@ export const BPUTableWithSections = ({
   // Load calculator variables
   const calculatorData = quoteSettings?.calculator_data as unknown as CalculatorData | null;
   const { variables, getVariableValue } = useCalculatorVariables(calculatorData);
+  
+  // Debug logs
+  console.log("Quote Settings:", quoteSettings);
+  console.log("Calculator Data:", calculatorData);
+  console.log("Generated Variables:", variables);
 
   // Resolve quantity (number or variable)
   const resolveQuantity = (quantity: number | string): number => {

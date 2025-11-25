@@ -87,13 +87,14 @@ export const VariableAutocomplete = ({
   };
 
   // Filter variables based on search
-  const searchTerm = searchValue.startsWith("$") ? searchValue : `$${searchValue}`;
-  const filteredVariables = searchValue.length > 0 && searchValue.includes("$")
-    ? variables.filter((v) =>
-        v.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        v.label.toLowerCase().includes(searchValue.replace("$", "").toLowerCase())
-      )
-    : variables;
+  const filteredVariables = searchValue === "$" 
+    ? variables  // Show ALL variables when only $ is typed
+    : searchValue.startsWith("$") && searchValue.length > 1
+      ? variables.filter(v => 
+          v.name.toLowerCase().includes(searchValue.toLowerCase()) ||
+          v.label.toLowerCase().includes(searchValue.slice(1).toLowerCase())
+        )
+      : variables;
 
   // Group by category
   const groupedVariables = filteredVariables.reduce((acc, v) => {
@@ -129,34 +130,44 @@ export const VariableAutocomplete = ({
         </PopoverTrigger>
         
         <PopoverContent 
-          className="w-80 p-0 z-50 bg-popover" 
+          className="w-96 p-0 z-[100] bg-popover border shadow-lg" 
           align="start"
+          sideOffset={5}
           onOpenAutoFocus={(e) => e.preventDefault()}
         >
           <Command shouldFilter={false}>
             <CommandList>
-              <CommandEmpty>Aucune variable trouvée</CommandEmpty>
-              {Object.entries(groupedVariables).map(([category, vars]) => (
-                <CommandGroup key={category} heading={category}>
-                  {vars.map((variable) => (
-                    <CommandItem
-                      key={variable.name}
-                      value={variable.name}
-                      onMouseDown={(e) => {
-                        e.preventDefault();
-                        handleSelect(variable);
-                      }}
-                      className="flex justify-between cursor-pointer"
-                    >
-                      <div className="flex flex-col">
-                        <span className="font-mono text-orange-500">{variable.name}</span>
-                        <span className="text-xs text-muted-foreground">{variable.label}</span>
-                      </div>
-                      <span className="text-sm font-medium">{variable.value}</span>
-                    </CommandItem>
+              {variables.length === 0 ? (
+                <div className="p-4 text-center text-sm text-muted-foreground">
+                  <p>Aucune variable disponible</p>
+                  <p className="text-xs mt-1">Configurez le Calculateur pour créer des variables</p>
+                </div>
+              ) : (
+                <>
+                  <CommandEmpty>Aucune variable trouvée pour "{searchValue}"</CommandEmpty>
+                  {Object.entries(groupedVariables).map(([category, vars]) => (
+                    <CommandGroup key={category} heading={`${category} (${vars.length})`}>
+                      {vars.map((variable) => (
+                        <CommandItem
+                          key={variable.name}
+                          value={variable.name}
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            handleSelect(variable);
+                          }}
+                          className="flex justify-between cursor-pointer"
+                        >
+                          <div className="flex flex-col">
+                            <span className="font-mono text-orange-500">{variable.name}</span>
+                            <span className="text-xs text-muted-foreground">{variable.label}</span>
+                          </div>
+                          <span className="text-sm font-medium">{variable.value}</span>
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
                   ))}
-                </CommandGroup>
-              ))}
+                </>
+              )}
             </CommandList>
           </Command>
         </PopoverContent>

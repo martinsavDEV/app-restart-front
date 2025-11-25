@@ -96,6 +96,7 @@ export type Database = {
           item: string
           item_id: string | null
           lot_code: string
+          price_reference: string | null
           unit: string
           unit_price: number
           updated_at: string
@@ -107,6 +108,7 @@ export type Database = {
           item: string
           item_id?: string | null
           lot_code?: string
+          price_reference?: string | null
           unit: string
           unit_price?: number
           updated_at?: string
@@ -118,6 +120,7 @@ export type Database = {
           item?: string
           item_id?: string | null
           lot_code?: string
+          price_reference?: string | null
           unit?: string
           unit_price?: number
           updated_at?: string

@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { EditableCell } from "@/components/EditableCell";
 import { EditableCellText } from "@/components/EditableCellText";
+import { PriceItemAutocomplete } from "@/components/PriceItemAutocomplete";
 import { Checkbox } from "@/components/ui/checkbox";
 import { BPULine } from "@/types/bpu";
 import { Trash2, Copy, Clipboard } from "lucide-react";
@@ -17,6 +18,7 @@ interface BPUTableWithSectionsProps {
   onLineDelete: (id: string) => void;
   onLineAdd?: (line: Omit<BPULineWithSection, "id">, sectionName: string) => void;
   onBulkDelete?: (lineIds: string[]) => void;
+  lotCode?: string;
 }
 
 const formatNumber = (value: number) => {
@@ -39,7 +41,8 @@ export const BPUTableWithSections = ({
   onLineUpdate, 
   onLineDelete, 
   onLineAdd,
-  onBulkDelete 
+  onBulkDelete,
+  lotCode
 }: BPUTableWithSectionsProps) => {
   const {
     selectedLines,
@@ -207,10 +210,18 @@ export const BPUTableWithSections = ({
                         />
                       </td>
                       <td className="py-1 px-2">
-                        <EditableCellText
+                        <PriceItemAutocomplete
                           value={line.designation}
+                          lotCode={lotCode}
+                          onSelect={(item) => {
+                            onLineUpdate(line.id, {
+                              designation: item.designation,
+                              unit: item.unit,
+                              unitPrice: item.unitPrice,
+                              priceSource: item.priceSource,
+                            });
+                          }}
                           onChange={(value) => onLineUpdate(line.id, { designation: value })}
-                          maxLength={200}
                           placeholder="Désignation"
                         />
                       </td>

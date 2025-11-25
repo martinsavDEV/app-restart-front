@@ -44,6 +44,88 @@ export type Database = {
         }
         Relationships: []
       }
+      quote_versions: {
+        Row: {
+          comment: string | null
+          created_at: string | null
+          date_creation: string | null
+          id: string
+          last_update: string | null
+          project_id: string
+          total_amount: number | null
+          type: string | null
+          updated_at: string | null
+          version_label: string
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string | null
+          date_creation?: string | null
+          id?: string
+          last_update?: string | null
+          project_id: string
+          total_amount?: number | null
+          type?: string | null
+          updated_at?: string | null
+          version_label: string
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string | null
+          date_creation?: string | null
+          id?: string
+          last_update?: string | null
+          project_id?: string
+          total_amount?: number | null
+          type?: string | null
+          updated_at?: string | null
+          version_label?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quote_versions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reference_documents: {
+        Row: {
+          comment: string | null
+          created_at: string | null
+          id: string
+          label: string
+          reference: string | null
+          version_id: string
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string | null
+          id?: string
+          label: string
+          reference?: string | null
+          version_id: string
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string | null
+          id?: string
+          label?: string
+          reference?: string | null
+          version_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reference_documents_version_id_fkey"
+            columns: ["version_id"]
+            isOneToOne: false
+            referencedRelation: "quote_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string | null

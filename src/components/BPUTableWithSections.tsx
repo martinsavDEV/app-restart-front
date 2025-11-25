@@ -6,6 +6,8 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useLineSelection } from "@/hooks/useLineSelection";
 import { toast } from "sonner";
+import { useCalculatorVariables } from "@/hooks/useCalculatorVariables";
+import { CalculatorData } from "@/types/bpu";
 import { QuoteSection } from "@/hooks/useQuoteSections";
 import { useState, useEffect } from "react";
 import {
@@ -113,6 +115,18 @@ export const BPUTableWithSections = ({
     enabled: lines.length > 0,
   });
 
+  // Load calculator variables
+  const calculatorData = quoteSettings?.calculator_data as unknown as CalculatorData | null;
+  const { variables, getVariableValue } = useCalculatorVariables(calculatorData);
+
+  // Resolve quantity (number or variable)
+  const resolveQuantity = (quantity: number | string): number => {
+    if (typeof quantity === "string" && quantity.startsWith("$")) {
+      return getVariableValue(quantity) ?? 0;
+    }
+    return typeof quantity === "number" ? quantity : parseFloat(quantity) || 0;
+  };
+
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
@@ -132,7 +146,10 @@ export const BPUTableWithSections = ({
 
 
   const calculateSectionTotal = (sectionLines: BPULineWithSection[]) => {
-    return sectionLines.reduce((sum, line) => sum + (line.quantity * line.unitPrice), 0);
+    return sectionLines.reduce((sum, line) => {
+      const qty = resolveQuantity(line.quantity);
+      return sum + (qty * line.unitPrice);
+    }, 0);
   };
 
   const grandTotal = sections.reduce((sum, section) => {
@@ -299,6 +316,8 @@ export const BPUTableWithSections = ({
                   lotCode={lotCode}
                   formatNumber={formatNumber}
                   formatCurrency={formatCurrency}
+                  variables={variables}
+                  resolveQuantity={resolveQuantity}
                 />
               ))}
             </tbody>

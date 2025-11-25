@@ -126,7 +126,10 @@ export const TemplateEditorDialog = ({ open, onOpenChange, template, onSave }: T
   };
 
   const calculateSectionTotal = (section: WorkSection) => {
-    return section.lines.reduce((sum, line) => sum + (line.quantity * line.unitPrice), 0);
+    return section.lines.reduce((sum, line) => {
+      const qty = typeof line.quantity === "number" ? line.quantity : parseFloat(line.quantity) || 0;
+      return sum + (qty * line.unitPrice);
+    }, 0);
   };
 
   const formatCurrency = (value: number) => {
@@ -264,7 +267,9 @@ export const TemplateEditorDialog = ({ open, onOpenChange, template, onSave }: T
                           </tr>
                         </thead>
                         <tbody>
-                          {section.lines.map((line) => (
+                          {section.lines.map((line) => {
+                            const qty = typeof line.quantity === "number" ? line.quantity : parseFloat(line.quantity) || 0;
+                            return (
                             <tr key={line.id} className="border-b">
                               <td className="py-1">
                                 <EditableCellText
@@ -275,7 +280,7 @@ export const TemplateEditorDialog = ({ open, onOpenChange, template, onSave }: T
                               </td>
                               <td className="py-1">
                                 <EditableCell
-                                  value={line.quantity}
+                                  value={qty}
                                   onChange={(value) => updateLine(section.id, line.id, "quantity", value)}
                                   align="right"
                                 />
@@ -296,7 +301,7 @@ export const TemplateEditorDialog = ({ open, onOpenChange, template, onSave }: T
                                 />
                               </td>
                               <td className="py-1 text-right font-medium">
-                                {formatCurrency(line.quantity * line.unitPrice)}
+                                {formatCurrency(qty * line.unitPrice)}
                               </td>
                               <td className="py-1">
                                 <Button
@@ -309,7 +314,7 @@ export const TemplateEditorDialog = ({ open, onOpenChange, template, onSave }: T
                                 </Button>
                               </td>
                             </tr>
-                          ))}
+                          )})}
                         </tbody>
                       </table>
                       <Button

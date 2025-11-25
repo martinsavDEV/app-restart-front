@@ -4,9 +4,10 @@ import { EditableCell } from "@/components/EditableCell";
 import { EditableCellText } from "@/components/EditableCellText";
 import { PriceItemAutocomplete } from "@/components/PriceItemAutocomplete";
 import { PriceSourceIndicator } from "@/components/PriceSourceIndicator";
+import { VariableAutocomplete } from "@/components/VariableAutocomplete";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
-import { BPULine } from "@/types/bpu";
+import { BPULine, CalculatorVariable } from "@/types/bpu";
 import { Copy, Trash2, GripVertical } from "lucide-react";
 
 interface BPULineWithSection extends BPULine {
@@ -26,6 +27,8 @@ interface DraggableLineProps {
   lotCode?: string;
   formatNumber: (value: number) => string;
   formatCurrency: (value: number) => string;
+  variables: CalculatorVariable[];
+  resolveQuantity: (quantity: number | string) => number;
 }
 
 export const DraggableLine = ({
@@ -40,6 +43,8 @@ export const DraggableLine = ({
   lotCode,
   formatNumber,
   formatCurrency,
+  variables,
+  resolveQuantity,
 }: DraggableLineProps) => {
   const {
     attributes,
@@ -56,7 +61,8 @@ export const DraggableLine = ({
     opacity: isDragging ? 0.5 : 1,
   };
 
-  const total = line.quantity * line.unitPrice;
+  const resolvedQuantity = resolveQuantity(line.quantity);
+  const total = resolvedQuantity * line.unitPrice;
 
   return (
     <tr
@@ -99,12 +105,24 @@ export const DraggableLine = ({
         />
       </td>
       <td className="py-1 px-2">
-        <EditableCell
+        <VariableAutocomplete
           value={line.quantity}
-          onChange={(value) => onLineUpdate(line.id, { quantity: value })}
-          align="right"
-          format={(v) => formatNumber(v)}
-          className="tabular-nums"
+          variables={variables}
+          onSelect={(variable) => {
+            onLineUpdate(line.id, { 
+              quantity: variable.name,
+              linkedVariable: variable.name,
+            });
+          }}
+          onChange={(value) => {
+            const numValue = parseFloat(value);
+            onLineUpdate(line.id, { 
+              quantity: isNaN(numValue) ? value : numValue,
+              linkedVariable: value.startsWith("$") ? value : undefined,
+            });
+          }}
+          placeholder="Quantité"
+          className="text-right tabular-nums"
         />
       </td>
       <td className="py-1 px-2">

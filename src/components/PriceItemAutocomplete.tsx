@@ -53,10 +53,17 @@ export const PriceItemAutocomplete = ({
   const handleInputChange = (newValue: string) => {
     setSearch(newValue);
     onChange(newValue);
-    if (newValue.length >= 2) {
+    if (newValue.length > 0) {
       setOpen(true);
     } else {
       setOpen(false);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Tab' && open && filteredItems && filteredItems.length > 0) {
+      e.preventDefault();
+      handleSelect(filteredItems[0]);
     }
   };
 
@@ -74,6 +81,7 @@ export const PriceItemAutocomplete = ({
             ref={inputRef}
             value={search}
             onChange={(e) => handleInputChange(e.target.value)}
+            onKeyDown={handleKeyDown}
             onBlur={handleBlur}
             placeholder={placeholder}
             className={`text-xs h-7 ${className}`}

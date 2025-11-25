@@ -33,6 +33,8 @@ interface TemplateLine {
 
 interface TemplateSection {
   title: string;
+  is_multiple?: boolean;
+  multiplier?: number;
   lines: TemplateLine[];
 }
 
@@ -248,8 +250,8 @@ export const useQuotePricing = (quoteVersionId?: string | null) => {
           .insert({
             lot_id: lotId,
             name: section.title,
-            is_multiple: false,
-            multiplier: 1,
+            is_multiple: section.is_multiple || false,
+            multiplier: section.is_multiple ? (section.multiplier || 1) : 1,
             order_index: i,
           })
           .select()

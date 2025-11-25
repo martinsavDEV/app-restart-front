@@ -12,6 +12,7 @@ import { EditableCell } from "./EditableCell";
 import { EditableCellText } from "./EditableCellText";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface TemplateEditorDialogProps {
   open: boolean;
@@ -52,6 +53,8 @@ export const TemplateEditorDialog = ({ open, onOpenChange, template, onSave }: T
     const newSection: WorkSection = {
       id: `section-${Date.now()}`,
       title: "Nouvelle section",
+      is_multiple: false,
+      multiplier: 1,
       lines: [],
     };
     setSections([...sections, newSection]);
@@ -63,6 +66,18 @@ export const TemplateEditorDialog = ({ open, onOpenChange, template, onSave }: T
 
   const updateSectionTitle = (sectionId: string, title: string) => {
     setSections(sections.map(s => s.id === sectionId ? { ...s, title } : s));
+  };
+
+  const updateSectionMultiple = (sectionId: string, isMultiple: boolean) => {
+    setSections(sections.map(s => 
+      s.id === sectionId ? { ...s, is_multiple: isMultiple, multiplier: isMultiple ? (s.multiplier || 1) : 1 } : s
+    ));
+  };
+
+  const updateSectionMultiplier = (sectionId: string, multiplier: number) => {
+    setSections(sections.map(s => 
+      s.id === sectionId ? { ...s, multiplier } : s
+    ));
   };
 
   const addLine = (sectionId: string) => {
@@ -187,7 +202,7 @@ export const TemplateEditorDialog = ({ open, onOpenChange, template, onSave }: T
 
               {sections.map((section) => (
                 <Card key={section.id}>
-                  <CardHeader className="pb-3">
+                  <CardHeader className="pb-3 space-y-2">
                     <div className="flex items-center gap-2">
                       <GripVertical className="h-4 w-4 text-muted-foreground" />
                       <Input
@@ -206,6 +221,33 @@ export const TemplateEditorDialog = ({ open, onOpenChange, template, onSave }: T
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
+                    </div>
+                    <div className="flex items-center gap-4 ml-6">
+                      <div className="flex items-center gap-2">
+                        <Checkbox
+                          id={`multiple-${section.id}`}
+                          checked={section.is_multiple || false}
+                          onCheckedChange={(checked) => updateSectionMultiple(section.id, checked as boolean)}
+                        />
+                        <Label htmlFor={`multiple-${section.id}`} className="text-sm font-normal cursor-pointer">
+                          Section multiple
+                        </Label>
+                      </div>
+                      {section.is_multiple && (
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`multiplier-${section.id}`} className="text-sm font-normal whitespace-nowrap">
+                            Multiplicateur:
+                          </Label>
+                          <Input
+                            id={`multiplier-${section.id}`}
+                            type="number"
+                            min="1"
+                            value={section.multiplier || 1}
+                            onChange={(e) => updateSectionMultiplier(section.id, parseInt(e.target.value) || 1)}
+                            className="w-20 h-8"
+                          />
+                        </div>
+                      )}
                     </div>
                   </CardHeader>
                   <CardContent>

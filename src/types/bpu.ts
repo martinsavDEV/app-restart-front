@@ -15,6 +15,8 @@ export interface WorkSection {
   id: string;
   title: string;
   description?: string;
+  is_multiple?: boolean;
+  multiplier?: number;
   lines: BPULine[];
 }
 

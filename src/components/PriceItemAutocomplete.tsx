@@ -4,6 +4,14 @@ import { Input } from "@/components/ui/input";
 import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
+const lotLabels: Record<string, string> = {
+  "terrassement": "Terrassement",
+  "renforcement_sol": "Renforcement de sol",
+  "fondations": "Fondations",
+  "electricite": "Électricité",
+  "turbinier": "Turbinier",
+};
+
 interface PriceItemAutocompleteProps {
   value: string;
   lotCode?: string;
@@ -35,9 +43,17 @@ export const PriceItemAutocomplete = ({
     setSearch(value);
   }, [value]);
 
-  const filteredItems = priceItems?.filter((item) =>
-    item.item.toLowerCase().includes(search.toLowerCase())
-  ).slice(0, 10);
+  const filteredItems = priceItems
+    ?.filter((item) => item.item.toLowerCase().includes(search.toLowerCase()))
+    .sort((a, b) => {
+      // Prioritize items from the current lot
+      const aIsCurrentLot = lotCode && a.lot_code === lotCode;
+      const bIsCurrentLot = lotCode && b.lot_code === lotCode;
+      if (aIsCurrentLot && !bIsCurrentLot) return -1;
+      if (!aIsCurrentLot && bIsCurrentLot) return 1;
+      return a.item.localeCompare(b.item);
+    })
+    .slice(0, 10);
 
   const handleSelect = (item: any) => {
     onSelect({
@@ -121,16 +137,19 @@ export const PriceItemAutocomplete = ({
                   >
                     <div className="flex flex-col gap-1 w-full">
                       <div className="font-medium">{item.item}</div>
-                      <div className="text-muted-foreground flex gap-3">
+                      <div className="text-muted-foreground flex flex-wrap gap-2 text-xs items-center">
+                        <span className="bg-accent/50 px-1.5 py-0.5 rounded text-accent-foreground font-medium">
+                          {lotLabels[item.lot_code] || item.lot_code}
+                        </span>
+                        <span className="text-emerald-600 dark:text-emerald-400">
+                          {item.price_reference || "MSA 2025"}
+                        </span>
                         <span>
                           {new Intl.NumberFormat("fr-FR", {
                             style: "currency",
                             currency: "EUR",
                           }).format(item.unit_price)}
                           /{item.unit}
-                        </span>
-                        <span className="text-emerald-600 dark:text-emerald-400">
-                          {item.price_reference || "MSA 2025"}
                         </span>
                       </div>
                     </div>

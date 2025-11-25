@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      lot_templates: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          id: string
+          label: string
+          template_lines: Json
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          label: string
+          template_lines?: Json
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          label?: string
+          template_lines?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
       lots: {
         Row: {
           code: string

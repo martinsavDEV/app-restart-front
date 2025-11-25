@@ -1,268 +1,16 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BPUTable } from "@/components/BPUTable";
-import { CAPEXSummaryCard } from "@/components/CAPEXSummaryCard";
-import { BPULine, CAPEXSummary, WorkLot } from "@/types/bpu";
+import { BPULine } from "@/types/bpu";
 import { toast } from "sonner";
-import { Plus } from "lucide-react";
-
-const initialLots: WorkLot[] = [
-  {
-    id: "terrassement",
-    name: "Terrassement",
-    description: "Lignes BPU : désignation, Q, U, PU, total, source prix",
-    sections: [
-      {
-        id: "terr-installation",
-        title: "Installation de chantier",
-        description: "Base vie, barriérage, raccordements provisoires",
-        lines: [
-          {
-            id: "terr-inst-1",
-            designation: "Base vie : bungalows, raccordements, nettoyage",
-            quantity: 1,
-            unit: "forfait",
-            unitPrice: 12500,
-            priceSource: "Chiffrage AO interne 2024",
-          },
-          {
-            id: "terr-inst-2",
-            designation: "Signalisation et clôtures temporaires",
-            quantity: 1,
-            unit: "forfait",
-            unitPrice: 4200,
-            priceSource: "BDD – médiane 3 projets",
-          },
-        ],
-      },
-      {
-        id: "terr-earthworks",
-        title: "Terrassement principal",
-        description: "Décapage, excavation, remblais",
-        lines: [
-          {
-            id: "terr-1",
-            designation: "Décapage plate-forme éolienne",
-            quantity: 1200,
-            unit: "m²",
-            unitPrice: 4.1,
-            priceSource: "BDD – médiane 3 projets",
-          },
-          {
-            id: "terr-2",
-            designation: "Excavation générale",
-            quantity: 850,
-            unit: "m³",
-            unitPrice: 12.5,
-            priceSource: "BDD – projet similaire 2024",
-          },
-          {
-            id: "terr-3",
-            designation: "Remblai compacté GNT",
-            quantity: 420,
-            unit: "m³",
-            unitPrice: 18.0,
-            priceSource: "Devis carrière locale",
-          },
-        ],
-      },
-    ],
-  },
-  {
-    id: "reinforcement",
-    name: "Renforcement de sol",
-    description: "Ex : CMC, inclusions rigides, amélioration locale...",
-    sections: [
-      {
-        id: "reinf-installation",
-        title: "Installation de chantier",
-        lines: [
-          {
-            id: "reinf-inst-1",
-            designation: "Mobilisation équipe spécialisée",
-            quantity: 1,
-            unit: "forfait",
-            unitPrice: 8500,
-            priceSource: "Devis entreprise spécialisée",
-          },
-        ],
-      },
-      {
-        id: "reinf-main",
-        title: "Travaux de renforcement",
-        description: "Inclusions rigides et traitement",
-        lines: [
-          {
-            id: "reinf-1",
-            designation: "Inclusions rigides Ø450mm",
-            quantity: 320,
-            unit: "ml",
-            unitPrice: 85.0,
-            priceSource: "BDD – projet similaire 2023",
-          },
-          {
-            id: "reinf-2",
-            designation: "Traitement à la chaux",
-            quantity: 650,
-            unit: "m³",
-            unitPrice: 28.5,
-            priceSource: "Devis entreprise",
-          },
-        ],
-      },
-    ],
-  },
-  {
-    id: "foundations",
-    name: "Fondations",
-    description: "Béton, armatures, fouilles, drains, mises à la terre…",
-    sections: [
-      {
-        id: "found-installation",
-        title: "Installation de chantier",
-        lines: [
-          {
-            id: "found-inst-1",
-            designation: "Aire de préfabrication ferraillage",
-            quantity: 1,
-            unit: "forfait",
-            unitPrice: 6500,
-            priceSource: "Chiffrage interne",
-          },
-        ],
-      },
-      {
-        id: "found-main",
-        title: "Travaux de fondations",
-        description: "Béton armé et ferraillage",
-        lines: [
-          {
-            id: "found-1",
-            designation: "Béton C30/37 pour massif",
-            quantity: 285,
-            unit: "m³",
-            unitPrice: 145.0,
-            priceSource: "Devis centrale béton",
-          },
-          {
-            id: "found-2",
-            designation: "Acier HA ferraillage",
-            quantity: 32,
-            unit: "tonnes",
-            unitPrice: 1850.0,
-            priceSource: "BDD – médiane 2024",
-          },
-          {
-            id: "found-3",
-            designation: "Coffrage et décoffrage",
-            quantity: 180,
-            unit: "m²",
-            unitPrice: 42.0,
-            priceSource: "Devis entreprise",
-          },
-        ],
-      },
-    ],
-  },
-  {
-    id: "electricity",
-    name: "Électricité",
-    description: "Tranchées HTA, câbles, poste de livraison, réseaux divers…",
-    sections: [
-      {
-        id: "elec-installation",
-        title: "Installation de chantier",
-        lines: [
-          {
-            id: "elec-inst-1",
-            designation: "Raccordement provisoire chantier",
-            quantity: 1,
-            unit: "forfait",
-            unitPrice: 3200,
-            priceSource: "Devis ENEDIS",
-          },
-        ],
-      },
-      {
-        id: "elec-main",
-        title: "Réseaux électriques",
-        description: "Câbles, tranchées et postes",
-        lines: [
-          {
-            id: "elec-1",
-            designation: "Tranchée HTA profondeur 1.2m",
-            quantity: 2800,
-            unit: "ml",
-            unitPrice: 32.0,
-            priceSource: "BDD – médiane 5 projets",
-          },
-          {
-            id: "elec-2",
-            designation: "Câble HTA 20kV aluminium",
-            quantity: 2850,
-            unit: "ml",
-            unitPrice: 48.5,
-            priceSource: "Devis fournisseur",
-          },
-          {
-            id: "elec-3",
-            designation: "Poste de livraison préfabriqué",
-            quantity: 1,
-            unit: "unité",
-            unitPrice: 125000,
-            priceSource: "Catalogue constructeur",
-          },
-        ],
-      },
-    ],
-  },
-  {
-    id: "turbine",
-    name: "Turbinier",
-    description: "Prix forfaitaires par éolienne, options, logistique…",
-    sections: [
-      {
-        id: "turb-installation",
-        title: "Installation de chantier",
-        lines: [
-          {
-            id: "turb-inst-1",
-            designation: "Mobilisation grue 650t",
-            quantity: 1,
-            unit: "forfait",
-            unitPrice: 85000,
-            priceSource: "Devis grutier spécialisé",
-          },
-        ],
-      },
-      {
-        id: "turb-main",
-        title: "Fourniture et montage",
-        description: "Éoliennes et équipements",
-        lines: [
-          {
-            id: "turb-1",
-            designation: "Éolienne 3MW complète (tour, nacelle, rotor)",
-            quantity: 6,
-            unit: "unité",
-            unitPrice: 1850000,
-            priceSource: "Contrat turbinier 2024",
-          },
-          {
-            id: "turb-2",
-            designation: "Montage et mise en service",
-            quantity: 6,
-            unit: "unité",
-            unitPrice: 125000,
-            priceSource: "Contrat turbinier",
-          },
-        ],
-      },
-    ],
-  },
-];
+import { Plus, FileUp } from "lucide-react";
+import { useQuotePricing } from "@/hooks/useQuotePricing";
+import { TemplateLoaderDialog } from "@/components/TemplateLoaderDialog";
 
 interface PricingViewProps {
   projectId?: string | null;
@@ -270,9 +18,42 @@ interface PricingViewProps {
   versionId?: string | null;
 }
 
-export const PricingView = ({ projectId, projectName, versionId }: PricingViewProps) => {
-  const [lots, setLots] = useState<WorkLot[]>(initialLots);
-  const [contingencyRate] = useState(10);
+export const PricingView = ({ projectId: initialProjectId, projectName: initialProjectName, versionId: initialVersionId }: PricingViewProps) => {
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(initialProjectId || null);
+  const [selectedVersionId, setSelectedVersionId] = useState<string | null>(initialVersionId || null);
+  const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
+  const [selectedLotForTemplate, setSelectedLotForTemplate] = useState<{ id: string; code: string } | null>(null);
+
+  // Fetch projects
+  const { data: projects } = useQuery({
+    queryKey: ["projects"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("projects").select("*");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Fetch versions for selected project
+  const { data: versions } = useQuery({
+    queryKey: ["quote-versions", selectedProjectId],
+    queryFn: async () => {
+      if (!selectedProjectId) return [];
+      const { data, error } = await supabase
+        .from("quote_versions")
+        .select("*")
+        .eq("project_id", selectedProjectId);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!selectedProjectId,
+  });
+
+  // Use the quote pricing hook
+  const { lots, isLoading, updateLine, addLine, deleteLine, loadTemplate } = useQuotePricing(selectedVersionId);
+
+  const selectedProject = projects?.find((p) => p.id === selectedProjectId);
+  const projectName = initialProjectName || selectedProject?.name;
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("fr-FR", {
@@ -282,187 +63,215 @@ export const PricingView = ({ projectId, projectName, versionId }: PricingViewPr
     }).format(value);
   };
 
-  const calculateSectionTotal = (lines: BPULine[]): number => {
-    return lines.reduce((sum, line) => sum + line.quantity * line.unitPrice, 0);
+  const calculateLotTotal = (lines: any[]): number => {
+    return lines.reduce((sum, line) => sum + (line.quantity || 0) * (line.unit_price || 0), 0);
   };
 
-  const calculateLotTotal = (lot: WorkLot): number => {
-    return lot.sections.reduce((sum, section) => sum + calculateSectionTotal(section.lines), 0);
+  const handleLineUpdate = (lineId: string, updates: Partial<any>) => {
+    updateLine({
+      lineId,
+      updates: {
+        designation: updates.designation,
+        quantity: updates.quantity,
+        unit: updates.unit,
+        unit_price: updates.unitPrice,
+        comment: updates.priceSource,
+      },
+    });
   };
 
+  const handleLineDelete = (lineId: string) => {
+    deleteLine(lineId);
+  };
 
-  const handleLineUpdate = (
-    lotId: string,
-    sectionId: string,
-    lineId: string,
-    updates: Partial<BPULine>
-  ) => {
-    setLots((prevLots) =>
-      prevLots.map((lot) => {
-        if (lot.id === lotId) {
-          return {
-            ...lot,
-            sections: lot.sections.map((section) => {
-              if (section.id === sectionId) {
-                return {
-                  ...section,
-                  lines: section.lines.map((line) =>
-                    line.id === lineId ? { ...line, ...updates } : line
-                  ),
-                };
-              }
-              return section;
-            }),
-          };
-        }
-        return lot;
-      })
+  const handleAddLine = (lotId: string) => {
+    const currentLot = lots.find((l) => l.id === lotId);
+    const nextOrderIndex = currentLot?.lines.length || 0;
+
+    addLine({
+      lotId,
+      line: {
+        designation: "Nouvelle ligne",
+        quantity: 0,
+        unit: "u",
+        unit_price: 0,
+        comment: "",
+        order_index: nextOrderIndex,
+      },
+    });
+  };
+
+  const handleLoadTemplate = (lotId: string, lotCode: string) => {
+    setSelectedLotForTemplate({ id: lotId, code: lotCode });
+    setTemplateDialogOpen(true);
+  };
+
+  const handleTemplateSelected = (templateLines: any[]) => {
+    if (selectedLotForTemplate) {
+      loadTemplate({
+        lotId: selectedLotForTemplate.id,
+        templateLines,
+      });
+    }
+  };
+
+  // Convert lot lines to BPULine format for BPUTable
+  const convertToBPULines = (lines: any[]): BPULine[] => {
+    return lines.map((line) => ({
+      id: line.id,
+      designation: line.designation,
+      quantity: line.quantity || 0,
+      unit: line.unit,
+      unitPrice: line.unit_price || 0,
+      priceSource: line.comment || "",
+    }));
+  };
+
+  if (isLoading) {
+    return (
+      <div className="p-4 flex items-center justify-center">
+        <p className="text-muted-foreground">Chargement...</p>
+      </div>
     );
-    toast.success("Ligne mise à jour");
-  };
-
-  const handleLineDelete = (lotId: string, sectionId: string, lineId: string) => {
-    setLots((prevLots) =>
-      prevLots.map((lot) => {
-        if (lot.id === lotId) {
-          return {
-            ...lot,
-            sections: lot.sections.map((section) =>
-              section.id === sectionId
-                ? {
-                    ...section,
-                    lines: section.lines.filter((line) => line.id !== lineId),
-                  }
-                : section
-            ),
-          };
-        }
-        return lot;
-      })
-    );
-    toast.success("Ligne supprimée");
-  };
-
-  const handleAddLine = (lotId: string, sectionId: string) => {
-    const newLine: BPULine = {
-      id: `${lotId}-${Date.now()}`,
-      designation: "Nouvelle ligne",
-      quantity: 0,
-      unit: "unité",
-      unitPrice: 0,
-      priceSource: "",
-    };
-
-    setLots((prevLots) =>
-      prevLots.map((lot) => {
-        if (lot.id === lotId) {
-          return {
-            ...lot,
-            sections: lot.sections.map((section) =>
-              section.id === sectionId
-                ? { ...section, lines: [...section.lines, newLine] }
-                : section
-            ),
-          };
-        }
-        return lot;
-      })
-    );
-    toast.info("Nouvelle ligne ajoutée. Double-cliquez pour modifier les valeurs.");
-  };
+  }
 
   return (
     <div className="p-4 space-y-3">
-      <Tabs defaultValue={lots[0]?.id} className="space-y-3">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <h1 className="text-lg font-semibold">Chiffrage projet</h1>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              {projectName ? `BPU par lots pour ${projectName}` : "BPU par lots"}
-              {versionId && " - Version sélectionnée"}
-            </p>
-          </div>
-          <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:gap-3">
+      {/* Project and Version Selectors */}
+      {!initialProjectId && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm">Sélection</CardTitle>
+          </CardHeader>
+          <CardContent className="flex gap-3">
+            <div className="flex-1">
+              <Select value={selectedProjectId || ""} onValueChange={setSelectedProjectId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner un projet" />
+                </SelectTrigger>
+                <SelectContent>
+                  {projects?.map((project) => (
+                    <SelectItem key={project.id} value={project.id}>
+                      {project.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex-1">
+              <Select
+                value={selectedVersionId || ""}
+                onValueChange={setSelectedVersionId}
+                disabled={!selectedProjectId}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner une version" />
+                </SelectTrigger>
+                <SelectContent>
+                  {versions?.map((version) => (
+                    <SelectItem key={version.id} value={version.id}>
+                      {version.version_label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Main Content */}
+      {selectedVersionId && lots.length > 0 ? (
+        <Tabs defaultValue={lots[0]?.id} className="space-y-3">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <h1 className="text-lg font-semibold">Chiffrage projet</h1>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {projectName ? `BPU par lots pour ${projectName}` : "BPU par lots"}
+              </p>
+            </div>
             <TabsList className="w-full lg:w-auto flex-wrap justify-start">
               {lots.map((lot) => (
                 <TabsTrigger key={lot.id} value={lot.id} className="text-xs">
-                  {lot.name}
+                  {lot.label}
                 </TabsTrigger>
               ))}
             </TabsList>
-            <div className="flex gap-2 justify-end">
-              <Button variant="outline" size="sm">
-                Charger un template chantier type
-              </Button>
-              <Button size="sm">Appliquer prix BDD</Button>
-            </div>
           </div>
-        </div>
 
-        <div className="space-y-3">
-          {lots.map((lot) => (
-            <TabsContent key={lot.id} value={lot.id} className="space-y-3">
-              <Card>
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <CardTitle className="text-sm">{lot.name}</CardTitle>
-                      <CardDescription className="text-xs">{lot.description}</CardDescription>
-                    </div>
-                    <div className="text-xs font-semibold tabular-nums">
-                      Total lot : {formatCurrency(calculateLotTotal(lot))}
-                    </div>
-                  </div>
-                </CardHeader>
-              </Card>
-
-              {lot.sections.map((section) => {
-                const sectionTotal = calculateSectionTotal(section.lines);
-                return (
-                  <Card key={section.id}>
-                    <CardHeader className="pb-3">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <CardTitle className="text-sm">{section.title}</CardTitle>
-                          {section.description && (
-                            <CardDescription className="text-xs">
-                              {section.description}
-                            </CardDescription>
-                          )}
-                        </div>
+          <div className="space-y-3">
+            {lots.map((lot) => (
+              <TabsContent key={lot.id} value={lot.id} className="space-y-3">
+                <Card>
+                  <CardHeader className="pb-3">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <CardTitle className="text-sm">{lot.label}</CardTitle>
+                        <CardDescription className="text-xs">{lot.description}</CardDescription>
+                      </div>
+                      <div className="flex items-center gap-2">
                         <Button
                           variant="outline"
                           size="sm"
                           className="h-7 text-[11px]"
-                          onClick={() => handleAddLine(lot.id, section.id)}
+                          onClick={() => handleLoadTemplate(lot.id, lot.code)}
                         >
-                          <Plus className="h-3 w-3 mr-1" />
-                          Ajouter une ligne
+                          <FileUp className="h-3 w-3 mr-1" />
+                          Charger template
                         </Button>
+                        <div className="text-xs font-semibold tabular-nums">
+                          Total : {formatCurrency(calculateLotTotal(lot.lines))}
+                        </div>
                       </div>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      <BPUTable
-                        lines={section.lines}
-                        onLineUpdate={(lineId, updates) =>
-                          handleLineUpdate(lot.id, section.id, lineId, updates)
-                        }
-                        onLineDelete={(lineId) => handleLineDelete(lot.id, section.id, lineId)}
-                      />
-                      <div className="flex justify-end text-xs text-muted-foreground">
-                        Sous-total {section.title} :
-                        <span className="font-semibold ml-2 text-foreground">
-                          {formatCurrency(sectionTotal)}
-                        </span>
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </TabsContent>
-          ))}
-        </div>
-      </Tabs>
+                    </div>
+                  </CardHeader>
+                </Card>
+
+                <Card>
+                  <CardHeader className="pb-3">
+                    <div className="flex justify-between items-start">
+                      <CardTitle className="text-sm">Lignes de chiffrage</CardTitle>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-7 text-[11px]"
+                        onClick={() => handleAddLine(lot.id)}
+                      >
+                        <Plus className="h-3 w-3 mr-1" />
+                        Ajouter une ligne
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <BPUTable
+                      lines={convertToBPULines(lot.lines)}
+                      onLineUpdate={handleLineUpdate}
+                      onLineDelete={handleLineDelete}
+                    />
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            ))}
+          </div>
+        </Tabs>
+      ) : (
+        <Card>
+          <CardContent className="py-12 text-center">
+            <p className="text-muted-foreground">
+              {selectedProjectId
+                ? "Sélectionnez une version de chiffrage"
+                : "Sélectionnez un projet et une version"}
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      <TemplateLoaderDialog
+        open={templateDialogOpen}
+        onOpenChange={setTemplateDialogOpen}
+        lotCode={selectedLotForTemplate?.code}
+        onLoadTemplate={handleTemplateSelected}
+      />
     </div>
   );
 };

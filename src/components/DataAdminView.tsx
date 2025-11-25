@@ -31,6 +31,11 @@ const tableConfigs = {
     columns: ["user_id", "role"],
     requiredColumns: ["user_id", "role"],
   },
+  lot_templates: {
+    label: "Templates de lots",
+    columns: ["code", "label", "description"],
+    requiredColumns: ["code", "label"],
+  },
 };
 
 export const DataAdminView = () => {
@@ -76,12 +81,22 @@ export const DataAdminView = () => {
     },
   });
 
+  const { data: lotTemplates, refetch: refetchLotTemplates } = useQuery({
+    queryKey: ["admin-lot-templates"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("lot_templates").select("id, code, label, description");
+      if (error) throw error;
+      return data;
+    },
+  });
+
   const getCurrentData = () => {
     switch (activeTab) {
       case "projects": return projects || [];
       case "quote_versions": return quoteVersions || [];
       case "reference_documents": return referenceDocs || [];
       case "user_roles": return userRoles || [];
+      case "lot_templates": return lotTemplates || [];
     }
   };
 
@@ -91,6 +106,7 @@ export const DataAdminView = () => {
       case "quote_versions": return refetchQuoteVersions();
       case "reference_documents": return refetchReferenceDocs();
       case "user_roles": return refetchUserRoles();
+      case "lot_templates": return refetchLotTemplates();
     }
   };
 

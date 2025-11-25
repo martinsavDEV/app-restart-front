@@ -218,6 +218,7 @@ export type Database = {
           created_at: string
           hub_height: number | null
           id: string
+          n_foundations: number
           n_wtg: number
           quote_version_id: string
           settings: Json | null
@@ -229,6 +230,7 @@ export type Database = {
           created_at?: string
           hub_height?: number | null
           id?: string
+          n_foundations?: number
           n_wtg?: number
           quote_version_id: string
           settings?: Json | null
@@ -240,6 +242,7 @@ export type Database = {
           created_at?: string
           hub_height?: number | null
           id?: string
+          n_foundations?: number
           n_wtg?: number
           quote_version_id?: string
           settings?: Json | null

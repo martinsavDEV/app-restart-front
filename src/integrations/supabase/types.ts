@@ -163,6 +163,7 @@ export type Database = {
           id: string
           lot_id: string
           order_index: number
+          price_source: string | null
           quantity: number
           total_price: number | null
           unit: string
@@ -177,6 +178,7 @@ export type Database = {
           id?: string
           lot_id: string
           order_index?: number
+          price_source?: string | null
           quantity?: number
           total_price?: number | null
           unit?: string
@@ -191,6 +193,7 @@ export type Database = {
           id?: string
           lot_id?: string
           order_index?: number
+          price_source?: string | null
           quantity?: number
           total_price?: number | null
           unit?: string

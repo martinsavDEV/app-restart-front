@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { WorkLot, WorkSection, BPULine } from "@/types/bpu";
+import { WorkLot, WorkSection, BPULine, CalculatorVariable } from "@/types/bpu";
 import { Plus, Trash2, GripVertical } from "lucide-react";
 import { useState, useEffect } from "react";
 import { EditableCell } from "./EditableCell";
@@ -14,6 +14,22 @@ import { VariableAutocomplete } from "./VariableAutocomplete";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
+
+// Variables génériques disponibles dans les templates (non liées à un projet spécifique)
+const GENERIC_TEMPLATE_VARIABLES: CalculatorVariable[] = [
+  // Variables Globales
+  { name: "$nb_eol", label: "Nombre d'éoliennes", value: 0, category: "Global" },
+  { name: "$nb_fondations", label: "Nombre de fondations", value: 0, category: "Global" },
+  { name: "$puissance_eol", label: "Puissance éolienne (MW)", value: 0, category: "Global" },
+  { name: "$hauteur_moyeu", label: "Hauteur de moyeu (m)", value: 0, category: "Global" },
+  
+  // Variables Totaux
+  { name: "$surf_totale", label: "Surface totale (m²)", value: 0, category: "Totaux" },
+  { name: "$long_totale", label: "Longueur totale (ml)", value: 0, category: "Totaux" },
+  { name: "$vol_total", label: "Volume total (m³)", value: 0, category: "Totaux" },
+  { name: "$long_acces_total", label: "Longueur accès total (ml)", value: 0, category: "Totaux" },
+  { name: "$nb_virages_total", label: "Nombre virages total", value: 0, category: "Totaux" },
+];
 
 interface TemplateEditorDialogProps {
   open: boolean;
@@ -283,7 +299,7 @@ export const TemplateEditorDialog = ({ open, onOpenChange, template, onSave }: T
                               <td className="py-1">
                                 <VariableAutocomplete
                                   value={line.linkedVariable || String(qty)}
-                                  variables={[]}
+                                  variables={GENERIC_TEMPLATE_VARIABLES}
                                   resolvedValue={undefined}
                                   onSelect={(variable) => {
                                     updateLine(section.id, line.id, { 

@@ -7,7 +7,7 @@ import { BPULine } from "@/types/bpu";
 
 interface LotSectionProps {
   lot: any;
-  convertToBPULines: (lines: any[]) => (BPULine & { section_id?: string | null })[];
+  convertToBPULines: (lines: any[]) => (BPULine & { section_id?: string | null; lot_id?: string })[];
   formatCurrency: (value: number) => string;
   calculateLotTotal: (lines: any[], sections: any[]) => number;
   handleLineUpdate: (lineId: string, updates: Partial<any>) => void;

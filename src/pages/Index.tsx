@@ -16,6 +16,7 @@ const Index = () => {
   const navigate = useNavigate();
   const [activeView, setActiveView] = useState("projects");
   const [quotesEnabled, setQuotesEnabled] = useState(false);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [selectedProjectName, setSelectedProjectName] = useState<string | null>(null);
   const [selectedQuoteVersion, setSelectedQuoteVersion] = useState<string | null>(null);
 
@@ -42,21 +43,21 @@ const Index = () => {
     setActiveView(view);
   };
 
-  const handleOpenQuotes = (
-    _projectId: string,
+  const handleOpenPricing = (
+    projectId: string,
     projectName: string,
     versionId: string
   ) => {
+    setSelectedProjectId(projectId);
     setSelectedProjectName(projectName);
     setSelectedQuoteVersion(versionId);
-    setQuotesEnabled(true);
-    setActiveView("quotes");
+    setActiveView("pricing");
   };
 
   const renderView = () => {
     switch (activeView) {
       case "projects":
-        return <ProjectsView onOpenQuotes={handleOpenQuotes} />;
+        return <ProjectsView onOpenPricing={handleOpenPricing} />;
       case "quotes":
         return (
           <QuotesView
@@ -66,7 +67,13 @@ const Index = () => {
           />
         );
       case "pricing":
-        return <PricingView />;
+        return (
+          <PricingView
+            projectId={selectedProjectId}
+            projectName={selectedProjectName}
+            versionId={selectedQuoteVersion}
+          />
+        );
       case "price-db":
         return <PriceDBView />;
       case "templates":

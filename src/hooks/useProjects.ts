@@ -130,7 +130,10 @@ export function useProjects() {
 }
 
 export function useQuoteVersions(projectId: string | null) {
-  return useQuery({
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  
+  const query = useQuery({
     queryKey: ["quote-versions", projectId],
     queryFn: async () => {
       if (!projectId) return [];
@@ -146,4 +149,37 @@ export function useQuoteVersions(projectId: string | null) {
     },
     enabled: !!projectId,
   });
+
+  const createQuoteVersion = useMutation({
+    mutationFn: async (newVersion: Omit<QuoteVersion, "id" | "created_at" | "updated_at" | "date_creation" | "last_update">) => {
+      const { data, error } = await supabase
+        .from("quote_versions")
+        .insert([newVersion])
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["quote-versions", projectId] });
+      toast({
+        title: "Chiffrage créé",
+        description: "Le chiffrage a été créé avec succès",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erreur",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  return {
+    ...query,
+    createQuoteVersion: createQuoteVersion.mutate,
+    isCreatingQuote: createQuoteVersion.isPending,
+  };
 }

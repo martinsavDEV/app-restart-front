@@ -9,6 +9,7 @@ import { PricingView } from "@/components/PricingView";
 import { PriceDBView } from "@/components/PriceDBView";
 import { TemplatesView } from "@/components/TemplatesView";
 import { DataAdminView } from "@/components/DataAdminView";
+import { SummaryView } from "@/components/SummaryView";
 import { Loader2 } from "lucide-react";
 
 const Index = () => {
@@ -70,6 +71,14 @@ const Index = () => {
       case "pricing":
         return (
           <PricingView
+            projectId={selectedProjectId}
+            projectName={selectedProjectName}
+            versionId={selectedQuoteVersion}
+          />
+        );
+      case "summary":
+        return (
+          <SummaryView
             projectId={selectedProjectId}
             projectName={selectedProjectName}
             versionId={selectedQuoteVersion}

@@ -13,10 +13,10 @@ const foundationsTemplate: WorkLot = {
       id: "travaux-preparatoires",
       title: "Travaux préparatoires",
       lines: [
-        { id: "1", designation: "Installation", quantity: 1, unit: "ft", unitPrice: 35000, priceSource: "forfait" },
+        { id: "1", designation: "Installation de chantier", quantity: 1, unit: "ft", unitPrice: 35000, priceSource: "forfait" },
         { id: "2", designation: "remise en état", quantity: 0, unit: "ft", unitPrice: 0 },
-        { id: "3", designation: "sécu", quantity: 0, unit: "ft", unitPrice: 0 },
-        { id: "4", designation: "convenance", quantity: 0, unit: "ft", unitPrice: 0 },
+        { id: "3", designation: "Sécurité", quantity: 0, unit: "ft", unitPrice: 0 },
+        { id: "4", designation: "Essais de convenance", quantity: 0, unit: "ft", unitPrice: 0 },
         { id: "5", designation: "management suivi", quantity: 0, unit: "ft", unitPrice: 0 },
       ]
     },
@@ -25,15 +25,15 @@ const foundationsTemplate: WorkLot = {
       title: "fondation",
       lines: [
         { id: "6", designation: "Béton de propreté", quantity: 1, unit: "ft", unitPrice: 10000 },
-        { id: "7", designation: "cage d'ancrage", quantity: 1, unit: "ft", unitPrice: 5000 },
-        { id: "8", designation: "feraillage", quantity: 65550, unit: "kg", unitPrice: 1.15 },
-        { id: "9", designation: "béton socle", quantity: 550, unit: "m3", unitPrice: 190 },
-        { id: "10", designation: "béton assiette", quantity: 25, unit: "m3", unitPrice: 195 },
-        { id: "11", designation: "coffrage", quantity: 1, unit: "ft", unitPrice: 1500 },
-        { id: "12", designation: "MALT", quantity: 1, unit: "ft", unitPrice: 5000 },
-        { id: "13", designation: "Fourreaux", quantity: 1, unit: "ft", unitPrice: 1000 },
-        { id: "14", designation: "grouting", quantity: 1, unit: "ft", unitPrice: 0 },
-        { id: "15", designation: "sealing", quantity: 1, unit: "ft", unitPrice: 0 },
+        { id: "7", designation: "Montage Cage d'ancrage", quantity: 1, unit: "ft", unitPrice: 5000 },
+        { id: "8", designation: "Ferraillage", quantity: 65550, unit: "kg", unitPrice: 1.15 },
+        { id: "9", designation: "Béton socle", quantity: 550, unit: "m3", unitPrice: 190 },
+        { id: "10", designation: "Béton assiette", quantity: 25, unit: "m3", unitPrice: 195 },
+        { id: "11", designation: "Coffrage fondation", quantity: 1, unit: "ft", unitPrice: 1500 },
+        { id: "12", designation: "Mise A La Terre", quantity: 1, unit: "ft", unitPrice: 5000 },
+        { id: "13", designation: "Mise en place des fourreaux", quantity: 1, unit: "ft", unitPrice: 1000 },
+        { id: "14", designation: "Groutting", quantity: 1, unit: "ft", unitPrice: 0 },
+        { id: "15", designation: "Sealing", quantity: 1, unit: "ft", unitPrice: 0 },
         { id: "16", designation: "/ WTG", quantity: 1, unit: "ft", unitPrice: 207258 },
         { id: "17", designation: "Nombre de fondations", quantity: 3, unit: "unité", unitPrice: 0 },
       ]
@@ -42,8 +42,8 @@ const foundationsTemplate: WorkLot = {
       id: "assurance-plans",
       title: "Assurance et plans",
       lines: [
-        { id: "18", designation: "assurance", quantity: 1, unit: "ft", unitPrice: 25000 },
-        { id: "19", designation: "plans", quantity: 1, unit: "ft", unitPrice: 2000 },
+        { id: "18", designation: "Assurances", quantity: 1, unit: "ft", unitPrice: 25000 },
+        { id: "19", designation: "Plans", quantity: 1, unit: "ft", unitPrice: 2000 },
       ]
     }
   ]

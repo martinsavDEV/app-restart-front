@@ -39,11 +39,18 @@ export const VariableAutocomplete = ({
     setSearchValue(newValue);
     onChange(newValue);
 
-    // Open dropdown when user types $
-    if (newValue.includes("$")) {
+    // Open dropdown automatically when user types $
+    if (newValue.startsWith("$") || newValue === "$") {
       setOpen(true);
-    } else {
+    } else if (!newValue.includes("$")) {
       setOpen(false);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    // Open dropdown when user types $
+    if (e.key === "$" || (e.key === "4" && e.shiftKey)) {
+      setOpen(true);
     }
   };
 
@@ -55,10 +62,13 @@ export const VariableAutocomplete = ({
   };
 
   // Filter variables based on search
-  const filteredVariables = variables.filter((v) =>
-    v.name.toLowerCase().includes(searchValue.toLowerCase()) ||
-    v.label.toLowerCase().includes(searchValue.toLowerCase())
-  );
+  const searchTerm = searchValue.startsWith("$") ? searchValue : `$${searchValue}`;
+  const filteredVariables = searchValue.length > 0
+    ? variables.filter((v) =>
+        v.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        v.label.toLowerCase().includes(searchValue.replace("$", "").toLowerCase())
+      )
+    : variables;
 
   // Group by category
   const groupedVariables = filteredVariables.reduce((acc, v) => {
@@ -82,6 +92,7 @@ export const VariableAutocomplete = ({
             ref={inputRef}
             value={searchValue}
             onChange={(e) => handleInputChange(e.target.value)}
+            onKeyDown={handleKeyDown}
             disabled={disabled}
             placeholder={placeholder}
             className={cellClasses}

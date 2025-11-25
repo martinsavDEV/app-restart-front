@@ -152,20 +152,44 @@ export function useQuoteVersions(projectId: string | null) {
 
   const createQuoteVersion = useMutation({
     mutationFn: async (newVersion: Omit<QuoteVersion, "id" | "created_at" | "updated_at" | "date_creation" | "last_update">) => {
-      const { data, error } = await supabase
+      // Create quote version
+      const { data: versionData, error: versionError } = await supabase
         .from("quote_versions")
         .insert([newVersion])
         .select()
         .single();
 
-      if (error) throw error;
-      return data;
+      if (versionError) throw versionError;
+
+      // Create default lots for this quote version
+      const defaultLots = [
+        { code: "terrassement", label: "Terrassement", order_index: 0 },
+        { code: "renforcement_sol", label: "Renforcement de sol", order_index: 1 },
+        { code: "fondations", label: "Fondations", order_index: 2 },
+        { code: "electricite", label: "Électricité", order_index: 3 },
+        { code: "turbinier", label: "Turbinier", order_index: 4 },
+      ];
+
+      const lotsToInsert = defaultLots.map(lot => ({
+        quote_version_id: versionData.id,
+        code: lot.code,
+        label: lot.label,
+        order_index: lot.order_index,
+      }));
+
+      const { error: lotsError } = await supabase
+        .from("lots")
+        .insert(lotsToInsert);
+
+      if (lotsError) throw lotsError;
+
+      return versionData;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["quote-versions", projectId] });
       toast({
         title: "Chiffrage créé",
-        description: "Le chiffrage a été créé avec succès",
+        description: "Le chiffrage a été créé avec succès avec les lots de base",
       });
     },
     onError: (error: any) => {

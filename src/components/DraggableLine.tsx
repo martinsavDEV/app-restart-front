@@ -63,6 +63,9 @@ export const DraggableLine = ({
 
   const resolvedQuantity = resolveQuantity(line.quantity, line.linkedVariable);
   const total = resolvedQuantity * line.unitPrice;
+  
+  // Debug log
+  console.log(`Line ${line.id.slice(0, 8)}: linkedVariable="${line.linkedVariable}", quantity=${line.quantity}, resolved=${resolvedQuantity}`);
 
   return (
     <tr
@@ -116,17 +119,36 @@ export const DraggableLine = ({
             });
           }}
           onChange={(value) => {
-            if (value.startsWith("$")) {
-              // User is typing a variable name, keep it in linkedVariable
+            const trimmedValue = value.trim();
+            
+            // If empty, reset both
+            if (!trimmedValue) {
               onLineUpdate(line.id, { 
-                linkedVariable: value,
+                quantity: 0,
+                linkedVariable: null,
               });
+            } else if (trimmedValue.startsWith("$")) {
+              // User is typing a variable name
+              // Check if it's a complete valid variable
+              const matchingVar = variables.find(v => v.name === trimmedValue);
+              if (matchingVar) {
+                // Valid variable found, update both
+                onLineUpdate(line.id, { 
+                  quantity: matchingVar.value,
+                  linkedVariable: trimmedValue,
+                });
+              } else {
+                // Still typing, just update linkedVariable
+                onLineUpdate(line.id, { 
+                  linkedVariable: trimmedValue,
+                });
+              }
             } else {
               // User is typing a number, parse it and clear linkedVariable
               const numValue = parseFloat(value.replace(/[^\d.,]/g, "").replace(",", "."));
               onLineUpdate(line.id, { 
                 quantity: isNaN(numValue) ? 0 : numValue,
-                linkedVariable: undefined,
+                linkedVariable: null,
               });
             }
           }}

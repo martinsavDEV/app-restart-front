@@ -229,7 +229,7 @@ export const useQuotePricing = (quoteVersionId?: string | null) => {
     },
   });
 
-  // Load template sections into a lot (creates sections as quote_lines with proper grouping)
+  // Load template sections into a lot (creates sections and quote_lines)
   const loadTemplateMutation = useMutation({
     mutationFn: async ({
       lotId,
@@ -238,19 +238,41 @@ export const useQuotePricing = (quoteVersionId?: string | null) => {
       lotId: string;
       templateSections: TemplateSection[];
     }) => {
+      // Step 1: Create sections first and get their IDs
+      const sectionIds = new Map<string, string>();
+      
+      for (let i = 0; i < templateSections.length; i++) {
+        const section = templateSections[i];
+        const { data: sectionData, error: sectionError } = await supabase
+          .from("quote_sections")
+          .insert({
+            lot_id: lotId,
+            name: section.title,
+            is_multiple: false,
+            multiplier: 1,
+            order_index: i,
+          })
+          .select()
+          .single();
+
+        if (sectionError) throw sectionError;
+        sectionIds.set(section.title, sectionData.id);
+      }
+
+      // Step 2: Create lines with correct section_id
       let orderIndex = 0;
       const allLinesToInsert: any[] = [];
 
-      // Flatten all sections into lines with section info in comment
       templateSections.forEach((section) => {
         section.lines.forEach((line: any) => {
           allLinesToInsert.push({
             lot_id: lotId,
+            section_id: sectionIds.get(section.title), // Assign section_id
             code: line.designation.substring(0, 20).toLowerCase().replace(/\s+/g, '_'),
             designation: line.designation,
             unit: line.unit || 'u',
             unit_price: line.unitPrice ?? line.unit_price ?? 0,
-            comment: `[${section.title}] ${line.comment || ""}`.trim(),
+            comment: line.comment || "", // No more [Section Title] prefix
             quantity: line.quantity ?? 0,
             order_index: orderIndex++,
           });
@@ -263,6 +285,7 @@ export const useQuotePricing = (quoteVersionId?: string | null) => {
     },
     onSuccess: async () => {
       queryClient.invalidateQueries({ queryKey: ["quote-pricing", quoteVersionId] });
+      queryClient.invalidateQueries({ queryKey: ["quote-sections"] }); // Invalidate sections query
       await updateQuoteVersionTotal();
       toast.success("Template chargé avec succès");
     },

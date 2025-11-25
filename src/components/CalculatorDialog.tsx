@@ -46,7 +46,7 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
         .eq("quote_version_id", versionId)
         .maybeSingle();
       if (error) throw error;
-      return data as QuoteSettings | null;
+      return data;
     },
     enabled: !!versionId && open,
   });
@@ -54,7 +54,7 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
   // Initialize form when settings are loaded
   useEffect(() => {
     if (settings?.calculator_data) {
-      setCalculatorData(settings.calculator_data as CalculatorData);
+      setCalculatorData(settings.calculator_data as unknown as CalculatorData);
     }
   }, [settings]);
 
@@ -65,7 +65,7 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
   const saveMutation = useMutation({
     mutationFn: async () => {
       const settingsData = {
-        calculator_data: calculatorData,
+        calculator_data: calculatorData as any,
         n_wtg: calculatorData.global.nb_eol,
         n_foundations: calculatorData.global.nb_eol,
       };

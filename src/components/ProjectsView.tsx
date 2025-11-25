@@ -20,11 +20,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { ChevronDown, Pencil, Trash2, Loader2, Plus } from "lucide-react";
+import { ChevronDown, Pencil, Trash2, Loader2, Plus, Copy } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useProjects, useQuoteVersions, type Project } from "@/hooks/useProjects";
 import { ProjectDialog } from "./ProjectDialog";
 import { QuoteVersionDialog } from "./QuoteVersionDialog";
+import { DuplicateQuoteDialog } from "./DuplicateQuoteDialog";
 
 interface ProjectsViewProps {
   onOpenPricing?: (projectId: string, projectName: string, versionId: string) => void;
@@ -39,6 +40,10 @@ export function ProjectsView({ onOpenPricing }: ProjectsViewProps) {
   const [projectToDelete, setProjectToDelete] = useState<string | null>(null);
   const [quoteDialogOpen, setQuoteDialogOpen] = useState(false);
   const [selectedProjectForQuote, setSelectedProjectForQuote] = useState<string | null>(null);
+  const [deleteQuoteDialogOpen, setDeleteQuoteDialogOpen] = useState(false);
+  const [quoteToDelete, setQuoteToDelete] = useState<string | null>(null);
+  const [duplicateQuoteDialogOpen, setDuplicateQuoteDialogOpen] = useState(false);
+  const [quoteToDuplicate, setQuoteToDuplicate] = useState<{ id: string; label: string } | null>(null);
 
   const {
     projects,
@@ -51,7 +56,15 @@ export function ProjectsView({ onOpenPricing }: ProjectsViewProps) {
     isDeleting,
   } = useProjects();
 
-  const { data: quoteVersions = [], createQuoteVersion, isCreatingQuote } = useQuoteVersions(expandedProjectId);
+  const {
+    data: quoteVersions = [],
+    createQuoteVersion,
+    isCreatingQuote,
+    deleteQuoteVersion,
+    isDeletingQuote,
+    duplicateQuoteVersion,
+    isDuplicatingQuote,
+  } = useQuoteVersions(expandedProjectId);
 
   const filteredProjects = projects.filter((project) => {
     const normalizedQuery = searchQuery.toLowerCase();
@@ -121,6 +134,40 @@ export function ProjectsView({ onOpenPricing }: ProjectsViewProps) {
       createProject(data as Omit<Project, "id" | "created_at" | "updated_at">);
     }
     setDialogOpen(false);
+  };
+
+  const handleDeleteQuoteClick = (quoteId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setQuoteToDelete(quoteId);
+    setDeleteQuoteDialogOpen(true);
+  };
+
+  const handleConfirmDeleteQuote = () => {
+    if (quoteToDelete) {
+      deleteQuoteVersion(quoteToDelete);
+      setDeleteQuoteDialogOpen(false);
+      setQuoteToDelete(null);
+    }
+  };
+
+  const handleDuplicateQuoteClick = (quoteId: string, quoteLabel: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setQuoteToDuplicate({ id: quoteId, label: quoteLabel });
+    setDuplicateQuoteDialogOpen(true);
+  };
+
+  const handleSubmitDuplicateQuote = (newLabel: string) => {
+    if (quoteToDuplicate) {
+      duplicateQuoteVersion(
+        { sourceVersionId: quoteToDuplicate.id, newLabel },
+        {
+          onSuccess: () => {
+            setDuplicateQuoteDialogOpen(false);
+            setQuoteToDuplicate(null);
+          },
+        }
+      );
+    }
   };
 
   const formatDate = (dateString: string) => {
@@ -201,21 +248,27 @@ export function ProjectsView({ onOpenPricing }: ProjectsViewProps) {
                     >
                       <CollapsibleTrigger asChild>
                         <CardHeader className="pb-2 cursor-pointer hover:bg-accent/50 transition-colors">
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="space-y-1 flex-1">
-                              <CardTitle className="text-sm leading-tight">
-                                {project.name}
-                              </CardTitle>
-                              <CardDescription className="text-xs text-muted-foreground">
-                                {project.department || "Département non spécifié"}
-                              </CardDescription>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <div className="text-right text-xs">
-                                <div className="font-semibold">
-                                  {project.n_wtg} éolienne{project.n_wtg > 1 ? "s" : ""}
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="space-y-1 flex-1">
+                                <CardTitle className="text-sm leading-tight">
+                                  {project.name}
+                                </CardTitle>
+                                <CardDescription className="text-xs text-muted-foreground">
+                                  {project.department || "Département non spécifié"}
+                                </CardDescription>
+                                <div className="text-[11px] text-muted-foreground mt-1">
+                                  {project.quote_count || 0} chiffrage{(project.quote_count || 0) > 1 ? "s" : ""}
+                                  {project.latest_update && (
+                                    <> • MAJ {formatDate(project.latest_update)}</>
+                                  )}
                                 </div>
                               </div>
+                              <div className="flex items-center gap-2">
+                                <div className="text-right text-xs">
+                                  <div className="font-semibold">
+                                    {project.n_wtg} éolienne{project.n_wtg > 1 ? "s" : ""}
+                                  </div>
+                                </div>
                               <Button
                                 variant="ghost"
                                 size="sm"
@@ -292,6 +345,26 @@ export function ProjectsView({ onOpenPricing }: ProjectsViewProps) {
                                         CAPEX
                                       </div>
                                     </div>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-8 w-8 p-0"
+                                      onClick={(e) =>
+                                        handleDuplicateQuoteClick(version.id, version.version_label, e)
+                                      }
+                                      title="Dupliquer ce chiffrage"
+                                    >
+                                      <Copy className="h-3.5 w-3.5" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                                      onClick={(e) => handleDeleteQuoteClick(version.id, e)}
+                                      title="Supprimer ce chiffrage"
+                                    >
+                                      <Trash2 className="h-3.5 w-3.5" />
+                                    </Button>
                                     {onOpenPricing && (
                                       <Button
                                         size="sm"
@@ -338,7 +411,7 @@ export function ProjectsView({ onOpenPricing }: ProjectsViewProps) {
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
+            <AlertDialogTitle>Confirmer la suppression du projet</AlertDialogTitle>
             <AlertDialogDescription>
               Êtes-vous sûr de vouloir supprimer ce projet ? Cette action est
               irréversible et supprimera également toutes les versions de chiffrage
@@ -358,6 +431,38 @@ export function ProjectsView({ onOpenPricing }: ProjectsViewProps) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog open={deleteQuoteDialogOpen} onOpenChange={setDeleteQuoteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmer la suppression du chiffrage</AlertDialogTitle>
+            <AlertDialogDescription>
+              Êtes-vous sûr de vouloir supprimer ce chiffrage ? Cette action est
+              irréversible et supprimera également tous les lots, sections et lignes
+              associés.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDeleteQuote}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={isDeletingQuote}
+            >
+              {isDeletingQuote && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <DuplicateQuoteDialog
+        open={duplicateQuoteDialogOpen}
+        onOpenChange={setDuplicateQuoteDialogOpen}
+        onSubmit={handleSubmitDuplicateQuote}
+        sourceLabel={quoteToDuplicate?.label || ""}
+        isLoading={isDuplicatingQuote}
+      />
     </div>
   );
 }

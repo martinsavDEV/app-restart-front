@@ -265,8 +265,8 @@ export const PricingView = ({ projectId: initialProjectId, projectName: initialP
     }
   };
 
-  // Convert lot lines to BPULine format with section_id
-  const convertToBPULines = (lines: any[]): (BPULine & { section_id?: string | null })[] => {
+  // Convert lot lines to BPULine format with section_id and lot_id
+  const convertToBPULines = (lines: any[]): (BPULine & { section_id?: string | null; lot_id?: string })[] => {
     return lines.map((line) => {
       return {
         id: line.id,
@@ -276,6 +276,7 @@ export const PricingView = ({ projectId: initialProjectId, projectName: initialP
         unitPrice: line.unit_price || 0,
         priceSource: line.comment || "",
         section_id: line.section_id,
+        lot_id: line.lot_id,
       };
     });
   };

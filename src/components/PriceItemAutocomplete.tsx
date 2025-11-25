@@ -53,8 +53,10 @@ export const PriceItemAutocomplete = ({
   const handleInputChange = (newValue: string) => {
     setSearch(newValue);
     onChange(newValue);
-    if (newValue.length > 0 && !open) {
+    if (newValue.length >= 2) {
       setOpen(true);
+    } else {
+      setOpen(false);
     }
   };
 
@@ -72,9 +74,6 @@ export const PriceItemAutocomplete = ({
             ref={inputRef}
             value={search}
             onChange={(e) => handleInputChange(e.target.value)}
-            onFocus={() => {
-              if (search.length > 0) setOpen(true);
-            }}
             onBlur={handleBlur}
             placeholder={placeholder}
             className={`text-xs h-7 ${className}`}
@@ -82,7 +81,7 @@ export const PriceItemAutocomplete = ({
         </div>
       </PopoverTrigger>
       <PopoverContent className="w-[400px] p-0" align="start">
-        <Command>
+        <Command shouldFilter={false}>
           <CommandList>
             {isLoading ? (
               <div className="py-6 text-center text-xs text-muted-foreground">

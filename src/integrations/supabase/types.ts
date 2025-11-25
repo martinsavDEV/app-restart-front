@@ -317,6 +317,7 @@ export type Database = {
       }
       quote_settings: {
         Row: {
+          calculator_data: Json | null
           created_at: string
           hub_height: number | null
           id: string
@@ -329,6 +330,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          calculator_data?: Json | null
           created_at?: string
           hub_height?: number | null
           id?: string
@@ -341,6 +343,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          calculator_data?: Json | null
           created_at?: string
           hub_height?: number | null
           id?: string

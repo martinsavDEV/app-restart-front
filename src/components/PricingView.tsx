@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { Plus, FileUp } from "lucide-react";
 import { useQuotePricing } from "@/hooks/useQuotePricing";
 import { TemplateLoaderDialog } from "@/components/TemplateLoaderDialog";
+import { QuoteSummaryCard } from "@/components/QuoteSummaryCard";
 
 interface PricingViewProps {
   projectId?: string | null;
@@ -177,6 +178,15 @@ export const PricingView = ({ projectId: initialProjectId, projectName: initialP
 
   return (
     <div className="p-4 space-y-3">
+      {/* Quote Summary Card */}
+      {selectedVersionId && (
+        <QuoteSummaryCard 
+          versionId={selectedVersionId} 
+          projectName={projectName} 
+          nWtg={selectedProject?.n_wtg}
+        />
+      )}
+
       {/* Project and Version Selectors */}
       {!initialProjectId && (
         <Card>

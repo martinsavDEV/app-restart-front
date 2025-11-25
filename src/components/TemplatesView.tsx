@@ -1,56 +1,36 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { WorkLot } from "@/types/bpu";
-import { Plus } from "lucide-react";
+import { Plus, Edit, Copy, Trash2 } from "lucide-react";
 import { useState } from "react";
+import { useTemplates } from "@/hooks/useTemplates";
+import { TemplateEditorDialog } from "./TemplateEditorDialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
-const foundationsTemplate: WorkLot = {
-  id: "foundations-template",
-  name: "Foundations",
-  description: "Template pour fondations éoliennes - 3 WTG",
-  sections: [
-    {
-      id: "travaux-preparatoires",
-      title: "Travaux préparatoires",
-      lines: [
-        { id: "1", designation: "Installation de chantier", quantity: 1, unit: "ft", unitPrice: 35000, priceSource: "forfait" },
-        { id: "2", designation: "remise en état", quantity: 0, unit: "ft", unitPrice: 0 },
-        { id: "3", designation: "Sécurité", quantity: 0, unit: "ft", unitPrice: 0 },
-        { id: "4", designation: "Essais de convenance", quantity: 0, unit: "ft", unitPrice: 0 },
-        { id: "5", designation: "management suivi", quantity: 0, unit: "ft", unitPrice: 0 },
-      ]
-    },
-    {
-      id: "fondation",
-      title: "fondation",
-      lines: [
-        { id: "6", designation: "Béton de propreté", quantity: 1, unit: "ft", unitPrice: 10000 },
-        { id: "7", designation: "Montage Cage d'ancrage", quantity: 1, unit: "ft", unitPrice: 5000 },
-        { id: "8", designation: "Ferraillage", quantity: 65550, unit: "kg", unitPrice: 1.15 },
-        { id: "9", designation: "Béton socle", quantity: 550, unit: "m3", unitPrice: 190 },
-        { id: "10", designation: "Béton assiette", quantity: 25, unit: "m3", unitPrice: 195 },
-        { id: "11", designation: "Coffrage fondation", quantity: 1, unit: "ft", unitPrice: 1500 },
-        { id: "12", designation: "Mise A La Terre", quantity: 1, unit: "ft", unitPrice: 5000 },
-        { id: "13", designation: "Mise en place des fourreaux", quantity: 1, unit: "ft", unitPrice: 1000 },
-        { id: "14", designation: "Groutting", quantity: 1, unit: "ft", unitPrice: 0 },
-        { id: "15", designation: "Sealing", quantity: 1, unit: "ft", unitPrice: 0 },
-        { id: "16", designation: "/ WTG", quantity: 1, unit: "ft", unitPrice: 207258 },
-        { id: "17", designation: "Nombre de fondations", quantity: 3, unit: "unité", unitPrice: 0 },
-      ]
-    },
-    {
-      id: "assurance-plans",
-      title: "Assurance et plans",
-      lines: [
-        { id: "18", designation: "Assurances", quantity: 1, unit: "ft", unitPrice: 25000 },
-        { id: "19", designation: "Plans", quantity: 1, unit: "ft", unitPrice: 2000 },
-      ]
-    }
-  ]
-};
+const LOT_TABS = [
+  { value: "fondation", label: "Fondations" },
+  { value: "terrassement", label: "Terrassement" },
+  { value: "renforcement", label: "Renforcement" },
+  { value: "electricite", label: "Électricité" },
+  { value: "turbine", label: "Turbine" },
+];
 
 export const TemplatesView = () => {
-  const [templates] = useState<WorkLot[]>([foundationsTemplate]);
+  const { templates, isLoading, createTemplate, updateTemplate, deleteTemplate, duplicateTemplate } = useTemplates();
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [editingTemplate, setEditingTemplate] = useState<any>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [templateToDelete, setTemplateToDelete] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState("fondation");
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('fr-FR', {
@@ -61,12 +41,60 @@ export const TemplatesView = () => {
     }).format(value);
   };
 
-  const calculateTemplateTotal = (template: WorkLot) => {
-    return template.sections.reduce((lotTotal, section) => {
-      const sectionTotal = section.lines.reduce((sum, line) => sum + (line.quantity * line.unitPrice), 0);
+  const calculateTemplateTotal = (templateLines: any) => {
+    if (!templateLines?.sections) return 0;
+    return templateLines.sections.reduce((lotTotal: number, section: any) => {
+      const sectionTotal = section.lines.reduce((sum: number, line: any) => sum + (line.quantity * line.unitPrice), 0);
       return lotTotal + sectionTotal;
     }, 0);
   };
+
+  const handleCreateNew = () => {
+    setEditingTemplate(null);
+    setEditorOpen(true);
+  };
+
+  const handleEdit = (template: any) => {
+    setEditingTemplate(template);
+    setEditorOpen(true);
+  };
+
+  const handleSave = (template: { code: string; label: string; description?: string; template_lines: any }) => {
+    if (editingTemplate) {
+      updateTemplate.mutate({ id: editingTemplate.id, template });
+    } else {
+      createTemplate.mutate(template);
+    }
+  };
+
+  const handleDelete = (id: string) => {
+    setTemplateToDelete(id);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (templateToDelete) {
+      deleteTemplate.mutate(templateToDelete);
+      setDeleteDialogOpen(false);
+      setTemplateToDelete(null);
+    }
+  };
+
+  const handleDuplicate = (id: string) => {
+    duplicateTemplate.mutate(id);
+  };
+
+  const getTemplatesByLot = (lotCode: string) => {
+    return templates?.filter(t => t.code === lotCode) || [];
+  };
+
+  if (isLoading) {
+    return (
+      <div className="p-4">
+        <div className="text-sm text-muted-foreground">Chargement des templates...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 space-y-3">
@@ -77,64 +105,124 @@ export const TemplatesView = () => {
             Modèles de chiffrage réutilisables
           </p>
         </div>
-        <Button size="sm" variant="outline">
+        <Button size="sm" variant="outline" onClick={handleCreateNew}>
           <Plus className="h-4 w-4 mr-2" />
           Nouveau template
         </Button>
       </div>
 
-      <div className="grid gap-3">
-        {templates.map((template) => (
-          <Card key={template.id}>
-            <CardHeader>
-              <div className="flex items-start justify-between">
-                <div>
-                  <CardTitle className="text-sm">{template.name}</CardTitle>
-                  <CardDescription className="text-xs mt-1">
-                    {template.description}
-                  </CardDescription>
-                </div>
-                <div className="text-right">
-                  <div className="text-lg font-bold text-foreground">
-                    {formatCurrency(calculateTemplateTotal(template))}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    {template.sections.length} sections
-                  </div>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                {template.sections.map((section) => {
-                  const sectionTotal = section.lines.reduce((sum, line) => sum + (line.quantity * line.unitPrice), 0);
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="w-full justify-start">
+          {LOT_TABS.map((tab) => (
+            <TabsTrigger key={tab.value} value={tab.value} className="text-xs">
+              {tab.label}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+
+        {LOT_TABS.map((tab) => (
+          <TabsContent key={tab.value} value={tab.value} className="mt-3">
+            <div className="grid gap-3">
+              {getTemplatesByLot(tab.value).length === 0 ? (
+                <Card>
+                  <CardContent className="py-8 text-center">
+                    <p className="text-sm text-muted-foreground">
+                      Aucun template pour ce lot
+                    </p>
+                    <Button size="sm" variant="outline" className="mt-3" onClick={handleCreateNew}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Créer le premier template
+                    </Button>
+                  </CardContent>
+                </Card>
+              ) : (
+                getTemplatesByLot(tab.value).map((template) => {
+                  const templateLines = template.template_lines as any;
+                  const sections = templateLines?.sections || [];
                   return (
-                    <div key={section.id} className="flex items-center justify-between py-1.5 border-l-2 border-border pl-3">
-                      <div>
-                        <div className="text-xs font-medium">{section.title}</div>
-                        <div className="text-[10px] text-muted-foreground">
-                          {section.lines.length} lignes
+                    <Card key={template.id}>
+                      <CardHeader>
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <CardTitle className="text-sm">{template.label}</CardTitle>
+                            <CardDescription className="text-xs mt-1">
+                              {template.description}
+                            </CardDescription>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-lg font-bold text-foreground">
+                              {formatCurrency(calculateTemplateTotal(templateLines))}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {sections.length} sections
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                      <div className="text-xs font-medium">
-                        {formatCurrency(sectionTotal)}
-                      </div>
-                    </div>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-2">
+                          {sections.map((section: any) => {
+                            const sectionTotal = section.lines.reduce((sum: number, line: any) => sum + (line.quantity * line.unitPrice), 0);
+                            return (
+                              <div key={section.id} className="flex items-center justify-between py-1.5 border-l-2 border-border pl-3">
+                                <div>
+                                  <div className="text-xs font-medium">{section.title}</div>
+                                  <div className="text-[10px] text-muted-foreground">
+                                    {section.lines.length} lignes
+                                  </div>
+                                </div>
+                                <div className="text-xs font-medium">
+                                  {formatCurrency(sectionTotal)}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        <div className="mt-3 pt-3 border-t flex gap-2">
+                          <Button size="sm" variant="outline" onClick={() => handleEdit(template)}>
+                            <Edit className="h-3 w-3 mr-1" />
+                            Éditer
+                          </Button>
+                          <Button size="sm" variant="outline" onClick={() => handleDuplicate(template.id)}>
+                            <Copy className="h-3 w-3 mr-1" />
+                            Dupliquer
+                          </Button>
+                          <Button size="sm" variant="outline" onClick={() => handleDelete(template.id)}>
+                            <Trash2 className="h-3 w-3 mr-1" />
+                            Supprimer
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
                   );
-                })}
-              </div>
-              <div className="mt-3 pt-3 border-t flex gap-2">
-                <Button size="sm" variant="outline" className="flex-1">
-                  Prévisualiser
-                </Button>
-                <Button size="sm" className="flex-1">
-                  Utiliser ce template
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+                })
+              )}
+            </div>
+          </TabsContent>
         ))}
-      </div>
+      </Tabs>
+
+      <TemplateEditorDialog
+        open={editorOpen}
+        onOpenChange={setEditorOpen}
+        template={editingTemplate}
+        onSave={handleSave}
+      />
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
+            <AlertDialogDescription>
+              Êtes-vous sûr de vouloir supprimer ce template ? Cette action est irréversible.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete}>Supprimer</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

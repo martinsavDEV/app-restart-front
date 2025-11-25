@@ -18,6 +18,8 @@ export interface SummaryData {
     turbine_model: string | null;
     turbine_power: number | null;
     hub_height: number | null;
+    n_foundations: number;
+    calculator_data: any;
   } | null;
   referenceDocuments: Array<{
     id: string;
@@ -78,7 +80,7 @@ export const useSummaryData = (
       // Fetch quote settings
       const { data: quoteSettings } = await supabase
         .from("quote_settings")
-        .select("n_wtg, turbine_model, turbine_power, hub_height")
+        .select("n_wtg, turbine_model, turbine_power, hub_height, n_foundations, calculator_data")
         .eq("quote_version_id", versionId)
         .single();
 

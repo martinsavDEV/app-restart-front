@@ -51,6 +51,31 @@ export const EditableCell = ({
     }
   };
 
+  const handleKeyDownWrapper = (e: React.KeyboardEvent) => {
+    if (e.key === "Tab") {
+      e.preventDefault();
+      handleBlur();
+      // Find next cell
+      const currentCell = e.currentTarget.closest('td');
+      if (currentCell) {
+        const nextCell = currentCell.nextElementSibling;
+        if (nextCell?.querySelector('[data-editable-cell]')) {
+          (nextCell.querySelector('[data-editable-cell]') as HTMLElement)?.focus();
+        } else {
+          // End of row, go to first cell of next row
+          const currentRow = currentCell.closest('tr');
+          const nextRow = currentRow?.nextElementSibling;
+          if (nextRow) {
+            const firstEditableCell = nextRow.querySelector('[data-editable-cell]') as HTMLElement;
+            firstEditableCell?.focus();
+          }
+        }
+      }
+    } else {
+      handleKeyDown(e);
+    }
+  };
+
   if (isEditing) {
     return (
       <Input
@@ -58,8 +83,8 @@ export const EditableCell = ({
         value={editValue}
         onChange={(e) => setEditValue(e.target.value)}
         onBlur={handleBlur}
-        onKeyDown={handleKeyDown}
-        className={cn("h-8 text-xs", align === "right" && "text-right", className)}
+        onKeyDown={handleKeyDownWrapper}
+        className={cn("h-8 text-xs px-2", align === "right" && "text-right", className)}
       />
     );
   }
@@ -67,8 +92,11 @@ export const EditableCell = ({
   return (
     <div
       onDoubleClick={handleDoubleClick}
+      tabIndex={0}
+      data-editable-cell
+      onFocus={handleDoubleClick}
       className={cn(
-        "cursor-pointer hover:bg-muted/50 px-2 py-1.5 rounded transition-colors min-h-[32px] flex items-center",
+        "cursor-pointer hover:bg-muted/50 px-2 rounded transition-colors h-8 flex items-center outline-none focus:ring-1 focus:ring-primary",
         align === "right" && "justify-end",
         className
       )}

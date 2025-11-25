@@ -52,7 +52,7 @@ export const useQuoteSections = (lotId?: string | null) => {
         ? existingSections[0].order_index + 1 
         : 0;
 
-      const { data, error } = await supabase
+      const { data: sectionData, error: sectionError } = await supabase
         .from("quote_sections")
         .insert({
           lot_id: lotId,
@@ -64,11 +64,38 @@ export const useQuoteSections = (lotId?: string | null) => {
         .select()
         .single();
 
-      if (error) throw error;
-      return data;
+      if (sectionError) throw sectionError;
+
+      // Get the lot code
+      const { data: lotData, error: lotError } = await supabase
+        .from("lots")
+        .select("code")
+        .eq("id", lotId)
+        .single();
+
+      if (lotError) throw lotError;
+
+      // Create an empty line for the new section
+      const { error: lineError } = await supabase
+        .from("quote_lines")
+        .insert({
+          lot_id: lotId,
+          section_id: sectionData.id,
+          code: lotData.code,
+          designation: "",
+          quantity: 0,
+          unit: "u",
+          unit_price: 0,
+          order_index: 0
+        });
+
+      if (lineError) throw lineError;
+
+      return sectionData;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["quote-sections"] });
+      queryClient.invalidateQueries({ queryKey: ["quote-lines"] });
       toast.success("Section créée");
     },
   });

@@ -96,21 +96,6 @@ export const BPUTableWithSections = ({
     return acc;
   }, {} as Record<string, BPULineWithSection[]>);
 
-  // Ensure each section has at least one empty line
-  useEffect(() => {
-    sections.forEach((section) => {
-      const sectionLines = linesBySection[section.id] || [];
-      if (sectionLines.length === 0 && onLineAdd) {
-        const emptyLine = {
-          designation: "",
-          quantity: 0,
-          unit: "u",
-          unitPrice: 0,
-        };
-        onLineAdd(emptyLine, section.id);
-      }
-    });
-  }, [sections]);
 
   const calculateSectionTotal = (sectionLines: BPULineWithSection[]) => {
     return sectionLines.reduce((sum, line) => sum + (line.quantity * line.unitPrice), 0);

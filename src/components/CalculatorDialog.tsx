@@ -9,8 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { Calculator, Plus, Copy, X } from "lucide-react";
-import { CalculatorData, TurbineData, AccessSegment } from "@/types/bpu";
+import { Calculator, Plus, Copy, X, Zap } from "lucide-react";
+import { CalculatorData, TurbineData, AccessSegment, HTACableSegment } from "@/types/bpu";
 import { useCalculatorVariables } from "@/hooks/useCalculatorVariables";
 import { cn } from "@/lib/utils";
 
@@ -33,6 +33,7 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
     global: { nb_eol: 1, typ_eol: "Vestas" },
     turbines: [],
     access_segments: [],
+    hta_cables: [],
     design: { diametre_fondation: null },
   });
 
@@ -58,7 +59,10 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
       
       // Validate structure before using
       if (data.global && data.turbines && data.access_segments && data.design) {
-        setCalculatorData(data as CalculatorData);
+        setCalculatorData({
+          ...data,
+          hta_cables: data.hta_cables || [],
+        } as CalculatorData);
       }
       // Otherwise, keep default values initialized in useState
     }
@@ -166,6 +170,34 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
     setCalculatorData({ ...calculatorData, access_segments: newSegments });
   };
 
+  const addHTACable = () => {
+    const newCable: HTACableSegment = {
+      name: `Tronçon ${calculatorData.hta_cables.length + 1}`,
+      alu_95: 0,
+      alu_150: 0,
+      alu_240: 0,
+      alu_400: 0,
+      cu_95: 0,
+      cu_150: 0,
+      cu_240: 0,
+    };
+    setCalculatorData({
+      ...calculatorData,
+      hta_cables: [...calculatorData.hta_cables, newCable],
+    });
+  };
+
+  const removeHTACable = (index: number) => {
+    const newCables = calculatorData.hta_cables.filter((_, i) => i !== index);
+    setCalculatorData({ ...calculatorData, hta_cables: newCables });
+  };
+
+  const updateHTACable = (index: number, field: keyof HTACableSegment, value: any) => {
+    const newCables = [...calculatorData.hta_cables];
+    newCables[index] = { ...newCables[index], [field]: value };
+    setCalculatorData({ ...calculatorData, hta_cables: newCables });
+  };
+
   // Calculate totals
   const turbineTotals = {
     surf_PF: calculatorData.turbines.reduce((sum, t) => sum + t.surf_PF, 0),
@@ -179,6 +211,16 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
     surface: calculatorData.access_segments.reduce((sum, s) => sum + s.surface, 0),
     bicouche: calculatorData.access_segments.reduce((sum, s) => sum + s.bicouche, 0),
     enrobe: calculatorData.access_segments.reduce((sum, s) => sum + s.enrobe, 0),
+  };
+
+  const htaTotals = {
+    alu_95: calculatorData.hta_cables.reduce((sum, c) => sum + c.alu_95, 0),
+    alu_150: calculatorData.hta_cables.reduce((sum, c) => sum + c.alu_150, 0),
+    alu_240: calculatorData.hta_cables.reduce((sum, c) => sum + c.alu_240, 0),
+    alu_400: calculatorData.hta_cables.reduce((sum, c) => sum + c.alu_400, 0),
+    cu_95: calculatorData.hta_cables.reduce((sum, c) => sum + c.cu_95, 0),
+    cu_150: calculatorData.hta_cables.reduce((sum, c) => sum + c.cu_150, 0),
+    cu_240: calculatorData.hta_cables.reduce((sum, c) => sum + c.cu_240, 0),
   };
 
   const copyToClipboard = (text: string) => {
@@ -214,14 +256,14 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                 <div className="space-y-6">
                   {/* Global Section */}
                   <div className="space-y-2">
-                    <h3 className="text-sm font-semibold">Paramètres globaux</h3>
-                    <div className="flex gap-4 items-center">
+                    <h3 className="text-sm font-bold text-primary">Paramètres globaux</h3>
+                    <div className="flex gap-4 items-center bg-muted/30 p-3 rounded-md">
                       <div className="flex items-center gap-2">
-                        <Label className="text-xs min-w-[140px]">Nombre d'éoliennes</Label>
+                        <Label className="text-xs min-w-[140px] font-medium">Nombre d'éoliennes</Label>
                         <Input
                           type="number"
                           value={calculatorData.global.nb_eol}
-                          className="w-20"
+                          className="w-20 font-semibold"
                           onChange={(e) =>
                             setCalculatorData({
                               ...calculatorData,
@@ -229,10 +271,10 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                             })
                           }
                         />
-                        <span className="text-xs text-muted-foreground">nb_eol</span>
+                        <span className="text-xs text-muted-foreground font-mono">nb_eol</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Label className="text-xs min-w-[100px]">Type plateforme</Label>
+                        <Label className="text-xs min-w-[100px] font-medium">Type plateforme</Label>
                         <Input
                           value={calculatorData.global.typ_eol}
                           className="w-32"
@@ -243,7 +285,7 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                             })
                           }
                         />
-                        <span className="text-xs text-muted-foreground">Typ_Eol</span>
+                        <span className="text-xs text-muted-foreground font-mono">Typ_Eol</span>
                       </div>
                     </div>
                   </div>
@@ -253,8 +295,8 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                   {/* Turbines Section - Vertical Table */}
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <h3 className="text-sm font-semibold">Éoliennes</h3>
-                      <Button onClick={addTurbine} size="sm" variant="outline">
+                      <h3 className="text-sm font-bold text-primary">Éoliennes</h3>
+                      <Button onClick={addTurbine} size="sm" variant="outline" className="font-semibold">
                         <Plus className="h-4 w-4 mr-1" />
                         Ajouter
                       </Button>
@@ -263,9 +305,9 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                     <div className="overflow-x-auto">
                       <table className="w-full border-collapse text-sm">
                         <thead>
-                          <tr className="bg-muted/50">
-                            <th className="border p-2 text-left text-xs font-medium min-w-[180px]">Paramètre</th>
-                            <th className="border p-2 text-left text-xs font-medium">Unité</th>
+                          <tr className="bg-primary/10">
+                            <th className="border p-2 text-left text-xs font-bold min-w-[180px]">Paramètre</th>
+                            <th className="border p-2 text-left text-xs font-bold">Unité</th>
                             {calculatorData.turbines.map((turbine, idx) => (
                               <th key={idx} className="border p-2 text-center min-w-[100px]">
                                 <div className="flex items-center justify-between gap-1">
@@ -285,7 +327,7 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                                 </div>
                               </th>
                             ))}
-                            <th className="border p-2 text-center text-xs font-semibold bg-primary/10">Total</th>
+                            <th className="border p-2 text-center text-xs font-bold bg-primary/20">Total</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -431,8 +473,8 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                   {/* Access Segments Section */}
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <h3 className="text-sm font-semibold">Accès</h3>
-                      <Button onClick={addAccessSegment} size="sm" variant="outline">
+                      <h3 className="text-sm font-bold text-primary">Accès</h3>
+                      <Button onClick={addAccessSegment} size="sm" variant="outline" className="font-semibold">
                         <Plus className="h-4 w-4 mr-1" />
                         Ajouter tronçon
                       </Button>
@@ -441,9 +483,9 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                     <div className="overflow-x-auto">
                       <table className="w-full border-collapse text-sm">
                         <thead>
-                          <tr className="bg-muted/50">
-                            <th className="border p-2 text-left text-xs font-medium min-w-[180px]">Tronçon</th>
-                            <th className="border p-2 text-left text-xs font-medium">Unité</th>
+                          <tr className="bg-primary/10">
+                            <th className="border p-2 text-left text-xs font-bold min-w-[180px]">Tronçon</th>
+                            <th className="border p-2 text-left text-xs font-bold">Unité</th>
                             {calculatorData.access_segments.map((segment, idx) => (
                               <th key={idx} className="border p-2 text-center min-w-[120px]">
                                 <div className="flex items-center justify-between gap-1">
@@ -463,7 +505,7 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                                 </div>
                               </th>
                             ))}
-                            <th className="border p-2 text-center text-xs font-semibold bg-primary/10">Total</th>
+                            <th className="border p-2 text-center text-xs font-bold bg-primary/20">Total</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -578,15 +620,141 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
 
                   <Separator />
 
+                  {/* Electricity Section - HTA Cables */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Zap className="h-4 w-4 text-primary" />
+                        <h3 className="text-sm font-bold text-primary">Électricité - Câbles HTA</h3>
+                      </div>
+                      <Button onClick={addHTACable} size="sm" variant="outline" className="font-semibold">
+                        <Plus className="h-4 w-4 mr-1" />
+                        Ajouter tronçon
+                      </Button>
+                    </div>
+
+                    <div className="overflow-x-auto">
+                      <table className="w-full border-collapse text-sm">
+                        <thead>
+                          <tr className="bg-primary/10">
+                            <th className="border p-2 text-left text-xs font-bold min-w-[120px]">PDL</th>
+                            <th className="border p-2 text-center text-xs font-bold bg-blue-100 dark:bg-blue-900/30">95² alu</th>
+                            <th className="border p-2 text-center text-xs font-bold bg-blue-100 dark:bg-blue-900/30">150² alu</th>
+                            <th className="border p-2 text-center text-xs font-bold bg-blue-100 dark:bg-blue-900/30">240² alu</th>
+                            <th className="border p-2 text-center text-xs font-bold bg-blue-100 dark:bg-blue-900/30">400² alu</th>
+                            <th className="border p-2 text-center text-xs font-bold bg-orange-100 dark:bg-orange-900/30">95² cuivre</th>
+                            <th className="border p-2 text-center text-xs font-bold bg-orange-100 dark:bg-orange-900/30">150² cuivre</th>
+                            <th className="border p-2 text-center text-xs font-bold bg-orange-100 dark:bg-orange-900/30">240² cuivre</th>
+                            <th className="border p-2 text-center text-xs font-bold">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {/* Sum row */}
+                          <tr className="bg-primary/20 font-bold">
+                            <td className="border p-2 text-xs font-bold">Somme (ml)</td>
+                            <td className="border p-2 text-xs text-center bg-blue-50 dark:bg-blue-900/10">{htaTotals.alu_95}</td>
+                            <td className="border p-2 text-xs text-center bg-blue-50 dark:bg-blue-900/10">{htaTotals.alu_150}</td>
+                            <td className="border p-2 text-xs text-center bg-blue-50 dark:bg-blue-900/10">{htaTotals.alu_240}</td>
+                            <td className="border p-2 text-xs text-center bg-blue-50 dark:bg-blue-900/10">{htaTotals.alu_400}</td>
+                            <td className="border p-2 text-xs text-center bg-orange-50 dark:bg-orange-900/10">{htaTotals.cu_95}</td>
+                            <td className="border p-2 text-xs text-center bg-orange-50 dark:bg-orange-900/10">{htaTotals.cu_150}</td>
+                            <td className="border p-2 text-xs text-center bg-orange-50 dark:bg-orange-900/10">{htaTotals.cu_240}</td>
+                            <td className="border p-2"></td>
+                          </tr>
+                          {/* Data rows */}
+                          {calculatorData.hta_cables.map((cable, idx) => (
+                            <tr key={idx}>
+                              <td className="border p-1">
+                                <Input
+                                  value={cable.name}
+                                  onChange={(e) => updateHTACable(idx, "name", e.target.value)}
+                                  className="h-7 text-xs"
+                                />
+                              </td>
+                              <td className="border p-1 bg-blue-50/50 dark:bg-blue-900/5">
+                                <Input
+                                  type="number"
+                                  value={cable.alu_95}
+                                  onChange={(e) => updateHTACable(idx, "alu_95", parseFloat(e.target.value) || 0)}
+                                  className="h-7 text-xs text-center"
+                                />
+                              </td>
+                              <td className="border p-1 bg-blue-50/50 dark:bg-blue-900/5">
+                                <Input
+                                  type="number"
+                                  value={cable.alu_150}
+                                  onChange={(e) => updateHTACable(idx, "alu_150", parseFloat(e.target.value) || 0)}
+                                  className="h-7 text-xs text-center"
+                                />
+                              </td>
+                              <td className="border p-1 bg-blue-50/50 dark:bg-blue-900/5">
+                                <Input
+                                  type="number"
+                                  value={cable.alu_240}
+                                  onChange={(e) => updateHTACable(idx, "alu_240", parseFloat(e.target.value) || 0)}
+                                  className="h-7 text-xs text-center"
+                                />
+                              </td>
+                              <td className="border p-1 bg-blue-50/50 dark:bg-blue-900/5">
+                                <Input
+                                  type="number"
+                                  value={cable.alu_400}
+                                  onChange={(e) => updateHTACable(idx, "alu_400", parseFloat(e.target.value) || 0)}
+                                  className="h-7 text-xs text-center"
+                                />
+                              </td>
+                              <td className="border p-1 bg-orange-50/50 dark:bg-orange-900/5">
+                                <Input
+                                  type="number"
+                                  value={cable.cu_95}
+                                  onChange={(e) => updateHTACable(idx, "cu_95", parseFloat(e.target.value) || 0)}
+                                  className="h-7 text-xs text-center"
+                                />
+                              </td>
+                              <td className="border p-1 bg-orange-50/50 dark:bg-orange-900/5">
+                                <Input
+                                  type="number"
+                                  value={cable.cu_150}
+                                  onChange={(e) => updateHTACable(idx, "cu_150", parseFloat(e.target.value) || 0)}
+                                  className="h-7 text-xs text-center"
+                                />
+                              </td>
+                              <td className="border p-1 bg-orange-50/50 dark:bg-orange-900/5">
+                                <Input
+                                  type="number"
+                                  value={cable.cu_240}
+                                  onChange={(e) => updateHTACable(idx, "cu_240", parseFloat(e.target.value) || 0)}
+                                  className="h-7 text-xs text-center"
+                                />
+                              </td>
+                              <td className="border p-1 text-center">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => removeHTACable(idx)}
+                                  className="h-6 w-6 p-0"
+                                >
+                                  <X className="h-3 w-3" />
+                                </Button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  <Separator />
+
                   {/* Design Section */}
                   <div className="space-y-2">
-                    <h3 className="text-sm font-semibold">Design</h3>
-                    <div className="flex items-center gap-2">
-                      <Label className="text-xs min-w-[140px]">Diamètre fondation</Label>
+                    <h3 className="text-sm font-bold text-primary">Design</h3>
+                    <div className="flex items-center gap-2 bg-muted/30 p-3 rounded-md">
+                      <Label className="text-xs min-w-[140px] font-medium">Diamètre fondation</Label>
                       <Input
                         type="number"
                         value={calculatorData.design.diametre_fondation || ""}
-                        className="w-24"
+                        className="w-24 font-semibold"
                         onChange={(e) =>
                           setCalculatorData({
                             ...calculatorData,
@@ -597,7 +765,7 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                           })
                         }
                       />
-                      <span className="text-xs text-muted-foreground">m</span>
+                      <span className="text-xs text-muted-foreground font-mono">m</span>
                     </div>
                   </div>
                 </div>
@@ -616,7 +784,7 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
 
             {/* Variables sidebar */}
             <div className="w-80 border-l pl-4">
-              <h3 className="text-sm font-semibold mb-3">Variables disponibles</h3>
+              <h3 className="text-sm font-bold text-primary mb-3">Variables disponibles</h3>
               <ScrollArea className="h-[70vh]">
                 <div className="space-y-2">
                   {Object.entries(
@@ -627,18 +795,18 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                     }, {} as Record<string, typeof variables>)
                   ).map(([category, vars]) => (
                     <div key={category} className="space-y-1">
-                      <p className="text-xs font-medium text-muted-foreground">{category}</p>
+                      <p className="text-xs font-bold text-foreground/70 uppercase tracking-wide">{category}</p>
                       {vars.map((v) => (
                         <div
                           key={v.name}
                           className="flex items-center justify-between p-2 rounded-md hover:bg-muted/50 group"
                         >
                           <div className="flex-1 min-w-0">
-                            <p className="text-xs font-mono text-orange-500 truncate">{v.name}</p>
+                            <p className="text-xs font-mono text-orange-600 dark:text-orange-400 truncate font-semibold">{v.name}</p>
                             <p className="text-[10px] text-muted-foreground truncate">{v.label}</p>
                           </div>
                           <div className="flex items-center gap-2">
-                            <span className="text-xs font-medium">{v.value}</span>
+                            <span className="text-xs font-bold text-foreground">{v.value}</span>
                             <Button
                               variant="ghost"
                               size="sm"

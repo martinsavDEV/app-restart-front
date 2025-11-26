@@ -107,6 +107,75 @@ export const useCalculatorVariables = (calculatorData: CalculatorData | null): {
       { name: "$sum_enrobe", value: sum_enrobe, label: "Total Enrobé", category: "Totaux" }
     );
 
+    // HTA Cables variables
+    if (calculatorData.hta_cables) {
+      calculatorData.hta_cables.forEach((cable) => {
+        vars.push(
+          {
+            name: `$alu95_${cable.name.replace(/\s+/g, "_")}`,
+            value: cable.alu_95,
+            label: `95² alu ${cable.name}`,
+            category: "Électricité",
+          },
+          {
+            name: `$alu150_${cable.name.replace(/\s+/g, "_")}`,
+            value: cable.alu_150,
+            label: `150² alu ${cable.name}`,
+            category: "Électricité",
+          },
+          {
+            name: `$alu240_${cable.name.replace(/\s+/g, "_")}`,
+            value: cable.alu_240,
+            label: `240² alu ${cable.name}`,
+            category: "Électricité",
+          },
+          {
+            name: `$alu400_${cable.name.replace(/\s+/g, "_")}`,
+            value: cable.alu_400,
+            label: `400² alu ${cable.name}`,
+            category: "Électricité",
+          },
+          {
+            name: `$cu95_${cable.name.replace(/\s+/g, "_")}`,
+            value: cable.cu_95,
+            label: `95² cu ${cable.name}`,
+            category: "Électricité",
+          },
+          {
+            name: `$cu150_${cable.name.replace(/\s+/g, "_")}`,
+            value: cable.cu_150,
+            label: `150² cu ${cable.name}`,
+            category: "Électricité",
+          },
+          {
+            name: `$cu240_${cable.name.replace(/\s+/g, "_")}`,
+            value: cable.cu_240,
+            label: `240² cu ${cable.name}`,
+            category: "Électricité",
+          }
+        );
+      });
+
+      // Totals for HTA cables
+      const sum_alu95 = calculatorData.hta_cables.reduce((sum, c) => sum + c.alu_95, 0);
+      const sum_alu150 = calculatorData.hta_cables.reduce((sum, c) => sum + c.alu_150, 0);
+      const sum_alu240 = calculatorData.hta_cables.reduce((sum, c) => sum + c.alu_240, 0);
+      const sum_alu400 = calculatorData.hta_cables.reduce((sum, c) => sum + c.alu_400, 0);
+      const sum_cu95 = calculatorData.hta_cables.reduce((sum, c) => sum + c.cu_95, 0);
+      const sum_cu150 = calculatorData.hta_cables.reduce((sum, c) => sum + c.cu_150, 0);
+      const sum_cu240 = calculatorData.hta_cables.reduce((sum, c) => sum + c.cu_240, 0);
+
+      vars.push(
+        { name: "$sum_alu95", value: sum_alu95, label: "Total 95² alu (ml)", category: "Totaux" },
+        { name: "$sum_alu150", value: sum_alu150, label: "Total 150² alu (ml)", category: "Totaux" },
+        { name: "$sum_alu240", value: sum_alu240, label: "Total 240² alu (ml)", category: "Totaux" },
+        { name: "$sum_alu400", value: sum_alu400, label: "Total 400² alu (ml)", category: "Totaux" },
+        { name: "$sum_cu95", value: sum_cu95, label: "Total 95² cu (ml)", category: "Totaux" },
+        { name: "$sum_cu150", value: sum_cu150, label: "Total 150² cu (ml)", category: "Totaux" },
+        { name: "$sum_cu240", value: sum_cu240, label: "Total 240² cu (ml)", category: "Totaux" }
+      );
+    }
+
     return vars;
   }, [calculatorData]);
 

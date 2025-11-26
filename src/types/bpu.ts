@@ -62,6 +62,17 @@ export interface AccessSegment {
   enrobe: number;
 }
 
+export interface HTACableSegment {
+  name: string; // "PDL E03", "E03 E01", etc.
+  alu_95: number;
+  alu_150: number;
+  alu_240: number;
+  alu_400: number;
+  cu_95: number;
+  cu_150: number;
+  cu_240: number;
+}
+
 export interface CalculatorData {
   global: {
     nb_eol: number;
@@ -69,6 +80,7 @@ export interface CalculatorData {
   };
   turbines: TurbineData[];
   access_segments: AccessSegment[];
+  hta_cables: HTACableSegment[];
   design: {
     diametre_fondation: number | null;
   };

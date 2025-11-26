@@ -4,10 +4,20 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { usePriceItems } from "@/hooks/usePriceItems";
-import { Plus, Upload, Download } from "lucide-react";
+import { Plus, Upload, Download, Trash2 } from "lucide-react";
 import { EditableCell } from "./EditableCell";
 import { EditableCellText } from "./EditableCellText";
 import { CSVImportDialog, ImportMetadata } from "./CSVImportDialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { downloadTemplate } from "@/lib/csvUtils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -23,7 +33,9 @@ const LOTS = [
 export const PriceDBView = () => {
   const [activeLot, setActiveLot] = useState("fondations");
   const [importDialogOpen, setImportDialogOpen] = useState(false);
-  const { priceItems, isLoading, updatePriceItem } = usePriceItems(activeLot);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<string | null>(null);
+  const { priceItems, isLoading, updatePriceItem, createPriceItem, deletePriceItem } = usePriceItems(activeLot);
 
   const currentLot = LOTS.find(lot => lot.code === activeLot);
 
@@ -61,6 +73,30 @@ export const PriceDBView = () => {
   const formatDate = (date?: string) => {
     if (!date) return "-";
     return new Date(date).toLocaleDateString('fr-FR');
+  };
+
+  const handleAddNewPrice = () => {
+    createPriceItem({
+      lot_code: activeLot,
+      item: "Nouvelle désignation",
+      unit: "u",
+      unit_price: 0,
+      price_reference: "MSA 2025",
+      date_modif: new Date().toISOString(),
+    });
+  };
+
+  const handleDeleteClick = (id: string) => {
+    setItemToDelete(id);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = () => {
+    if (itemToDelete) {
+      deletePriceItem(itemToDelete);
+      setItemToDelete(null);
+      setDeleteDialogOpen(false);
+    }
   };
 
   if (isLoading) {
@@ -113,7 +149,7 @@ export const PriceDBView = () => {
                   <Upload className="h-4 w-4 mr-2" />
                   Importer CSV
                 </Button>
-                <Button size="sm">
+                <Button size="sm" onClick={handleAddNewPrice}>
                   <Plus className="h-4 w-4 mr-2" />
                   Nouveau prix
                 </Button>
@@ -144,11 +180,12 @@ export const PriceDBView = () => {
                           <TableHead className="text-xs font-medium w-[120px] text-right">Prix unitaire</TableHead>
                           <TableHead className="text-xs font-medium w-[120px]">Référence</TableHead>
                           <TableHead className="text-xs font-medium w-[100px]">Date modif</TableHead>
+                          <TableHead className="text-xs font-medium w-[60px]">Actions</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {priceItems.map((item) => (
-                          <TableRow key={item.id} className="h-8">
+                          <TableRow key={item.id} className="h-8 group">
                             <TableCell className="py-1 text-xs text-muted-foreground">
                               {item.item_id || "-"}
                             </TableCell>
@@ -172,11 +209,29 @@ export const PriceDBView = () => {
                                 align="right"
                               />
                             </TableCell>
-                            <TableCell className="py-1 text-xs text-muted-foreground">
-                              {item.price_reference || "-"}
+                            <TableCell className="py-1">
+                              <EditableCellText
+                                value={item.price_reference || ""}
+                                onChange={(value) => updatePriceItem({ id: item.id, price_reference: value })}
+                                placeholder="Réf..."
+                              />
                             </TableCell>
-                            <TableCell className="py-1 text-xs text-muted-foreground">
-                              {formatDate(item.date_modif)}
+                            <TableCell className="py-1">
+                              <EditableCellText
+                                value={item.date_modif ? new Date(item.date_modif).toISOString().split('T')[0] : ""}
+                                onChange={(value) => updatePriceItem({ id: item.id, date_modif: value ? new Date(value).toISOString() : null })}
+                                placeholder="Date..."
+                              />
+                            </TableCell>
+                            <TableCell className="py-1">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                                onClick={() => handleDeleteClick(item.id)}
+                              >
+                                <Trash2 className="h-3 w-3 text-destructive" />
+                              </Button>
                             </TableCell>
                           </TableRow>
                         ))}
@@ -197,6 +252,23 @@ export const PriceDBView = () => {
         lotCode={activeLot}
         lotLabel={currentLot?.label || ""}
       />
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
+            <AlertDialogDescription>
+              Êtes-vous sûr de vouloir supprimer ce prix ? Cette action est irréversible.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteConfirm} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

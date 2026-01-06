@@ -8,17 +8,24 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { SummaryData } from "@/hooks/useSummaryData";
+import { getLotColors } from "@/lib/lotColors";
+import { cn } from "@/lib/utils";
 
 interface SummaryLotDetailProps {
   lot: SummaryData["lots"][0];
 }
 
 export const SummaryLotDetail = ({ lot }: SummaryLotDetailProps) => {
+  const colors = getLotColors(lot.code || lot.label.toLowerCase().replace(/\s+/g, '_'));
+  
   return (
-    <Card>
+    <Card className={cn("border-l-4", colors.border)}>
       <CardContent className="pt-6">
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold">LOT: {lot.label.toUpperCase()}</h3>
+          <h3 className={cn("text-lg font-semibold flex items-center gap-2", colors.text)}>
+            <div className={cn("w-3 h-3 rounded-full", colors.bgActive)} />
+            LOT: {lot.label.toUpperCase()}
+          </h3>
           <span className="text-lg font-bold">
             Total: {lot.total.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €
           </span>

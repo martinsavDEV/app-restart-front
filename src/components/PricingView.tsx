@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,8 @@ import { TemplateLoaderDialog } from "@/components/TemplateLoaderDialog";
 import { QuoteSummaryCard } from "@/components/QuoteSummaryCard";
 import { SectionDialog } from "@/components/SectionDialog";
 import { LotSection } from "@/components/LotSection";
+import { getLotColors } from "@/lib/lotColors";
+import { cn } from "@/lib/utils";
 
 interface PricingViewProps {
   projectId?: string | null;
@@ -26,6 +28,7 @@ export const PricingView = ({ projectId: initialProjectId, projectName: initialP
   const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
   const [selectedLotForTemplate, setSelectedLotForTemplate] = useState<{ id: string; code: string } | null>(null);
   const [sectionDialogOpen, setSectionDialogOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<string | null>(null);
   const [selectedLotForSection, setSelectedLotForSection] = useState<string | null>(null);
 
   // Fetch projects
@@ -55,6 +58,13 @@ export const PricingView = ({ projectId: initialProjectId, projectName: initialP
 
   // Use the quote pricing hook
   const { lots, isLoading, updateLine, addLine, deleteLine, loadTemplate, updateLinesOrder, updateLineSection } = useQuotePricing(selectedVersionId);
+
+  // Initialize active tab when lots are loaded
+  useEffect(() => {
+    if (lots.length > 0 && !activeTab) {
+      setActiveTab(lots[0].id);
+    }
+  }, [lots, activeTab]);
 
   const selectedProject = projects?.find((p) => p.id === selectedProjectId);
   const projectName = initialProjectName || selectedProject?.name;
@@ -350,7 +360,7 @@ export const PricingView = ({ projectId: initialProjectId, projectName: initialP
 
       {/* Main Content */}
       {selectedVersionId && lots.length > 0 ? (
-        <Tabs defaultValue={lots[0]?.id} className="space-y-3">
+        <Tabs value={activeTab || lots[0]?.id} onValueChange={setActiveTab} className="space-y-3">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <h1 className="text-lg font-semibold">Chiffrage projet</h1>
@@ -358,12 +368,25 @@ export const PricingView = ({ projectId: initialProjectId, projectName: initialP
                 {projectName ? `BPU par lots pour ${projectName}` : "BPU par lots"}
               </p>
             </div>
-            <TabsList className="w-full lg:w-auto flex-wrap justify-start">
-              {lots.map((lot) => (
-                <TabsTrigger key={lot.id} value={lot.id} className="text-xs">
-                  {lot.label}
-                </TabsTrigger>
-              ))}
+            <TabsList className="w-full lg:w-auto flex-wrap justify-start bg-transparent gap-2">
+              {lots.map((lot) => {
+                const colors = getLotColors(lot.code);
+                const isActive = activeTab === lot.id;
+                return (
+                  <TabsTrigger 
+                    key={lot.id} 
+                    value={lot.id} 
+                    className={cn(
+                      "text-xs font-semibold px-4 py-2 rounded-lg border-2 transition-all data-[state=active]:shadow-none",
+                      isActive 
+                        ? `${colors.bgActive} ${colors.textActive} border-transparent shadow-lg` 
+                        : `${colors.bg} ${colors.text} ${colors.border} hover:shadow-md`
+                    )}
+                  >
+                    {lot.label}
+                  </TabsTrigger>
+                );
+              })}
             </TabsList>
           </div>
 

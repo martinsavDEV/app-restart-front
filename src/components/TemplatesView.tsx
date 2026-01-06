@@ -15,6 +15,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { getLotColors } from "@/lib/lotColors";
+import { cn } from "@/lib/utils";
 
 const LOT_TABS = [
   { value: "fondation", label: "Fondations" },
@@ -112,12 +114,25 @@ export const TemplatesView = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="w-full justify-start">
-          {LOT_TABS.map((tab) => (
-            <TabsTrigger key={tab.value} value={tab.value} className="text-xs">
-              {tab.label}
-            </TabsTrigger>
-          ))}
+        <TabsList className="w-full justify-start bg-transparent gap-2">
+          {LOT_TABS.map((tab) => {
+            const colors = getLotColors(tab.value);
+            const isActive = activeTab === tab.value;
+            return (
+              <TabsTrigger 
+                key={tab.value} 
+                value={tab.value} 
+                className={cn(
+                  "text-xs font-semibold px-4 py-2 rounded-lg border-2 transition-all data-[state=active]:shadow-none",
+                  isActive 
+                    ? `${colors.bgActive} ${colors.textActive} border-transparent shadow-lg` 
+                    : `${colors.bg} ${colors.text} ${colors.border} hover:shadow-md`
+                )}
+              >
+                {tab.label}
+              </TabsTrigger>
+            );
+          })}
         </TabsList>
 
         {LOT_TABS.map((tab) => (

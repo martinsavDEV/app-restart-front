@@ -21,6 +21,8 @@ import {
 import { downloadTemplate } from "@/lib/csvUtils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { getLotColors } from "@/lib/lotColors";
+import { cn } from "@/lib/utils";
 
 const LOTS = [
   { code: "terrassement", label: "Terrassement" },
@@ -123,12 +125,25 @@ export const PriceDBView = () => {
       </div>
 
       <Tabs value={activeLot} onValueChange={setActiveLot}>
-        <TabsList className="grid w-full grid-cols-5">
-          {LOTS.map(lot => (
-            <TabsTrigger key={lot.code} value={lot.code} className="text-xs">
-              {lot.label}
-            </TabsTrigger>
-          ))}
+        <TabsList className="w-full justify-start bg-transparent gap-2 flex-wrap">
+          {LOTS.map(lot => {
+            const colors = getLotColors(lot.code);
+            const isActive = activeLot === lot.code;
+            return (
+              <TabsTrigger 
+                key={lot.code} 
+                value={lot.code} 
+                className={cn(
+                  "text-xs font-semibold px-4 py-2 rounded-lg border-2 transition-all data-[state=active]:shadow-none",
+                  isActive 
+                    ? `${colors.bgActive} ${colors.textActive} border-transparent shadow-lg` 
+                    : `${colors.bg} ${colors.text} ${colors.border} hover:shadow-md`
+                )}
+              >
+                {lot.label}
+              </TabsTrigger>
+            );
+          })}
         </TabsList>
 
         {LOTS.map(lot => (

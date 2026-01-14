@@ -12,6 +12,7 @@ interface QuoteLine {
   unit_price: number;
   comment?: string;
   linked_variable?: string | null;
+  quantity_formula?: string | null;
   order_index: number;
 }
 

@@ -4,7 +4,7 @@ import { EditableCell } from "@/components/EditableCell";
 import { EditableCellText } from "@/components/EditableCellText";
 import { PriceItemAutocomplete } from "@/components/PriceItemAutocomplete";
 import { PriceSourceIndicator } from "@/components/PriceSourceIndicator";
-import { VariableAutocomplete } from "@/components/VariableAutocomplete";
+import { QuantityFormulaInput } from "@/components/QuantityFormulaInput";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { BPULine, CalculatorVariable } from "@/types/bpu";
@@ -108,49 +108,18 @@ export const DraggableLine = ({
         />
       </td>
       <td className="py-1 px-2">
-        <VariableAutocomplete
-          value={line.linkedVariable || line.quantity}
+        <QuantityFormulaInput
+          value={typeof line.quantity === 'number' ? line.quantity : parseFloat(String(line.quantity)) || 0}
+          formula={line.quantity_formula}
+          linkedVariable={line.linkedVariable}
           variables={variables}
           resolvedValue={resolvedQuantity}
-          onSelect={(variable) => {
-            onLineUpdate(line.id, { 
-              quantity: variable.value,
-              linkedVariable: variable.name,
+          onUpdate={(updates) => {
+            onLineUpdate(line.id, {
+              quantity: updates.quantity,
+              quantity_formula: updates.quantity_formula,
+              linkedVariable: updates.linkedVariable,
             });
-          }}
-          onChange={(value) => {
-            const trimmedValue = value.trim();
-            
-            // If empty, reset both
-            if (!trimmedValue) {
-              onLineUpdate(line.id, { 
-                quantity: 0,
-                linkedVariable: null,
-              });
-            } else if (trimmedValue.startsWith("$")) {
-              // User is typing a variable name
-              // Check if it's a complete valid variable
-              const matchingVar = variables.find(v => v.name === trimmedValue);
-              if (matchingVar) {
-                // Valid variable found, update both
-                onLineUpdate(line.id, { 
-                  quantity: matchingVar.value,
-                  linkedVariable: trimmedValue,
-                });
-              } else {
-                // Still typing, just update linkedVariable
-                onLineUpdate(line.id, { 
-                  linkedVariable: trimmedValue,
-                });
-              }
-            } else {
-              // User is typing a number, parse it and clear linkedVariable
-              const numValue = parseFloat(value.replace(/[^\d.,]/g, "").replace(",", "."));
-              onLineUpdate(line.id, { 
-                quantity: isNaN(numValue) ? 0 : numValue,
-                linkedVariable: null,
-              });
-            }
           }}
           placeholder="Quantité"
           className="text-right tabular-nums"

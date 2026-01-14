@@ -214,6 +214,7 @@ export type Database = {
           order_index: number
           price_source: string | null
           quantity: number
+          quantity_formula: string | null
           section_id: string | null
           total_price: number | null
           unit: string
@@ -231,6 +232,7 @@ export type Database = {
           order_index?: number
           price_source?: string | null
           quantity?: number
+          quantity_formula?: string | null
           section_id?: string | null
           total_price?: number | null
           unit?: string
@@ -248,6 +250,7 @@ export type Database = {
           order_index?: number
           price_source?: string | null
           quantity?: number
+          quantity_formula?: string | null
           section_id?: string | null
           total_price?: number | null
           unit?: string

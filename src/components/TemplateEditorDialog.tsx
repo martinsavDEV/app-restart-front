@@ -11,10 +11,11 @@ import { useState, useEffect } from "react";
 import { EditableCell } from "./EditableCell";
 import { EditableCellText } from "./EditableCellText";
 import { VariableAutocomplete } from "./VariableAutocomplete";
+import { PriceItemAutocomplete } from "./PriceItemAutocomplete";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
-
+import { Badge } from "@/components/ui/badge";
 // Variables génériques disponibles dans les templates (non liées à un projet spécifique)
 const GENERIC_TEMPLATE_VARIABLES: CalculatorVariable[] = [
   // Variables Globales
@@ -290,6 +291,7 @@ export const TemplateEditorDialog = ({ open, onOpenChange, template, onSave }: T
                             <th className="text-right py-2 font-medium w-20">Quantité</th>
                             <th className="text-left py-2 font-medium w-16">Unité</th>
                             <th className="text-right py-2 font-medium w-24">PU</th>
+                            <th className="text-left py-2 font-medium w-24">Source</th>
                             <th className="text-right py-2 font-medium w-24">Total</th>
                             <th className="w-10"></th>
                           </tr>
@@ -300,8 +302,17 @@ export const TemplateEditorDialog = ({ open, onOpenChange, template, onSave }: T
                             return (
                             <tr key={line.id} className="border-b">
                               <td className="py-1">
-                                <EditableCellText
+                                <PriceItemAutocomplete
                                   value={line.designation}
+                                  lotCode={code}
+                                  onSelect={(item) => {
+                                    updateLine(section.id, line.id, {
+                                      designation: item.designation,
+                                      unit: item.unit,
+                                      unitPrice: item.unitPrice,
+                                      priceSource: item.priceSource,
+                                    });
+                                  }}
                                   onChange={(value) => updateLine(section.id, line.id, { designation: value })}
                                   className="w-full"
                                 />
@@ -348,6 +359,15 @@ export const TemplateEditorDialog = ({ open, onOpenChange, template, onSave }: T
                                   align="right"
                                   format={(v) => (v || 0).toFixed(2)}
                                 />
+                              </td>
+                              <td className="py-1">
+                                {line.priceSource ? (
+                                  <Badge variant="outline" className="text-[10px] font-normal">
+                                    {line.priceSource}
+                                  </Badge>
+                                ) : (
+                                  <span className="text-muted-foreground text-[10px]">Manuel</span>
+                                )}
                               </td>
                               <td className="py-1 text-right font-medium">
                                 {formatCurrency(qty * line.unitPrice)}

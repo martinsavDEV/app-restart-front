@@ -1,23 +1,38 @@
-import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { LogOut } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  Database,
+  FileStack,
+  Calculator,
+  FileSpreadsheet,
+  Coins,
+  Layout,
+  Settings,
+  LogOut,
+  Wind,
+} from "lucide-react";
 
 interface NavItem {
   id: string;
   label: string;
-  description: string;
+  icon: React.ElementType;
 }
 
 const navItems: NavItem[] = [
-  { id: "projects", label: "Projets", description: "Portfolio + métadonnées" },
-  { id: "quotes", label: "Versions de chiffrage", description: "Historique par projet" },
-  { id: "pricing", label: "Chiffrage projet", description: "Lots & BPU" },
-  { id: "summary", label: "Export CAPEX", description: "Récap & export PDF/CSV" },
-  { id: "price-db", label: "Base de prix", description: "Historiques & tendances" },
-  { id: "templates", label: "Templates", description: "Chantiers types / sous-lots" },
-  { id: "data-admin", label: "Admin Data", description: "Import/Export CSV" },
+  { id: "projects", label: "Projets", icon: Database },
+  { id: "quotes", label: "Versions de chiffrage", icon: FileStack },
+  { id: "pricing", label: "Chiffrage projet", icon: Calculator },
+  { id: "summary", label: "Export CAPEX", icon: FileSpreadsheet },
+  { id: "price-db", label: "Base de prix", icon: Coins },
+  { id: "templates", label: "Templates", icon: Layout },
+  { id: "data-admin", label: "Admin Data", icon: Settings },
 ];
 
 interface SidebarProps {
@@ -28,58 +43,73 @@ interface SidebarProps {
 
 export const Sidebar = ({ activeView, onViewChange, quotesEnabled = false }: SidebarProps) => {
   const { signOut } = useAuth();
-  
+
   return (
-    <aside className="w-[260px] bg-sidebar text-sidebar-foreground flex flex-col min-h-screen">
-      <div className="p-4 border-b border-sidebar-border">
-        <div className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">
-          Axpo / Volkswind
+    <TooltipProvider delayDuration={100}>
+      <aside className="w-16 bg-card border-r border-border flex flex-col items-center py-4 shrink-0">
+        {/* Logo */}
+        <div className="w-9 h-9 mb-6 bg-accent rounded-lg flex items-center justify-center">
+          <Wind className="w-5 h-5 text-accent-foreground" />
         </div>
-        <div className="text-lg font-semibold">VW-QuoteMaster</div>
-        <div className="text-[11px] text-muted-foreground mt-0.5">
-          Chiffrage projets éoliens
+
+        {/* Navigation */}
+        <nav className="flex-1 flex flex-col gap-1 w-full px-2">
+          {navItems.map((item) => {
+            const isActive = activeView === item.id;
+            const isDisabled = item.id === "quotes" && !quotesEnabled;
+            const Icon = item.icon;
+
+            return (
+              <Tooltip key={item.id}>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={() => !isDisabled && onViewChange(item.id)}
+                    disabled={isDisabled}
+                    className={cn(
+                      "relative w-full p-3 rounded-lg transition-all duration-200",
+                      "flex items-center justify-center",
+                      "hover:bg-sidebar-accent",
+                      isActive && "bg-sidebar-accent",
+                      isDisabled && "opacity-40 cursor-not-allowed hover:bg-transparent"
+                    )}
+                  >
+                    {/* Active indicator */}
+                    {isActive && (
+                      <div className="absolute left-0 top-2 bottom-2 w-0.5 bg-accent rounded-full" />
+                    )}
+                    <Icon
+                      className={cn(
+                        "w-5 h-5 transition-colors",
+                        isActive ? "text-accent" : "text-muted-foreground"
+                      )}
+                    />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="right" className="font-medium">
+                  {item.label}
+                </TooltipContent>
+              </Tooltip>
+            );
+          })}
+        </nav>
+
+        {/* Footer */}
+        <div className="mt-auto pt-4 border-t border-border w-full px-2">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="w-full h-12 text-muted-foreground hover:text-foreground hover:bg-sidebar-accent"
+                onClick={() => signOut()}
+              >
+                <LogOut className="w-5 h-5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="right">Déconnexion</TooltipContent>
+          </Tooltip>
         </div>
-      </div>
-
-      <nav className="p-2 flex-1">
-        {navItems.map((item) => {
-          const isDisabled = item.id === "quotes" && !quotesEnabled;
-
-          return (
-            <button
-              key={item.id}
-              onClick={() => !isDisabled && onViewChange(item.id)}
-              disabled={isDisabled}
-              className={cn(
-                "w-full text-left p-2.5 rounded-lg mb-1.5 transition-colors",
-                "hover:bg-sidebar-accent",
-                activeView === item.id && "bg-sidebar-accent border border-sidebar-border",
-                isDisabled && "opacity-50 cursor-not-allowed hover:bg-transparent"
-              )}
-            >
-              <div className="text-xs font-medium">{item.label}</div>
-              <div className="text-[11px] text-muted-foreground mt-0.5">
-                {item.description}
-              </div>
-            </button>
-          );
-        })}
-      </nav>
-
-      <div className="p-4 border-t border-sidebar-border">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="w-full justify-start text-muted-foreground hover:text-foreground mb-2"
-          onClick={() => signOut()}
-        >
-          <LogOut className="mr-2 h-4 w-4" />
-          Déconnexion
-        </Button>
-        <div className="text-[11px] text-muted-foreground">
-          v0.2 – Maquette UX interactive
-        </div>
-      </div>
-    </aside>
+      </aside>
+    </TooltipProvider>
   );
 };

@@ -2,59 +2,60 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
+/* Definition of the design system - Sober Dark 2026 */
 
 @layer base {
   :root {
-    --background: 210 40% 96.1%;
-    --foreground: 222.2 47.4% 11.2%;
+    /* Dark palette */
+    --background: 222 47% 11%;
+    --foreground: 210 40% 96%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 47.4% 11.2%;
+    --card: 215 28% 17%;
+    --card-foreground: 210 40% 96%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 47.4% 11.2%;
+    --popover: 215 28% 17%;
+    --popover-foreground: 210 40% 96%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 210 40% 96%;
+    --primary-foreground: 222 47% 11%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 215 25% 27%;
+    --secondary-foreground: 210 40% 96%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 215 25% 27%;
+    --muted-foreground: 215 20% 65%;
 
-    --accent: 160 84.1% 39.4%;
+    --accent: 160 84% 39%;
     --accent-foreground: 0 0% 100%;
-    --accent-soft: 151 81% 96%;
+    --accent-soft: 160 84% 39% / 0.15;
 
-    --destructive: 0 84.2% 60.2%;
+    --destructive: 0 84% 60%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 160 84.1% 39.4%;
+    --border: 215 20% 20%;
+    --input: 215 20% 20%;
+    --ring: 160 84% 39%;
 
-    --radius: 0.75rem;
+    --radius: 0.5rem;
 
-    --sidebar-background: 222.2 47.4% 11.2%;
-    --sidebar-foreground: 210 40% 96.1%;
-    --sidebar-primary: 222.2 47.4% 11.2%;
+    --sidebar-background: 215 28% 17%;
+    --sidebar-foreground: 210 40% 96%;
+    --sidebar-primary: 215 28% 17%;
     --sidebar-primary-foreground: 210 40% 98%;
-    --sidebar-accent: 215 25% 15%;
+    --sidebar-accent: 215 25% 22%;
     --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 215 25% 15%;
-    --sidebar-ring: 160 84.1% 39.4%;
+    --sidebar-border: 215 20% 15%;
+    --sidebar-ring: 160 84% 39%;
 
     /* Status colors */
     --status-study: 199 89% 48%;
-    --status-study-bg: 199 89% 96%;
+    --status-study-bg: 199 89% 48% / 0.15;
     --status-offers: 45 93% 47%;
-    --status-offers-bg: 48 100% 96%;
+    --status-offers-bg: 45 93% 47% / 0.15;
     --status-built: 160 84% 39%;
-    --status-built-bg: 151 81% 96%;
+    --status-built-bg: 160 84% 39% / 0.15;
+    --status-active: 160 84% 39%;
+    --status-active-bg: 160 84% 39% / 0.15;
   }
 }
 
@@ -64,6 +65,42 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+
+  /* Custom scrollbars */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: hsl(215 25% 27%);
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(215 25% 35%);
+  }
+
+  /* Firefox scrollbar */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(215 25% 27%) transparent;
+  }
+}
+
+/* Glass effect utilities */
+@layer utilities {
+  .glass {
+    @apply bg-card/80 backdrop-blur-sm;
+  }
+  
+  .glass-border {
+    @apply border border-white/5;
   }
 }

@@ -99,7 +99,8 @@ export const TemplatesView = () => {
   }
 
   return (
-    <div className="p-4 space-y-3">
+    <div className="h-full overflow-y-auto">
+      <div className="p-4 space-y-3">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-lg font-semibold">Templates</h1>
@@ -238,6 +239,7 @@ export const TemplatesView = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      </div>
     </div>
   );
 };

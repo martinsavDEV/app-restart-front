@@ -204,7 +204,8 @@ export const DataAdminView = () => {
   );
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="h-full overflow-y-auto">
+      <div className="p-6 space-y-6">
       <div>
         <h1 className="text-2xl font-semibold">Administration des données</h1>
         <p className="text-sm text-muted-foreground mt-1">
@@ -292,6 +293,7 @@ export const DataAdminView = () => {
           </TabsContent>
         ))}
       </Tabs>
+      </div>
     </div>
   );
 };

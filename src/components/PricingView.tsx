@@ -302,7 +302,8 @@ export const PricingView = ({ projectId: initialProjectId, projectName: initialP
   }
 
   return (
-    <div className="p-4 space-y-3">
+    <div className="h-full overflow-y-auto">
+      <div className="p-4 space-y-3">
       {/* Quote Summary Card */}
       {selectedVersionId && (
         <QuoteSummaryCard 
@@ -439,6 +440,7 @@ export const PricingView = ({ projectId: initialProjectId, projectName: initialP
         onOpenChange={setSectionDialogOpen}
         onConfirm={handleCreateSection}
       />
+      </div>
     </div>
   );
 };

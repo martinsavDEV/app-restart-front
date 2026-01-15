@@ -2,11 +2,64 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system - Sober Dark 2026 */
+/* Definition of the design system - Light/Dark mode support */
 
 @layer base {
   :root {
-    /* Dark palette */
+    /* Light mode palette */
+    --background: 0 0% 100%;
+    --foreground: 222 47% 11%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    --primary: 222 47% 11%;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222 47% 11%;
+
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
+
+    --accent: 160 84% 39%;
+    --accent-foreground: 0 0% 100%;
+    --accent-soft: 160 84% 39% / 0.1;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 160 84% 39%;
+
+    --radius: 0.5rem;
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 222 47% 11%;
+    --sidebar-primary: 0 0% 98%;
+    --sidebar-primary-foreground: 222 47% 11%;
+    --sidebar-accent: 210 40% 96%;
+    --sidebar-accent-foreground: 222 47% 11%;
+    --sidebar-border: 214 32% 91%;
+    --sidebar-ring: 160 84% 39%;
+
+    /* Status colors */
+    --status-study: 199 89% 48%;
+    --status-study-bg: 199 89% 48% / 0.1;
+    --status-offers: 45 93% 47%;
+    --status-offers-bg: 45 93% 47% / 0.1;
+    --status-built: 160 84% 39%;
+    --status-built-bg: 160 84% 39% / 0.1;
+    --status-active: 160 84% 39%;
+    --status-active-bg: 160 84% 39% / 0.1;
+  }
+
+  .dark {
+    /* Dark mode palette */
     --background: 222 47% 11%;
     --foreground: 210 40% 96%;
 
@@ -35,8 +88,6 @@
     --border: 215 20% 20%;
     --input: 215 20% 20%;
     --ring: 160 84% 39%;
-
-    --radius: 0.5rem;
 
     --sidebar-background: 215 28% 17%;
     --sidebar-foreground: 210 40% 96%;
@@ -79,18 +130,18 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    background: hsl(215 25% 27%);
+    background: hsl(var(--muted));
     border-radius: 4px;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: hsl(215 25% 35%);
+    background: hsl(var(--muted-foreground) / 0.5);
   }
 
   /* Firefox scrollbar */
   * {
     scrollbar-width: thin;
-    scrollbar-color: hsl(215 25% 27%) transparent;
+    scrollbar-color: hsl(var(--muted)) transparent;
   }
 }
 
@@ -101,6 +152,6 @@
   }
   
   .glass-border {
-    @apply border border-white/5;
+    @apply border border-border/50;
   }
 }

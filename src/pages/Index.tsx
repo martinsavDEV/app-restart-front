@@ -108,7 +108,7 @@ const Index = () => {
           projectCode={selectedProjectId || ""}
           currentView={activeView}
         />
-        <main className="flex-1 overflow-hidden">{renderView()}</main>
+        <main className="flex-1 overflow-y-auto">{renderView()}</main>
       </div>
     </div>
   );

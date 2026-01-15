@@ -214,7 +214,7 @@ export function ProjectsView({ onOpenPricing }: ProjectsViewProps) {
       </section>
 
       {/* Right column: Project detail panel */}
-      <section className="w-[420px] bg-card flex flex-col shrink-0">
+      <section className="w-[420px] bg-card flex flex-col shrink-0 overflow-y-auto">
         {selectedProject ? (
           <ProjectDetailPanel
             project={selectedProject}

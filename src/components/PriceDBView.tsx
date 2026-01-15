@@ -116,7 +116,8 @@ export const PriceDBView = () => {
   }
 
   return (
-    <div className="p-4 space-y-3">
+    <div className="h-full overflow-y-auto">
+      <div className="p-4 space-y-3">
       <div>
         <h1 className="text-lg font-semibold">Base de prix</h1>
         <p className="text-xs text-muted-foreground mt-0.5">
@@ -284,6 +285,7 @@ export const PriceDBView = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      </div>
     </div>
   );
 };

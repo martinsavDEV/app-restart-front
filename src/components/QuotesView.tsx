@@ -186,7 +186,8 @@ export const QuotesView = ({
   };
 
   return (
-    <div className="p-4 space-y-3">
+    <div className="h-full overflow-y-auto">
+      <div className="p-4 space-y-3">
       <div className="flex justify-between items-start">
         <div>
           <h1 className="text-lg font-semibold">Versions de chiffrage</h1>
@@ -300,6 +301,7 @@ export const QuotesView = ({
           </div>
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 };

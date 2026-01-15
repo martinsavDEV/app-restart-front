@@ -1,5 +1,7 @@
-import { Search, User } from "lucide-react";
+import { Search, User, Moon, Sun } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { useTheme } from "next-themes";
 
 interface TopbarProps {
   projectName: string;
@@ -18,6 +20,8 @@ const viewLabels: Record<string, string> = {
 };
 
 export const Topbar = ({ projectName, projectCode, currentView = "projects" }: TopbarProps) => {
+  const { theme, setTheme } = useTheme();
+
   return (
     <header className="h-14 border-b border-border bg-background flex items-center justify-between px-6 shrink-0">
       {/* Breadcrumb */}
@@ -36,9 +40,26 @@ export const Topbar = ({ projectName, projectCode, currentView = "projects" }: T
         />
       </div>
 
-      {/* User avatar */}
-      <div className="h-8 w-8 rounded-full bg-muted border border-border flex items-center justify-center">
-        <User className="w-4 h-4 text-muted-foreground" />
+      {/* Actions */}
+      <div className="flex items-center gap-2">
+        {/* Theme toggle */}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+          className="h-8 w-8"
+        >
+          {theme === "dark" ? (
+            <Sun className="h-4 w-4 text-muted-foreground" />
+          ) : (
+            <Moon className="h-4 w-4 text-muted-foreground" />
+          )}
+        </Button>
+
+        {/* User avatar */}
+        <div className="h-8 w-8 rounded-full bg-muted border border-border flex items-center justify-center">
+          <User className="w-4 h-4 text-muted-foreground" />
+        </div>
       </div>
     </header>
   );

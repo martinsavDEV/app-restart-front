@@ -78,7 +78,8 @@ export const SummaryView = ({ projectId, versionId }: SummaryViewProps) => {
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="h-full overflow-y-auto">
+      <div className="container mx-auto p-6 space-y-6">
       {/* Header with export buttons */}
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Export CAPEX</h1>
@@ -106,6 +107,7 @@ export const SummaryView = ({ projectId, versionId }: SummaryViewProps) => {
         {data.lots.map((lot) => (
           <SummaryLotDetail key={lot.id} lot={lot} />
         ))}
+      </div>
       </div>
     </div>
   );

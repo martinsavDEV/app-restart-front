@@ -29,8 +29,8 @@ const Index = () => {
 
   if (isLoading) {
     return (
-      <div className="h-screen w-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="h-screen w-screen flex items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-accent" />
       </div>
     );
   }
@@ -96,19 +96,19 @@ const Index = () => {
   };
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="flex h-screen bg-background overflow-hidden">
       <Sidebar
         activeView={activeView}
         onViewChange={handleViewChange}
         quotesEnabled={quotesEnabled}
       />
-      <div className="flex-1 flex flex-col min-w-0">
-        {selectedProjectName ? (
-          <Topbar projectName={selectedProjectName} projectCode={selectedProjectId || ""} />
-        ) : (
-          <Topbar projectName="Sélectionnez un projet" projectCode="" />
-        )}
-        <main className="flex-1 overflow-auto">{renderView()}</main>
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        <Topbar
+          projectName={selectedProjectName || ""}
+          projectCode={selectedProjectId || ""}
+          currentView={activeView}
+        />
+        <main className="flex-1 overflow-hidden">{renderView()}</main>
       </div>
     </div>
   );

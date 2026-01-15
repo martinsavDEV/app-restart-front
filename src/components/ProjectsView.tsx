@@ -1,15 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,12 +11,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { ChevronDown, Pencil, Trash2, Loader2, Plus, Copy } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Loader2, Plus, Search } from "lucide-react";
 import { useProjects, useQuoteVersions, type Project } from "@/hooks/useProjects";
 import { ProjectDialog } from "./ProjectDialog";
 import { QuoteVersionDialog } from "./QuoteVersionDialog";
 import { DuplicateQuoteDialog } from "./DuplicateQuoteDialog";
+import { ProjectCard } from "./ProjectCard";
+import { ProjectDetailPanel } from "./ProjectDetailPanel";
 
 interface ProjectsViewProps {
   onOpenPricing?: (projectId: string, projectName: string, versionId: string) => void;
@@ -33,13 +25,12 @@ interface ProjectsViewProps {
 
 export function ProjectsView({ onOpenPricing }: ProjectsViewProps) {
   const [searchQuery, setSearchQuery] = useState("");
-  const [expandedProjectId, setExpandedProjectId] = useState<string | null>(null);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [projectToDelete, setProjectToDelete] = useState<string | null>(null);
   const [quoteDialogOpen, setQuoteDialogOpen] = useState(false);
-  const [selectedProjectForQuote, setSelectedProjectForQuote] = useState<string | null>(null);
   const [deleteQuoteDialogOpen, setDeleteQuoteDialogOpen] = useState(false);
   const [quoteToDelete, setQuoteToDelete] = useState<string | null>(null);
   const [duplicateQuoteDialogOpen, setDuplicateQuoteDialogOpen] = useState(false);
@@ -58,13 +49,14 @@ export function ProjectsView({ onOpenPricing }: ProjectsViewProps) {
 
   const {
     data: quoteVersions = [],
+    isLoading: isLoadingVersions,
     createQuoteVersion,
     isCreatingQuote,
     deleteQuoteVersion,
     isDeletingQuote,
     duplicateQuoteVersion,
     isDuplicatingQuote,
-  } = useQuoteVersions(expandedProjectId);
+  } = useQuoteVersions(selectedProjectId);
 
   const filteredProjects = projects.filter((project) => {
     const normalizedQuery = searchQuery.toLowerCase();
@@ -74,18 +66,20 @@ export function ProjectsView({ onOpenPricing }: ProjectsViewProps) {
     );
   });
 
-  const handleProjectClick = (projectId: string) => {
-    setExpandedProjectId((prev) => (prev === projectId ? null : projectId));
-  };
+  const selectedProject = projects.find((p) => p.id === selectedProjectId) || null;
 
-  const handleOpenPricing = (project: Project, versionId: string) => {
-    if (onOpenPricing) {
-      onOpenPricing(project.id, project.name, versionId);
+  // Auto-select first project if none selected
+  if (!selectedProjectId && filteredProjects.length > 0 && !isLoading) {
+    setSelectedProjectId(filteredProjects[0].id);
+  }
+
+  const handleOpenPricing = (versionId: string) => {
+    if (selectedProject && onOpenPricing) {
+      onOpenPricing(selectedProject.id, selectedProject.name, versionId);
     }
   };
 
-  const handleCreateQuote = (projectId: string) => {
-    setSelectedProjectForQuote(projectId);
+  const handleCreateQuote = () => {
     setQuoteDialogOpen(true);
   };
 
@@ -93,12 +87,10 @@ export function ProjectsView({ onOpenPricing }: ProjectsViewProps) {
     createQuoteVersion(data, {
       onSuccess: (newVersion: any) => {
         setQuoteDialogOpen(false);
-        // Open pricing view with the new quote version
-        const project = projects.find(p => p.id === selectedProjectForQuote);
-        if (project && onOpenPricing) {
-          onOpenPricing(project.id, project.name, newVersion.id);
+        if (selectedProject && onOpenPricing) {
+          onOpenPricing(selectedProject.id, selectedProject.name, newVersion.id);
         }
-      }
+      },
     });
   };
 
@@ -107,23 +99,14 @@ export function ProjectsView({ onOpenPricing }: ProjectsViewProps) {
     setDialogOpen(true);
   };
 
-  const handleEditProject = (project: Project, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setEditingProject(project);
-    setDialogOpen(true);
-  };
-
-  const handleDeleteClick = (projectId: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setProjectToDelete(projectId);
-    setDeleteDialogOpen(true);
-  };
-
   const handleConfirmDelete = () => {
     if (projectToDelete) {
       deleteProject(projectToDelete);
       setDeleteDialogOpen(false);
       setProjectToDelete(null);
+      if (selectedProjectId === projectToDelete) {
+        setSelectedProjectId(null);
+      }
     }
   };
 
@@ -136,24 +119,12 @@ export function ProjectsView({ onOpenPricing }: ProjectsViewProps) {
     setDialogOpen(false);
   };
 
-  const handleDeleteQuoteClick = (quoteId: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setQuoteToDelete(quoteId);
-    setDeleteQuoteDialogOpen(true);
-  };
-
   const handleConfirmDeleteQuote = () => {
     if (quoteToDelete) {
       deleteQuoteVersion(quoteToDelete);
       setDeleteQuoteDialogOpen(false);
       setQuoteToDelete(null);
     }
-  };
-
-  const handleDuplicateQuoteClick = (quoteId: string, quoteLabel: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setQuoteToDuplicate({ id: quoteId, label: quoteLabel });
-    setDuplicateQuoteDialogOpen(true);
   };
 
   const handleSubmitDuplicateQuote = (newLabel: string) => {
@@ -170,228 +141,97 @@ export function ProjectsView({ onOpenPricing }: ProjectsViewProps) {
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("fr-FR", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    });
-  };
-
-  const formatAmount = (amount: number) => {
-    return (amount / 1_000_000).toFixed(2) + " M€";
+  // Calculate estimated budget for each project
+  const getEstimatedBudget = (project: Project) => {
+    // Find active version total_amount
+    const versions = project.id === selectedProjectId ? quoteVersions : [];
+    if (versions.length > 0) {
+      return versions[0]?.total_amount || null;
+    }
+    return null;
   };
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="flex items-center justify-center h-full">
+        <Loader2 className="h-8 w-8 animate-spin text-accent" />
       </div>
     );
   }
 
   return (
-    <div className="p-4 space-y-3">
-      <div className="flex justify-between items-start">
-        <div>
-          <h1 className="text-lg font-semibold">Projets éoliens</h1>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Vue portefeuille, sélection du projet à chiffrer
-          </p>
+    <div className="flex-1 flex overflow-hidden h-full">
+      {/* Left column: Project list */}
+      <section className="flex-1 flex flex-col overflow-hidden border-r border-border">
+        {/* Header */}
+        <div className="flex items-center justify-between p-6 border-b border-border shrink-0">
+          <h1 className="text-base font-semibold text-foreground">Portefeuille Projets</h1>
+          <Button
+            size="sm"
+            className="bg-accent text-accent-foreground hover:bg-accent/90"
+            onClick={handleCreateProject}
+          >
+            <Plus className="w-4 h-4 mr-1.5" />
+            Nouveau
+          </Button>
         </div>
-        <Button size="sm" onClick={handleCreateProject}>
-          + Nouveau projet
-        </Button>
-      </div>
 
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm">Liste des projets et chiffrages</CardTitle>
-          <CardDescription className="text-xs">
-            Parcours rapide des projets et accès direct aux versions de chiffrage
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="flex flex-wrap gap-2">
+        {/* Search */}
+        <div className="px-6 py-4 border-b border-border shrink-0">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/50" />
             <Input
               placeholder="Rechercher par nom, département..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="flex-1 min-w-[260px] h-9 text-xs"
+              className="pl-9 bg-muted/50 border-border text-sm"
             />
           </div>
+        </div>
 
+        {/* Project list */}
+        <div className="flex-1 overflow-y-auto p-6">
           {filteredProjects.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground text-sm">
+            <div className="text-center py-12 text-muted-foreground text-sm">
               {searchQuery
                 ? "Aucun projet trouvé"
                 : "Aucun projet. Créez votre premier projet."}
             </div>
           ) : (
-            <div className="grid gap-3">
-              {filteredProjects.map((project) => {
-                const projectVersions =
-                  expandedProjectId === project.id ? quoteVersions : [];
-
-                return (
-                  <Collapsible
-                    key={project.id}
-                    open={expandedProjectId === project.id}
-                    onOpenChange={() => handleProjectClick(project.id)}
-                  >
-                    <Card
-                      className={cn(
-                        "border shadow-sm transition-all duration-200",
-                        expandedProjectId === project.id &&
-                          "border-primary/30 bg-accent-soft"
-                      )}
-                    >
-                      <CollapsibleTrigger asChild>
-                        <CardHeader className="pb-2 cursor-pointer hover:bg-accent/50 transition-colors">
-                            <div className="flex items-start justify-between gap-3">
-                              <div className="space-y-1 flex-1">
-                                <CardTitle className="text-sm leading-tight">
-                                  {project.name}
-                                </CardTitle>
-                                <CardDescription className="text-xs text-muted-foreground">
-                                  {project.department || "Département non spécifié"}
-                                </CardDescription>
-                                <div className="text-[11px] text-muted-foreground mt-1">
-                                  {project.quote_count || 0} chiffrage{(project.quote_count || 0) > 1 ? "s" : ""}
-                                  {project.latest_update && (
-                                    <> • MAJ {formatDate(project.latest_update)}</>
-                                  )}
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <div className="text-right text-xs">
-                                  <div className="font-semibold">
-                                    {project.n_wtg} éolienne{project.n_wtg > 1 ? "s" : ""}
-                                  </div>
-                                </div>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-7 w-7 p-0"
-                                onClick={(e) => handleEditProject(project, e)}
-                              >
-                                <Pencil className="h-3.5 w-3.5" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-7 w-7 p-0 text-destructive hover:text-destructive"
-                                onClick={(e) => handleDeleteClick(project.id, e)}
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </Button>
-                              <ChevronDown
-                                className={cn(
-                                  "h-4 w-4 text-muted-foreground transition-transform duration-200",
-                                  expandedProjectId === project.id && "rotate-180"
-                                )}
-                              />
-                            </div>
-                          </div>
-                        </CardHeader>
-                      </CollapsibleTrigger>
-                      <CollapsibleContent className="data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up">
-                        <CardContent className="pt-0 space-y-2">
-                          <div className="flex items-center justify-between">
-                            <div className="text-[11px] uppercase text-muted-foreground font-medium">
-                              Chiffrages du projet ({projectVersions.length})
-                            </div>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-7 text-[11px]"
-                              onClick={() => handleCreateQuote(project.id)}
-                            >
-                              <Plus className="h-3.5 w-3.5 mr-1" />
-                              Nouveau chiffrage
-                            </Button>
-                          </div>
-                          {projectVersions.length === 0 ? (
-                            <div className="text-xs text-muted-foreground py-2">
-                              Aucune version de chiffrage
-                            </div>
-                          ) : (
-                            <div className="space-y-2">
-                              {projectVersions.map((version) => (
-                                <div
-                                  key={version.id}
-                                  className={cn(
-                                    "flex items-center justify-between gap-4 rounded-md border px-3 py-2",
-                                    "hover:border-primary/40 transition-colors"
-                                  )}
-                                >
-                                  <div className="space-y-0.5">
-                                    <div className="text-xs font-semibold">
-                                      {version.version_label}
-                                    </div>
-                                    <div className="text-[11px] text-muted-foreground">
-                                      {version.comment || "Pas de commentaire"}
-                                    </div>
-                                    <div className="text-[11px] text-muted-foreground">
-                                      {formatDate(version.date_creation)}
-                                    </div>
-                                  </div>
-                                  <div className="flex items-center gap-3">
-                                    <div className="text-right">
-                                      <div className="text-xs font-semibold">
-                                        {formatAmount(version.total_amount)}
-                                      </div>
-                                      <div className="text-[11px] text-muted-foreground">
-                                        CAPEX
-                                      </div>
-                                    </div>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="h-8 w-8 p-0"
-                                      onClick={(e) =>
-                                        handleDuplicateQuoteClick(version.id, version.version_label, e)
-                                      }
-                                      title="Dupliquer ce chiffrage"
-                                    >
-                                      <Copy className="h-3.5 w-3.5" />
-                                    </Button>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                                      onClick={(e) => handleDeleteQuoteClick(version.id, e)}
-                                      title="Supprimer ce chiffrage"
-                                    >
-                                      <Trash2 className="h-3.5 w-3.5" />
-                                    </Button>
-                                    {onOpenPricing && (
-                                      <Button
-                                        size="sm"
-                                        className="h-8 text-[11px]"
-                                        onClick={() =>
-                                          handleOpenPricing(project, version.id)
-                                        }
-                                      >
-                                        Ouvrir le chiffrage
-                                      </Button>
-                                    )}
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </CardContent>
-                      </CollapsibleContent>
-                    </Card>
-                  </Collapsible>
-                );
-              })}
+            <div className="space-y-3">
+              {filteredProjects.map((project) => (
+                <ProjectCard
+                  key={project.id}
+                  project={project}
+                  isActive={selectedProjectId === project.id}
+                  onClick={() => setSelectedProjectId(project.id)}
+                  estimatedBudget={getEstimatedBudget(project) || undefined}
+                />
+              ))}
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </section>
 
+      {/* Right column: Project detail panel */}
+      <section className="w-[420px] bg-card flex flex-col shrink-0">
+        {selectedProject ? (
+          <ProjectDetailPanel
+            project={selectedProject}
+            versions={quoteVersions}
+            activeVersionId={quoteVersions[0]?.id}
+            onOpenPricing={handleOpenPricing}
+            onCreateVersion={handleCreateQuote}
+            isLoadingVersions={isLoadingVersions}
+          />
+        ) : (
+          <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm">
+            Sélectionnez un projet
+          </div>
+        )}
+      </section>
+
+      {/* Dialogs */}
       <ProjectDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
@@ -404,7 +244,7 @@ export function ProjectsView({ onOpenPricing }: ProjectsViewProps) {
         open={quoteDialogOpen}
         onOpenChange={setQuoteDialogOpen}
         onSubmit={handleSubmitQuoteVersion}
-        projectId={selectedProjectForQuote || ""}
+        projectId={selectedProjectId || ""}
         isLoading={isCreatingQuote}
       />
 
@@ -435,11 +275,10 @@ export function ProjectsView({ onOpenPricing }: ProjectsViewProps) {
       <AlertDialog open={deleteQuoteDialogOpen} onOpenChange={setDeleteQuoteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirmer la suppression du chiffrage</AlertDialogTitle>
+            <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
             <AlertDialogDescription>
               Êtes-vous sûr de vouloir supprimer ce chiffrage ? Cette action est
-              irréversible et supprimera également tous les lots, sections et lignes
-              associés.
+              irréversible.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

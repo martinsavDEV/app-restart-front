@@ -1,27 +1,44 @@
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Search, User } from "lucide-react";
+import { Input } from "@/components/ui/input";
 
 interface TopbarProps {
   projectName: string;
   projectCode: string;
+  currentView?: string;
 }
 
-export const Topbar = ({ projectName, projectCode }: TopbarProps) => {
+const viewLabels: Record<string, string> = {
+  projects: "Vue d'ensemble",
+  quotes: "Versions de chiffrage",
+  pricing: "Chiffrage projet",
+  summary: "Export CAPEX",
+  "price-db": "Base de prix",
+  templates: "Templates",
+  "data-admin": "Admin Data",
+};
+
+export const Topbar = ({ projectName, projectCode, currentView = "projects" }: TopbarProps) => {
   return (
-    <header className="h-14 border-b border-border bg-card flex items-center justify-between px-4 gap-3">
+    <header className="h-14 border-b border-border bg-background flex items-center justify-between px-6 shrink-0">
+      {/* Breadcrumb */}
       <div className="flex items-center gap-2 text-sm">
-        <Badge variant="outline" className="bg-accent-soft text-accent border-accent/20">
-          Projet sélectionné
-        </Badge>
-        <div className="font-medium max-w-[260px] truncate">{projectName}</div>
-        <div className="text-xs text-muted-foreground">{projectCode}</div>
+        <span className="text-muted-foreground">Projets</span>
+        <span className="text-muted-foreground/50">/</span>
+        <span className="text-foreground font-medium">{viewLabels[currentView] || currentView}</span>
       </div>
 
-      <div className="flex gap-2">
-        <Button variant="outline" size="sm">
-          Export Excel CAPEX
-        </Button>
-        <Button size="sm">Sauvegarder la maquette</Button>
+      {/* Search */}
+      <div className="w-96 relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/50" />
+        <Input
+          placeholder="Recherche intelligente (Ex: Projets Aveyron > 3MW)"
+          className="pl-9 bg-card border-border text-sm placeholder:text-muted-foreground/50"
+        />
+      </div>
+
+      {/* User avatar */}
+      <div className="h-8 w-8 rounded-full bg-muted border border-border flex items-center justify-center">
+        <User className="w-4 h-4 text-muted-foreground" />
       </div>
     </header>
   );

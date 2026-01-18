@@ -63,6 +63,18 @@ export const LOT_COLORS: Record<string, {
   },
 };
 
+// RGB colors for PDF export
+export const LOT_COLORS_RGB: Record<string, [number, number, number]> = {
+  terrassement: [249, 115, 22],     // Orange-500
+  renforcement_sol: [236, 72, 153], // Pink-500
+  renforcement: [236, 72, 153],     // Pink-500
+  fondations: [234, 179, 8],        // Yellow-500
+  fondation: [234, 179, 8],         // Yellow-500
+  electricite: [14, 165, 233],      // Sky-500
+  turbinier: [37, 99, 235],         // Blue-600
+  turbine: [37, 99, 235],           // Blue-600
+};
+
 export const getLotColors = (code: string) => {
   const normalizedCode = code?.toLowerCase() || '';
   return LOT_COLORS[normalizedCode] || {
@@ -72,4 +84,9 @@ export const getLotColors = (code: string) => {
     text: "text-gray-700",
     textActive: "text-white",
   };
+};
+
+export const getLotColorRGB = (code: string): [number, number, number] => {
+  const normalizedCode = code?.toLowerCase() || '';
+  return LOT_COLORS_RGB[normalizedCode] || [107, 114, 128]; // Gray-500 default
 };

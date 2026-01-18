@@ -1,7 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { QuoteVersionCard } from "@/components/QuoteVersionCard";
-import { Plus, FileDown, FileText, Wind, MapPin, Zap } from "lucide-react";
+import { ProjectComments } from "@/components/ProjectComments";
+import { Plus, FileDown, FileText, Wind, MapPin, Zap, MessageSquare } from "lucide-react";
 
 interface QuoteVersion {
   id: string;
@@ -63,6 +64,11 @@ export const ProjectDetailPanel = ({
           </Badge>
         </div>
 
+        {/* Description */}
+        {project.description && (
+          <p className="text-sm text-muted-foreground mt-3">{project.description}</p>
+        )}
+
         {/* KPIs */}
         <div className="grid grid-cols-3 gap-4 mt-6">
           <div className="text-center p-3 rounded-lg bg-muted/50">
@@ -97,40 +103,51 @@ export const ProjectDetailPanel = ({
       </div>
 
       {/* Versions list */}
-      <div className="flex-1 overflow-y-auto p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-medium text-foreground">Versions de chiffrage</h3>
-          <Button
-            size="sm"
-            variant="outline"
-            className="text-xs"
-            onClick={onCreateVersion}
-          >
-            <Plus className="w-3.5 h-3.5 mr-1" />
-            Nouvelle v.
-          </Button>
+      <div className="flex-1 overflow-y-auto">
+        <div className="p-6 border-b border-border">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-medium text-foreground">Versions de chiffrage</h3>
+            <Button
+              size="sm"
+              variant="outline"
+              className="text-xs"
+              onClick={onCreateVersion}
+            >
+              <Plus className="w-3.5 h-3.5 mr-1" />
+              Nouvelle v.
+            </Button>
+          </div>
+
+          {isLoadingVersions ? (
+            <div className="text-sm text-muted-foreground text-center py-8">
+              Chargement...
+            </div>
+          ) : versions.length === 0 ? (
+            <div className="text-sm text-muted-foreground text-center py-8">
+              Aucune version de chiffrage
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {versions.map((version) => (
+                <QuoteVersionCard
+                  key={version.id}
+                  version={version}
+                  isActive={version.id === activeVersion?.id}
+                  onOpen={() => onOpenPricing(version.id)}
+                />
+              ))}
+            </div>
+          )}
         </div>
 
-        {isLoadingVersions ? (
-          <div className="text-sm text-muted-foreground text-center py-8">
-            Chargement...
+        {/* Comments section */}
+        <div className="p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <MessageSquare className="w-4 h-4 text-muted-foreground" />
+            <h3 className="text-sm font-medium text-foreground">Commentaires</h3>
           </div>
-        ) : versions.length === 0 ? (
-          <div className="text-sm text-muted-foreground text-center py-8">
-            Aucune version de chiffrage
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {versions.map((version) => (
-              <QuoteVersionCard
-                key={version.id}
-                version={version}
-                isActive={version.id === activeVersion?.id}
-                onOpen={() => onOpenPricing(version.id)}
-              />
-            ))}
-          </div>
-        )}
+          <ProjectComments projectId={project.id} />
+        </div>
       </div>
 
       {/* Actions footer */}

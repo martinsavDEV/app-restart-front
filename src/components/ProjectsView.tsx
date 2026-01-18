@@ -205,6 +205,14 @@ export function ProjectsView({ onOpenPricing }: ProjectsViewProps) {
                   project={project}
                   isActive={selectedProjectId === project.id}
                   onClick={() => setSelectedProjectId(project.id)}
+                  onEdit={() => {
+                    setEditingProject(project);
+                    setDialogOpen(true);
+                  }}
+                  onDelete={() => {
+                    setProjectToDelete(project.id);
+                    setDeleteDialogOpen(true);
+                  }}
                   estimatedBudget={getEstimatedBudget(project) || undefined}
                 />
               ))}

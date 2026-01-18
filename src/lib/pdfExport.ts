@@ -2,316 +2,498 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { SummaryData } from "@/hooks/useSummaryData";
 import { format } from "date-fns";
+import { getLotColorRGB } from "./lotColors";
+
+// Helper to format currency
+const formatCurrency = (value: number): string => {
+  return value.toLocaleString("fr-FR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }) + " €";
+};
+
+// Helper to format compact currency
+const formatCompactCurrency = (value: number): string => {
+  if (value >= 1000000) {
+    return (value / 1000000).toFixed(2) + " M€";
+  } else if (value >= 1000) {
+    return (value / 1000).toFixed(1) + " k€";
+  }
+  return formatCurrency(value);
+};
 
 export const exportCapexToPDF = (data: SummaryData) => {
   const doc = new jsPDF();
-  let yPos = 20;
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const margin = 12;
+  let yPos = 0;
 
-  // Title
-  doc.setFontSize(18);
-  doc.setFont("helvetica", "bold");
-  doc.text("EXPORT CAPEX", 105, yPos, { align: "center" });
-  yPos += 15;
+  // Colors
+  const primaryColor: [number, number, number] = [16, 185, 129]; // Emerald-500
+  const darkText: [number, number, number] = [30, 41, 59]; // Slate-800
+  const mutedText: [number, number, number] = [100, 116, 139]; // Slate-500
+  const headerBg: [number, number, number] = [30, 41, 59]; // Slate-800
 
-  // Project Info Section
-  doc.setFontSize(10);
-  doc.setFont("helvetica", "normal");
-  
+  // Project info
   const projectName = data.project?.name || "N/A";
   const nWtg = data.quoteSettings?.n_wtg || data.project?.n_wtg || 0;
   const version = data.quoteVersion?.version_label || "N/A";
   const lastUpdate = data.quoteVersion?.last_update
-    ? format(new Date(data.quoteVersion.last_update), "dd/MM/yyyy")
+    ? format(new Date(data.quoteVersion.last_update), "dd/MM/yyyy HH:mm")
     : "N/A";
 
-  doc.text(`Projet: ${projectName}`, 15, yPos);
-  doc.text(`Nombre d'éoliennes: ${nWtg}`, 15, yPos + 6);
-  doc.text(`Version: ${version}`, 15, yPos + 12);
-  doc.text(`Dernière modification: ${lastUpdate}`, 15, yPos + 18);
-
-  // Reference Documents (right side)
-  let refYPos = yPos;
-  doc.text("Documents de référence:", 120, refYPos);
-  refYPos += 6;
-  data.referenceDocuments.forEach((doc_ref) => {
-    const refText = `• ${doc_ref.label}: ${doc_ref.reference || "N/A"}`;
-    doc.text(refText, 120, refYPos);
-    refYPos += 6;
-  });
-
-  yPos = Math.max(yPos + 30, refYPos + 10);
-
-  // Summary Table
-  doc.setFontSize(12);
+  // ============ HEADER ============
+  doc.setFillColor(...primaryColor);
+  doc.rect(0, 0, pageWidth, 22, "F");
+  
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(16);
   doc.setFont("helvetica", "bold");
-  doc.text("RÉSUMÉ PAR LOT", 15, yPos);
-  yPos += 8;
+  doc.text("CHIFFREUR CAPEX", margin, 14);
+  
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "normal");
+  doc.text(`Exporté le ${format(new Date(), "dd/MM/yyyy à HH:mm")}`, pageWidth - margin, 14, { align: "right" });
 
-  const summaryRows = data.lots.map((lot) => [
-    lot.label,
-    `${lot.total.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`,
-  ]);
+  yPos = 32;
 
-  summaryRows.push([
-    "TOTAL CAPEX",
-    `${data.totalCapex.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`,
-  ] as any);
+  // ============ PROJECT INFO BOX ============
+  doc.setFillColor(248, 250, 252); // Slate-50
+  doc.roundedRect(margin, yPos, pageWidth - margin * 2, 28, 2, 2, "F");
+
+  doc.setTextColor(...darkText);
+  doc.setFontSize(14);
+  doc.setFont("helvetica", "bold");
+  doc.text(projectName, margin + 6, yPos + 10);
+
+  doc.setFontSize(8);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(...mutedText);
+
+  const infoCol1X = margin + 6;
+  const infoCol2X = margin + 70;
+  const infoY = yPos + 18;
+
+  doc.text(`Version: ${version}`, infoCol1X, infoY);
+  doc.text(`Éoliennes: ${nWtg}`, infoCol1X, infoY + 5);
+  doc.text(`Dernière modification: ${lastUpdate}`, infoCol2X, infoY);
+  
+  // Total CAPEX in box
+  doc.setFillColor(...primaryColor);
+  doc.roundedRect(pageWidth - margin - 50, yPos + 4, 44, 18, 2, 2, "F");
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(8);
+  doc.setFont("helvetica", "normal");
+  doc.text("TOTAL CAPEX", pageWidth - margin - 28, yPos + 11, { align: "center" });
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "bold");
+  doc.text(formatCompactCurrency(data.totalCapex), pageWidth - margin - 28, yPos + 18, { align: "center" });
+
+  yPos += 36;
+
+  // ============ SUMMARY TABLE ============
+  doc.setTextColor(...darkText);
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "bold");
+  doc.text("RÉSUMÉ PAR LOT", margin, yPos);
+  yPos += 5;
+
+  const summaryRows = data.lots.map((lot) => {
+    const color = getLotColorRGB(lot.code);
+    return {
+      lotLabel: lot.label,
+      total: formatCurrency(lot.total),
+      color,
+    };
+  });
 
   autoTable(doc, {
     startY: yPos,
     head: [["Lot", "Montant"]],
-    body: summaryRows,
-    theme: "grid",
-    headStyles: { fillColor: [59, 130, 246], textColor: 255 },
-    styles: { fontSize: 10, cellWidth: 'wrap' },
+    body: summaryRows.map((r) => [r.lotLabel, r.total]),
+    foot: [["TOTAL CAPEX", formatCurrency(data.totalCapex)]],
+    theme: "plain",
+    headStyles: { 
+      fillColor: headerBg, 
+      textColor: 255, 
+      fontSize: 8,
+      fontStyle: "bold",
+      cellPadding: 3,
+    },
+    footStyles: {
+      fillColor: primaryColor,
+      textColor: 255,
+      fontSize: 9,
+      fontStyle: "bold",
+      cellPadding: 3,
+    },
+    styles: { 
+      fontSize: 8, 
+      cellPadding: 2.5,
+    },
     columnStyles: {
-      0: { cellWidth: 'auto' },
-      1: { halign: "right", cellWidth: 40 },
+      0: { cellWidth: "auto" },
+      1: { halign: "right", cellWidth: 35 },
     },
     didParseCell: (data) => {
-      if (data.row.index === summaryRows.length - 1 && data.section === 'body') {
-        data.cell.styles.fontStyle = 'bold';
+      if (data.section === "body" && data.column.index === 0) {
+        const rowColor = summaryRows[data.row.index]?.color;
+        if (rowColor) {
+          data.cell.styles.fillColor = [...rowColor, 40] as any; // Light tint
+        }
       }
     },
+    margin: { left: margin, right: margin },
   });
 
-  yPos = (doc as any).lastAutoTable.finalY + 15;
+  yPos = (doc as any).lastAutoTable.finalY + 10;
 
-  // Calculator Summary Section
+  // ============ REFERENCE DOCUMENTS ============
+  if (data.referenceDocuments.length > 0) {
+    doc.setTextColor(...darkText);
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "bold");
+    doc.text("DOCUMENTS DE RÉFÉRENCE", margin, yPos);
+    yPos += 5;
+
+    autoTable(doc, {
+      startY: yPos,
+      head: [["Document", "Référence", "Commentaire"]],
+      body: data.referenceDocuments.map((d) => [
+        d.label,
+        d.reference || "-",
+        d.comment || "-",
+      ]),
+      theme: "plain",
+      headStyles: { 
+        fillColor: headerBg, 
+        textColor: 255, 
+        fontSize: 8,
+        fontStyle: "bold",
+        cellPadding: 3,
+      },
+      styles: { fontSize: 7, cellPadding: 2 },
+      columnStyles: {
+        0: { cellWidth: 50 },
+        1: { cellWidth: 40 },
+        2: { cellWidth: "auto" },
+      },
+      margin: { left: margin, right: margin },
+    });
+
+    yPos = (doc as any).lastAutoTable.finalY + 10;
+  }
+
+  // ============ CALCULATOR SECTION ============
   if (data.quoteSettings?.calculator_data) {
     const calcData = data.quoteSettings.calculator_data;
-    
-    // Check if we need a new page
-    if (yPos > 200) {
+
+    // New page for calculator if needed
+    if (yPos > pageHeight - 80) {
       doc.addPage();
-      yPos = 20;
+      yPos = 15;
     }
 
-    doc.setFontSize(12);
+    doc.setFillColor(248, 250, 252);
+    doc.roundedRect(margin, yPos, pageWidth - margin * 2, 8, 2, 2, "F");
+    doc.setTextColor(...primaryColor);
+    doc.setFontSize(11);
     doc.setFont("helvetica", "bold");
-    doc.text("RÉSUMÉ CALCULATOR", 15, yPos);
-    yPos += 8;
+    doc.text("DONNÉES CALCULATOR", margin + 4, yPos + 6);
+    yPos += 14;
 
-    // Global Parameters
-    if (calcData.global) {
-      doc.setFontSize(10);
-      doc.setFont("helvetica", "bold");
-      doc.text("Paramètres globaux", 15, yPos);
-      yPos += 6;
+    // Global & Design Parameters (2 columns)
+    if (calcData.global || calcData.design) {
+      const leftParams: string[][] = [];
+      const rightParams: string[][] = [];
 
-      const globalRows = [
-        ["Nombre d'éoliennes", calcData.global.nb_eol?.toString() || "N/A"],
-        ["Type d'éolienne", calcData.global.typ_eol || "N/A"],
-      ];
-
-      autoTable(doc, {
-        startY: yPos,
-        body: globalRows,
-        theme: "plain",
-        styles: { fontSize: 9, cellPadding: 2 },
-        columnStyles: {
-          0: { fontStyle: 'bold', cellWidth: 60 },
-          1: { cellWidth: 'auto' },
-        },
-      });
-
-      yPos = (doc as any).lastAutoTable.finalY + 8;
-    }
-
-    // Design Parameters
-    if (calcData.design) {
-      if (yPos > 240) {
-        doc.addPage();
-        yPos = 20;
+      if (calcData.global) {
+        leftParams.push(["Nb éoliennes", String(calcData.global.nb_eol || "-")]);
+        leftParams.push(["Type éolienne", calcData.global.typ_eol || "-"]);
+      }
+      if (calcData.design) {
+        rightParams.push(["Ø Fondation", calcData.design.diametre_fondation ? `${calcData.design.diametre_fondation} m` : "-"]);
       }
 
-      doc.setFontSize(10);
-      doc.setFont("helvetica", "bold");
-      doc.text("Paramètres de conception", 15, yPos);
-      yPos += 6;
+      const halfWidth = (pageWidth - margin * 3) / 2;
 
-      const designRows = [
-        ["Diamètre fondation", calcData.design.diametre_fondation ? `${calcData.design.diametre_fondation} m` : "N/A"],
-      ];
+      if (leftParams.length > 0) {
+        autoTable(doc, {
+          startY: yPos,
+          body: leftParams,
+          theme: "plain",
+          styles: { fontSize: 7, cellPadding: 1.5 },
+          columnStyles: {
+            0: { fontStyle: "bold", cellWidth: 35, textColor: mutedText },
+            1: { cellWidth: "auto" },
+          },
+          tableWidth: halfWidth,
+          margin: { left: margin },
+        });
+      }
 
-      autoTable(doc, {
-        startY: yPos,
-        body: designRows,
-        theme: "plain",
-        styles: { fontSize: 9, cellPadding: 2 },
-        columnStyles: {
-          0: { fontStyle: 'bold', cellWidth: 60 },
-          1: { cellWidth: 'auto' },
-        },
-      });
+      if (rightParams.length > 0) {
+        autoTable(doc, {
+          startY: yPos,
+          body: rightParams,
+          theme: "plain",
+          styles: { fontSize: 7, cellPadding: 1.5 },
+          columnStyles: {
+            0: { fontStyle: "bold", cellWidth: 35, textColor: mutedText },
+            1: { cellWidth: "auto" },
+          },
+          tableWidth: halfWidth,
+          margin: { left: margin + halfWidth + margin },
+        });
+      }
 
-      yPos = (doc as any).lastAutoTable.finalY + 8;
+      yPos = Math.max((doc as any).lastAutoTable?.finalY || yPos, yPos) + 6;
     }
 
-    // Turbines Summary
+    // Turbines Table
     if (calcData.turbines && calcData.turbines.length > 0) {
-      if (yPos > 180) {
+      if (yPos > pageHeight - 60) {
         doc.addPage();
-        yPos = 20;
+        yPos = 15;
       }
 
-      doc.setFontSize(10);
+      doc.setTextColor(...darkText);
+      doc.setFontSize(8);
       doc.setFont("helvetica", "bold");
-      doc.text("Éoliennes", 15, yPos);
-      yPos += 6;
+      doc.text("Éoliennes", margin, yPos);
+      yPos += 4;
 
       const turbineRows = calcData.turbines.map((t: any) => [
-        t.name || "N/A",
-        `${t.surf_PF || 0} m²`,
-        `${t.acces_PF || 0} m`,
-        `${t.m3_bouger || 0} m³`,
-        t.fondation_type || "N/A",
+        t.name || "-",
+        `${t.surf_PF || 0}`,
+        `${t.acces_PF || 0}`,
+        `${t.m3_bouger || 0}`,
+        t.fondation_type || "-",
       ]);
 
       autoTable(doc, {
         startY: yPos,
-        head: [["Éolienne", "Surface PF", "Accès PF", "Volume", "Type fond."]],
+        head: [["Éolienne", "Surface PF (m²)", "Accès PF (m)", "Vol. (m³)", "Type fond."]],
         body: turbineRows,
         theme: "striped",
-        headStyles: { fillColor: [59, 130, 246], textColor: 255, fontSize: 8 },
-        styles: { fontSize: 8, cellPadding: 1.5, cellWidth: 'wrap' },
+        headStyles: { fillColor: headerBg, textColor: 255, fontSize: 6.5, fontStyle: "bold", cellPadding: 2 },
+        styles: { fontSize: 6.5, cellPadding: 1.5 },
         columnStyles: {
           0: { cellWidth: 20 },
-          1: { cellWidth: 25, halign: 'right' },
-          2: { cellWidth: 25, halign: 'right' },
-          3: { cellWidth: 25, halign: 'right' },
-          4: { cellWidth: 'auto' },
+          1: { cellWidth: 28, halign: "right" },
+          2: { cellWidth: 25, halign: "right" },
+          3: { cellWidth: 20, halign: "right" },
+          4: { cellWidth: "auto" },
         },
+        margin: { left: margin, right: margin },
       });
 
-      yPos = (doc as any).lastAutoTable.finalY + 8;
+      yPos = (doc as any).lastAutoTable.finalY + 6;
     }
 
-    // Access Segments Summary
+    // Access Segments Table
     if (calcData.access_segments && calcData.access_segments.length > 0) {
-      if (yPos > 180) {
+      if (yPos > pageHeight - 50) {
         doc.addPage();
-        yPos = 20;
+        yPos = 15;
       }
 
-      doc.setFontSize(10);
+      doc.setTextColor(...darkText);
+      doc.setFontSize(8);
       doc.setFont("helvetica", "bold");
-      doc.text("Accès", 15, yPos);
-      yPos += 6;
+      doc.text("Segments d'accès", margin, yPos);
+      yPos += 4;
 
       const accessRows = calcData.access_segments.map((a: any) => [
-        a.name || "N/A",
-        `${a.longueur || 0} m`,
-        `${a.surface || 0} m²`,
-        a.renforcement || "N/A",
+        a.name || "-",
+        `${a.longueur || 0}`,
+        `${a.surface || 0}`,
+        a.renforcement || "-",
         a.gnt ? "Oui" : "Non",
       ]);
 
       autoTable(doc, {
         startY: yPos,
-        head: [["Segment", "Longueur", "Surface", "Renforcement", "GNT"]],
+        head: [["Segment", "Long. (m)", "Surf. (m²)", "Renforcement", "GNT"]],
         body: accessRows,
         theme: "striped",
-        headStyles: { fillColor: [59, 130, 246], textColor: 255, fontSize: 8 },
-        styles: { fontSize: 8, cellPadding: 1.5, cellWidth: 'wrap' },
+        headStyles: { fillColor: headerBg, textColor: 255, fontSize: 6.5, fontStyle: "bold", cellPadding: 2 },
+        styles: { fontSize: 6.5, cellPadding: 1.5 },
         columnStyles: {
-          0: { cellWidth: 'auto' },
-          1: { cellWidth: 25, halign: 'right' },
-          2: { cellWidth: 25, halign: 'right' },
-          3: { cellWidth: 30 },
-          4: { cellWidth: 15, halign: 'center' },
+          0: { cellWidth: "auto" },
+          1: { cellWidth: 22, halign: "right" },
+          2: { cellWidth: 22, halign: "right" },
+          3: { cellWidth: 28 },
+          4: { cellWidth: 15, halign: "center" },
         },
+        margin: { left: margin, right: margin },
       });
 
-      yPos = (doc as any).lastAutoTable.finalY + 15;
-    } else {
-      yPos += 10;
+      yPos = (doc as any).lastAutoTable.finalY + 6;
+    }
+
+    // HTA Cables Table
+    if (calcData.hta_cables && Object.keys(calcData.hta_cables).length > 0) {
+      if (yPos > pageHeight - 50) {
+        doc.addPage();
+        yPos = 15;
+      }
+
+      doc.setTextColor(...darkText);
+      doc.setFontSize(8);
+      doc.setFont("helvetica", "bold");
+      doc.text("Câbles HTA", margin, yPos);
+      yPos += 4;
+
+      const htaRows: string[][] = [];
+      const cables = calcData.hta_cables;
+      
+      // Extract segment data
+      if (cables.segments) {
+        Object.entries(cables.segments).forEach(([segmentName, segmentData]: [string, any]) => {
+          Object.entries(segmentData).forEach(([cableType, length]: [string, any]) => {
+            if (typeof length === "number" && length > 0) {
+              htaRows.push([segmentName, cableType, `${length} m`]);
+            }
+          });
+        });
+      }
+
+      // Add totals if available
+      if (cables.totals) {
+        Object.entries(cables.totals).forEach(([cableType, total]: [string, any]) => {
+          if (typeof total === "number" && total > 0) {
+            htaRows.push(["TOTAL", cableType, `${total} m`]);
+          }
+        });
+      }
+
+      if (htaRows.length > 0) {
+        autoTable(doc, {
+          startY: yPos,
+          head: [["Segment", "Type câble", "Longueur"]],
+          body: htaRows,
+          theme: "striped",
+          headStyles: { fillColor: headerBg, textColor: 255, fontSize: 6.5, fontStyle: "bold", cellPadding: 2 },
+          styles: { fontSize: 6.5, cellPadding: 1.5 },
+          columnStyles: {
+            0: { cellWidth: "auto" },
+            1: { cellWidth: 35 },
+            2: { cellWidth: 30, halign: "right" },
+          },
+          didParseCell: (data) => {
+            if (data.section === "body" && data.row.raw?.[0] === "TOTAL") {
+              data.cell.styles.fontStyle = "bold";
+              data.cell.styles.fillColor = [229, 231, 235]; // Gray-200
+            }
+          },
+          margin: { left: margin, right: margin },
+        });
+
+        yPos = (doc as any).lastAutoTable.finalY + 8;
+      }
     }
   }
 
-  // Detailed breakdown by lot
-  data.lots.forEach((lot) => {
-    // Check if we need a new page
-    if (yPos > 250) {
+  // ============ DETAILED LOT BREAKDOWN ============
+  data.lots.forEach((lot, lotIndex) => {
+    // New page for each lot (except first if space available)
+    if (lotIndex > 0 || yPos > pageHeight - 80) {
       doc.addPage();
-      yPos = 20;
+      yPos = 15;
     }
 
-    doc.setFontSize(14);
-    doc.setFont("helvetica", "bold");
-    doc.text(`LOT: ${lot.label.toUpperCase()}`, 15, yPos);
-    yPos += 8;
+    const lotColor = getLotColorRGB(lot.code);
 
+    // Lot header with color
+    doc.setFillColor(...lotColor);
+    doc.roundedRect(margin, yPos, pageWidth - margin * 2, 10, 2, 2, "F");
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "bold");
+    doc.text(`LOT: ${lot.label.toUpperCase()}`, margin + 4, yPos + 7);
+    doc.setFontSize(9);
+    doc.text(formatCurrency(lot.total), pageWidth - margin - 4, yPos + 7, { align: "right" });
+    yPos += 16;
+
+    // Sections
     lot.sections.forEach((section) => {
-      // Check if we need a new page
-      if (yPos > 240) {
+      if (yPos > pageHeight - 40) {
         doc.addPage();
-        yPos = 20;
+        yPos = 15;
       }
 
-      doc.setFontSize(11);
+      // Section title
+      doc.setTextColor(...darkText);
+      doc.setFontSize(8);
       doc.setFont("helvetica", "bold");
       const sectionTitle = section.is_multiple
-        ? `Section: ${section.name} (x${section.multiplier})`
-        : `Section: ${section.name}`;
-      doc.text(sectionTitle, 15, yPos);
-      yPos += 6;
+        ? `${section.name} (×${section.multiplier})`
+        : section.name;
+      doc.text(sectionTitle, margin, yPos);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(...mutedText);
+      doc.text(formatCurrency(section.subtotal), pageWidth - margin, yPos, { align: "right" });
+      yPos += 4;
 
+      // Lines table
       const lineRows = section.lines.map((line) => [
-        line.designation,
-        line.quantity.toString(),
+        line.designation.length > 50 ? line.designation.substring(0, 50) + "..." : line.designation,
+        String(line.quantity),
         line.unit,
-        `${line.unit_price.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €`,
-        `${line.total_price.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €`,
+        formatCurrency(line.unit_price),
+        formatCurrency(line.total_price),
       ]);
-
-      lineRows.push([
-        "Sous-total section",
-        "",
-        "",
-        "",
-        `${section.subtotal.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €`,
-      ] as any);
 
       autoTable(doc, {
         startY: yPos,
-        head: [["Désignation", "Qté", "Unité", "P.U.", "Total"]],
+        head: [["Désignation", "Qté", "U", "P.U.", "Total"]],
         body: lineRows,
-        theme: "striped",
-        headStyles: { fillColor: [59, 130, 246], textColor: 255 },
-        styles: { fontSize: 9, cellWidth: 'wrap', overflow: 'linebreak' },
+        theme: "plain",
+        headStyles: { 
+          fillColor: [241, 245, 249], // Slate-100
+          textColor: mutedText, 
+          fontSize: 6, 
+          fontStyle: "bold",
+          cellPadding: 1.5,
+        },
+        styles: { 
+          fontSize: 6, 
+          cellPadding: 1.5,
+          overflow: "ellipsize",
+        },
         columnStyles: {
-          0: { cellWidth: 'auto' },
-          1: { halign: "center", cellWidth: 15 },
-          2: { halign: "center", cellWidth: 15 },
-          3: { halign: "right", cellWidth: 25 },
-          4: { halign: "right", cellWidth: 25 },
+          0: { cellWidth: "auto" },
+          1: { halign: "right", cellWidth: 12 },
+          2: { halign: "center", cellWidth: 10 },
+          3: { halign: "right", cellWidth: 22 },
+          4: { halign: "right", cellWidth: 24 },
         },
-        didParseCell: (data) => {
-          if (data.row.index === lineRows.length - 1 && data.section === 'body') {
-            data.cell.styles.fontStyle = 'bold';
-            if (data.column.index === 0) {
-              data.cell.styles.halign = 'right';
-            }
-          }
-        },
+        margin: { left: margin, right: margin },
       });
 
-      yPos = (doc as any).lastAutoTable.finalY + 8;
+      yPos = (doc as any).lastAutoTable.finalY + 5;
     });
 
-    // Lot total
-    doc.setFontSize(11);
-    doc.setFont("helvetica", "bold");
-    doc.text(
-      `Total Lot: ${lot.total.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €`,
-      15,
-      yPos
-    );
-    yPos += 12;
+    yPos += 3;
   });
 
+  // ============ FOOTER ON EACH PAGE ============
+  const pageCount = doc.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFontSize(7);
+    doc.setTextColor(...mutedText);
+    doc.text(
+      `${projectName} - ${version} | Page ${i}/${pageCount}`,
+      pageWidth / 2,
+      pageHeight - 6,
+      { align: "center" }
+    );
+  }
+
   // Save the PDF
-  const fileName = `CAPEX_${data.project?.name || "export"}_${format(new Date(), "yyyy-MM-dd")}.pdf`;
+  const fileName = `CAPEX_${projectName.replace(/[^a-zA-Z0-9]/g, "_")}_${format(new Date(), "yyyy-MM-dd")}.pdf`;
   doc.save(fileName);
 };

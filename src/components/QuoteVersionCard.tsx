@@ -18,10 +18,18 @@ interface QuoteVersion {
 interface QuoteVersionCardProps {
   version: QuoteVersion;
   isActive: boolean;
+  isSelected?: boolean;
+  onSelect?: () => void;
   onOpen: () => void;
 }
 
-export const QuoteVersionCard = ({ version, isActive, onOpen }: QuoteVersionCardProps) => {
+export const QuoteVersionCard = ({ 
+  version, 
+  isActive, 
+  isSelected = false,
+  onSelect,
+  onOpen 
+}: QuoteVersionCardProps) => {
   const formatDate = (dateStr: string | null | undefined) => {
     if (!dateStr) return "-";
     try {
@@ -41,10 +49,18 @@ export const QuoteVersionCard = ({ version, isActive, onOpen }: QuoteVersionCard
     }).format(amount);
   };
 
+  const handleCardClick = (e: React.MouseEvent) => {
+    // Don't trigger selection if clicking on the button
+    if ((e.target as HTMLElement).closest('button')) return;
+    onSelect?.();
+  };
+
   return (
     <div
+      onClick={handleCardClick}
       className={cn(
-        "p-4 rounded-lg border transition-all duration-200",
+        "p-4 rounded-lg border transition-all duration-200 cursor-pointer",
+        isSelected && "ring-2 ring-accent",
         isActive
           ? "bg-muted border-accent"
           : "bg-card/50 border-border hover:border-muted-foreground/30"
@@ -84,7 +100,10 @@ export const QuoteVersionCard = ({ version, isActive, onOpen }: QuoteVersionCard
               <Button
                 size="sm"
                 className="mt-2 bg-accent text-accent-foreground hover:bg-accent/90"
-                onClick={onOpen}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onOpen();
+                }}
               >
                 Ouvrir
                 <ChevronRight className="w-4 h-4 ml-1" />
@@ -99,7 +118,10 @@ export const QuoteVersionCard = ({ version, isActive, onOpen }: QuoteVersionCard
                 variant="ghost"
                 size="sm"
                 className="mt-2 text-xs text-muted-foreground hover:text-foreground"
-                onClick={onOpen}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onOpen();
+                }}
               >
                 Consulter
               </Button>

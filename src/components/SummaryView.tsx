@@ -1,9 +1,11 @@
 import { Button } from "@/components/ui/button";
-import { Download, FileText, Loader2 } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Download, FileText, Loader2, MessageSquare } from "lucide-react";
 import { useSummaryData } from "@/hooks/useSummaryData";
 import { SummaryHeader } from "./SummaryHeader";
 import { SummaryLotTable } from "./SummaryLotTable";
 import { SummaryLotDetail } from "./SummaryLotDetail";
+import { QuoteComments } from "./QuoteComments";
 import { exportCapexToCSV } from "@/lib/csvUtils";
 import { exportCapexToPDF } from "@/lib/pdfExport";
 import { toast } from "sonner";
@@ -15,7 +17,7 @@ interface SummaryViewProps {
 }
 
 export const SummaryView = ({ projectId, versionId }: SummaryViewProps) => {
-  const { data, isLoading, error } = useSummaryData(projectId, versionId);
+  const { data, isLoading, error, refetch } = useSummaryData(projectId, versionId);
 
   const handleExportCSV = () => {
     if (!data) return;
@@ -80,34 +82,45 @@ export const SummaryView = ({ projectId, versionId }: SummaryViewProps) => {
   return (
     <div className="h-full overflow-y-auto">
       <div className="container mx-auto p-6 space-y-6">
-      {/* Header with export buttons */}
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Export CAPEX</h1>
-        <div className="flex gap-2">
-          <Button onClick={handleExportCSV} variant="outline">
-            <Download className="mr-2 h-4 w-4" />
-            Export CSV
-          </Button>
-          <Button onClick={handleExportPDF}>
-            <FileText className="mr-2 h-4 w-4" />
-            Export PDF
-          </Button>
+        {/* Header with export buttons */}
+        <div className="flex justify-between items-center">
+          <h1 className="text-3xl font-bold">Résumé du chiffrage</h1>
+          <div className="flex gap-2">
+            <Button onClick={handleExportCSV} variant="outline">
+              <Download className="mr-2 h-4 w-4" />
+              Export CSV
+            </Button>
+            <Button onClick={handleExportPDF}>
+              <FileText className="mr-2 h-4 w-4" />
+              Export PDF
+            </Button>
+          </div>
         </div>
-      </div>
 
-      {/* Project info and reference documents */}
-      <SummaryHeader data={data} />
+        {/* Project info and reference documents - Editable */}
+        <SummaryHeader data={data} versionId={versionId} onUpdate={refetch} />
 
-      {/* Lot summary */}
-      <SummaryLotTable data={data} />
+        {/* Comments section */}
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-2 mb-4">
+              <MessageSquare className="w-4 h-4 text-muted-foreground" />
+              <h3 className="text-lg font-semibold">Commentaires</h3>
+            </div>
+            <QuoteComments quoteVersionId={versionId} />
+          </CardContent>
+        </Card>
 
-      {/* Detailed breakdown per lot */}
-      <div className="space-y-4">
-        <h2 className="text-2xl font-bold">Détail par lot</h2>
-        {data.lots.map((lot) => (
-          <SummaryLotDetail key={lot.id} lot={lot} />
-        ))}
-      </div>
+        {/* Lot summary */}
+        <SummaryLotTable data={data} />
+
+        {/* Detailed breakdown per lot */}
+        <div className="space-y-4">
+          <h2 className="text-2xl font-bold">Détail par lot</h2>
+          {data.lots.map((lot) => (
+            <SummaryLotDetail key={lot.id} lot={lot} />
+          ))}
+        </div>
       </div>
     </div>
   );

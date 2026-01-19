@@ -1,7 +1,8 @@
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { QuoteVersionCard } from "@/components/QuoteVersionCard";
-import { ProjectComments } from "@/components/ProjectComments";
+import { QuoteComments } from "@/components/QuoteComments";
 import { Plus, FileDown, FileText, Wind, MapPin, Zap, MessageSquare } from "lucide-react";
 
 interface QuoteVersion {
@@ -44,6 +45,18 @@ export const ProjectDetailPanel = ({
 
   // Get active version
   const activeVersion = versions.find((v) => v.id === activeVersionId) || versions[0];
+
+  // Selected version for viewing comments (separate from active version)
+  const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null);
+
+  // Auto-select first version when versions load
+  useEffect(() => {
+    if (versions.length > 0 && !selectedVersionId) {
+      setSelectedVersionId(activeVersion?.id || versions[0].id);
+    }
+  }, [versions, selectedVersionId, activeVersion]);
+
+  const selectedVersion = versions.find(v => v.id === selectedVersionId);
 
   return (
     <div className="h-full flex flex-col">
@@ -133,6 +146,8 @@ export const ProjectDetailPanel = ({
                   key={version.id}
                   version={version}
                   isActive={version.id === activeVersion?.id}
+                  isSelected={version.id === selectedVersionId}
+                  onSelect={() => setSelectedVersionId(version.id)}
                   onOpen={() => onOpenPricing(version.id)}
                 />
               ))}
@@ -140,13 +155,20 @@ export const ProjectDetailPanel = ({
           )}
         </div>
 
-        {/* Comments section */}
+        {/* Comments section for selected version */}
         <div className="p-6">
           <div className="flex items-center gap-2 mb-4">
             <MessageSquare className="w-4 h-4 text-muted-foreground" />
-            <h3 className="text-sm font-medium text-foreground">Commentaires</h3>
+            <h3 className="text-sm font-medium text-foreground">
+              Commentaires
+              {selectedVersion && (
+                <span className="text-muted-foreground font-normal ml-1">
+                  - {selectedVersion.version_label}
+                </span>
+              )}
+            </h3>
           </div>
-          <ProjectComments projectId={project.id} />
+          <QuoteComments quoteVersionId={selectedVersionId} compact />
         </div>
       </div>
 

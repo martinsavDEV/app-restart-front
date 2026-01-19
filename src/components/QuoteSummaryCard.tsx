@@ -7,11 +7,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calculator, Plus, Trash2, Pencil } from "lucide-react";
+import { Calculator, Plus, Trash2, Pencil, Link, Check, X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { CalculatorDialog } from "./CalculatorDialog";
+import { useQuoteVersionUpdate } from "@/hooks/useQuoteVersionUpdate";
+import { cn } from "@/lib/utils";
 
 interface QuoteSummaryCardProps {
   versionId: string;
@@ -27,7 +29,10 @@ export const QuoteSummaryCard = ({ versionId, projectName, nWtg, onSettingsUpdat
   const [editingDoc, setEditingDoc] = useState<any>(null);
   const [formData, setFormData] = useState({ label: "", reference: "", comment: "" });
   const [calculatorOpen, setCalculatorOpen] = useState(false);
+  const [isEditingVersion, setIsEditingVersion] = useState(false);
+  const [editVersionLabel, setEditVersionLabel] = useState("");
   const queryClient = useQueryClient();
+  const { updateVersion } = useQuoteVersionUpdate();
 
   // Fetch quote version details
   const { data: versionDetails } = useQuery({
@@ -124,6 +129,31 @@ export const QuoteSummaryCard = ({ versionId, projectName, nWtg, onSettingsUpdat
     });
   };
 
+  const handleStartEditVersion = () => {
+    setEditVersionLabel(versionDetails?.version_label || "");
+    setIsEditingVersion(true);
+  };
+
+  const handleCancelEditVersion = () => {
+    setIsEditingVersion(false);
+    setEditVersionLabel("");
+  };
+
+  const handleSaveVersion = async () => {
+    if (!editVersionLabel.trim()) return;
+    try {
+      await updateVersion.mutateAsync({ versionId, versionLabel: editVersionLabel.trim() });
+      queryClient.invalidateQueries({ queryKey: ["quote-version-details", versionId] });
+      setIsEditingVersion(false);
+    } catch (error) {
+      console.error("Error saving version:", error);
+    }
+  };
+
+  const handleOpenCalculatorForNWtg = () => {
+    setCalculatorOpen(true);
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -134,18 +164,82 @@ export const QuoteSummaryCard = ({ versionId, projectName, nWtg, onSettingsUpdat
         <div className="grid grid-cols-2 gap-6">
           {/* Left Column: Project Info */}
           <div className="space-y-3 text-sm">
+            {/* Project Name - Read only */}
             <div>
               <p className="text-muted-foreground text-xs">Projet</p>
               <p className="font-medium">{projectName || "—"}</p>
             </div>
+
+            {/* Number of turbines - Linked from Calculator */}
             <div>
               <p className="text-muted-foreground text-xs">Nombre d'éoliennes</p>
-              <p className="font-medium">{nWtg || "—"}</p>
+              <button
+                onClick={handleOpenCalculatorForNWtg}
+                className={cn(
+                  "flex items-center gap-1.5 font-medium px-2 py-0.5 rounded -ml-2",
+                  "bg-orange-500/10 text-orange-500 hover:bg-orange-500/20 transition-colors cursor-pointer"
+                )}
+                title="Éditer dans le Calculator"
+              >
+                <Link className="w-3 h-3" />
+                <span>{nWtg || "—"}</span>
+              </button>
             </div>
+
+            {/* Version Label - Editable */}
             <div>
               <p className="text-muted-foreground text-xs">Version</p>
-              <p className="font-medium">{versionDetails?.version_label || "—"}</p>
+              {isEditingVersion ? (
+                <div className="flex items-center gap-1 -ml-1">
+                  <Input
+                    value={editVersionLabel}
+                    onChange={(e) => setEditVersionLabel(e.target.value)}
+                    className="h-7 text-sm w-40"
+                    autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleSaveVersion();
+                      if (e.key === "Escape") handleCancelEditVersion();
+                    }}
+                  />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
+                    onClick={handleCancelEditVersion}
+                    disabled={updateVersion.isPending}
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
+                    onClick={handleSaveVersion}
+                    disabled={updateVersion.isPending}
+                  >
+                    {updateVersion.isPending ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Check className="w-3.5 h-3.5" />
+                    )}
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1 group">
+                  <p className="font-medium">{versionDetails?.version_label || "—"}</p>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={handleStartEditVersion}
+                  >
+                    <Pencil className="w-3 h-3" />
+                  </Button>
+                </div>
+              )}
             </div>
+
+            {/* Last modification - Read only */}
             <div>
               <p className="text-muted-foreground text-xs">Dernière modification</p>
               <p className="font-medium">

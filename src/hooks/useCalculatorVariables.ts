@@ -10,14 +10,14 @@ export const useCalculatorVariables = (calculatorData: CalculatorData | null): {
   getVariableValue: (varName: string) => number | null;
 } => {
   const variables = useMemo(() => {
-    if (!calculatorData) return [];
+    if (!calculatorData?.global) return [];
 
     const vars: CalculatorVariable[] = [];
 
     // Global variables
     vars.push({
       name: "$nb_eol",
-      value: calculatorData.global.nb_eol,
+      value: calculatorData.global.nb_eol ?? 0,
       label: "Nombre d'éoliennes",
       category: "Global",
     });

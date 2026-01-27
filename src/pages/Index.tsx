@@ -20,6 +20,7 @@ const Index = () => {
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [selectedProjectName, setSelectedProjectName] = useState<string | null>(null);
   const [selectedQuoteVersion, setSelectedQuoteVersion] = useState<string | null>(null);
+  const [selectedVersionLabel, setSelectedVersionLabel] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -47,11 +48,13 @@ const Index = () => {
   const handleOpenPricing = (
     projectId: string,
     projectName: string,
-    versionId: string
+    versionId: string,
+    versionLabel?: string
   ) => {
     setSelectedProjectId(projectId);
     setSelectedProjectName(projectName);
     setSelectedQuoteVersion(versionId);
+    setSelectedVersionLabel(versionLabel || null);
     setActiveView("pricing");
   };
 
@@ -104,8 +107,9 @@ const Index = () => {
       />
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <Topbar
-          projectName={selectedProjectName || ""}
-          projectCode={selectedProjectId || ""}
+          projectName={selectedProjectName}
+          projectCode={selectedProjectId}
+          versionLabel={selectedVersionLabel}
           currentView={activeView}
         />
         <main className="flex-1 overflow-y-auto">{renderView()}</main>

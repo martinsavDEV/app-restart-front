@@ -20,7 +20,7 @@ import { ProjectCard } from "./ProjectCard";
 import { ProjectDetailPanel } from "./ProjectDetailPanel";
 
 interface ProjectsViewProps {
-  onOpenPricing?: (projectId: string, projectName: string, versionId: string) => void;
+  onOpenPricing?: (projectId: string, projectName: string, versionId: string, versionLabel?: string) => void;
 }
 
 export function ProjectsView({ onOpenPricing }: ProjectsViewProps) {
@@ -75,7 +75,8 @@ export function ProjectsView({ onOpenPricing }: ProjectsViewProps) {
 
   const handleOpenPricing = (versionId: string) => {
     if (selectedProject && onOpenPricing) {
-      onOpenPricing(selectedProject.id, selectedProject.name, versionId);
+      const version = quoteVersions.find(v => v.id === versionId);
+      onOpenPricing(selectedProject.id, selectedProject.name, versionId, version?.version_label);
     }
   };
 
@@ -88,7 +89,7 @@ export function ProjectsView({ onOpenPricing }: ProjectsViewProps) {
       onSuccess: (newVersion: any) => {
         setQuoteDialogOpen(false);
         if (selectedProject && onOpenPricing) {
-          onOpenPricing(selectedProject.id, selectedProject.name, newVersion.id);
+          onOpenPricing(selectedProject.id, selectedProject.name, newVersion.id, newVersion.version_label);
         }
       },
     });

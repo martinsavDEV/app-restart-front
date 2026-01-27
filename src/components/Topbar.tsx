@@ -4,31 +4,53 @@ import { Button } from "@/components/ui/button";
 import { useTheme } from "next-themes";
 
 interface TopbarProps {
-  projectName: string;
-  projectCode: string;
+  projectName?: string | null;
+  projectCode?: string | null;
+  versionLabel?: string | null;
   currentView?: string;
 }
 
 const viewLabels: Record<string, string> = {
   projects: "Vue d'ensemble",
   quotes: "Versions de chiffrage",
-  pricing: "Chiffrage projet",
+  pricing: "Chiffrage",
   summary: "Export CAPEX",
   "price-db": "Base de prix",
   templates: "Templates",
   "data-admin": "Admin Data",
 };
 
-export const Topbar = ({ projectName, projectCode, currentView = "projects" }: TopbarProps) => {
+export const Topbar = ({ projectName, projectCode, versionLabel, currentView = "projects" }: TopbarProps) => {
   const { theme, setTheme } = useTheme();
+
+  // Determine if we're in a project context (not on projects list or utility views)
+  const isProjectContext = currentView !== "projects" && currentView !== "price-db" && currentView !== "templates" && currentView !== "data-admin";
 
   return (
     <header className="h-14 border-b border-border bg-background flex items-center justify-between px-6 shrink-0">
       {/* Breadcrumb */}
       <div className="flex items-center gap-2 text-sm">
         <span className="text-muted-foreground">Projets</span>
-        <span className="text-muted-foreground/50">/</span>
-        <span className="text-foreground font-medium">{viewLabels[currentView] || currentView}</span>
+        
+        {isProjectContext && projectName ? (
+          <>
+            <span className="text-muted-foreground/50">/</span>
+            <span className="text-foreground font-medium">{projectName}</span>
+            {versionLabel && (
+              <>
+                <span className="text-muted-foreground/50">/</span>
+                <span className="text-primary font-medium">{versionLabel}</span>
+              </>
+            )}
+            <span className="text-muted-foreground/50">·</span>
+            <span className="text-muted-foreground">{viewLabels[currentView] || currentView}</span>
+          </>
+        ) : (
+          <>
+            <span className="text-muted-foreground/50">/</span>
+            <span className="text-foreground font-medium">{viewLabels[currentView] || currentView}</span>
+          </>
+        )}
       </div>
 
       {/* Search */}

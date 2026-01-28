@@ -138,7 +138,7 @@ export const PricingView = ({ projectId: initialProjectId, projectName: initialP
     queryClient.invalidateQueries({ queryKey: ["quote-versions"] });
   };
 
-  const handleCreateSection = (name: string, isMultiple: boolean, multiplier: number) => {
+  const handleCreateSection = (name: string, isMultiple: boolean, multiplier: number, linkedField?: string) => {
     if (!selectedLotForSection) return;
     
     // This will be handled by the useQuoteSections hook in LotSection
@@ -161,6 +161,7 @@ export const PricingView = ({ projectId: initialProjectId, projectName: initialP
           name,
           is_multiple: isMultiple,
           multiplier: isMultiple ? multiplier : 1,
+          linked_field: linkedField || null,
           order_index: nextOrderIndex,
         });
 
@@ -484,6 +485,7 @@ export const PricingView = ({ projectId: initialProjectId, projectName: initialP
             open={sectionDialogOpen}
             onOpenChange={setSectionDialogOpen}
             onConfirm={handleCreateSection}
+            variables={variables}
           />
         </div>
       </div>

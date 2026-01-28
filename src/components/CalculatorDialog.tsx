@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -12,6 +12,8 @@ import { toast } from "sonner";
 import { Calculator, Plus, Copy, X, Zap } from "lucide-react";
 import { CalculatorData, TurbineData, AccessSegment, HTACableSegment } from "@/types/bpu";
 import { useCalculatorVariables } from "@/hooks/useCalculatorVariables";
+import { FoundationDiagram } from "@/components/FoundationDiagram";
+import { calculateFoundationMetrics, calculateSubstitutionVolume, formatNumber } from "@/lib/foundationCalculations";
 import { cn } from "@/lib/utils";
 
 interface CalculatorDialogProps {
@@ -34,8 +36,17 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
     turbines: [],
     access_segments: [],
     hta_cables: [],
-    design: { diametre_fondation: null },
+    design: {
+      diametre_fondation: null,
+      marge_securite: 1.0,
+      pente_talus: "1:1",
+      hauteur_cage: 3.5,
+    },
   });
+
+  // Custom margin/slope input mode
+  const [customMargin, setCustomMargin] = useState(false);
+  const [customSlope, setCustomSlope] = useState(false);
 
   // Fetch quote settings
   const { data: settings, isLoading } = useQuery({
@@ -62,11 +73,37 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
         setCalculatorData({
           ...data,
           hta_cables: data.hta_cables || [],
+          design: {
+            diametre_fondation: data.design.diametre_fondation ?? null,
+            marge_securite: data.design.marge_securite ?? 1.0,
+            pente_talus: data.design.pente_talus ?? "1:1",
+            hauteur_cage: data.design.hauteur_cage ?? 3.5,
+          },
         } as CalculatorData);
+
+        // Check if custom margin/slope values are used
+        const marge = data.design.marge_securite;
+        if (marge !== undefined && marge !== 1.0 && marge !== 1.5) {
+          setCustomMargin(true);
+        }
+        const pente = data.design.pente_talus;
+        if (pente !== undefined && pente !== "1:1" && pente !== "3:2") {
+          setCustomSlope(true);
+        }
       }
       // Otherwise, keep default values initialized in useState
     }
   }, [settings]);
+
+  // Calculate foundation metrics
+  const foundationMetrics = useMemo(() => {
+    return calculateFoundationMetrics(
+      calculatorData.design.diametre_fondation,
+      calculatorData.design.marge_securite,
+      calculatorData.design.pente_talus,
+      calculatorData.design.hauteur_cage
+    );
+  }, [calculatorData.design]);
 
   // Get all available variables
   const { variables } = useCalculatorVariables(calculatorData);
@@ -449,6 +486,39 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                             ))}
                             <td className="border p-2 text-xs text-center bg-primary/5"></td>
                           </tr>
+                          {/* Volume substitution - calculated row */}
+                          {foundationMetrics && (
+                            <tr className="bg-emerald-50 dark:bg-emerald-900/10">
+                              <td className="border p-2 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
+                                Vol. substitution
+                              </td>
+                              <td className="border p-2 text-xs text-muted-foreground">m³</td>
+                              {calculatorData.turbines.map((turbine, idx) => {
+                                const volSub = calculateSubstitutionVolume(
+                                  foundationMetrics.surfaceFondFouille,
+                                  turbine.substitution
+                                );
+                                return (
+                                  <td
+                                    key={idx}
+                                    className="border p-2 text-xs text-center font-mono text-emerald-700 dark:text-emerald-400"
+                                  >
+                                    {turbine.substitution > 0 ? formatNumber(volSub, 0) : "-"}
+                                  </td>
+                                );
+                              })}
+                              <td className="border p-2 text-xs text-center font-bold bg-emerald-100 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400">
+                                {formatNumber(
+                                  calculatorData.turbines.reduce(
+                                    (sum, t) =>
+                                      sum + calculateSubstitutionVolume(foundationMetrics.surfaceFondFouille, t.substitution),
+                                    0
+                                  ),
+                                  0
+                                )}
+                              </td>
+                            </tr>
+                          )}
                           <tr>
                             <td className="border p-2 text-xs">Commentaire</td>
                             <td className="border p-2 text-xs text-muted-foreground"></td>
@@ -746,27 +816,218 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
 
                   <Separator />
 
-                  {/* Design Section */}
-                  <div className="space-y-2">
-                    <h3 className="text-sm font-bold text-primary">Design</h3>
-                    <div className="flex items-center gap-2 bg-muted/30 p-3 rounded-md">
-                      <Label className="text-xs min-w-[140px] font-medium">Diamètre fondation</Label>
-                      <Input
-                        type="number"
-                        value={calculatorData.design.diametre_fondation || ""}
-                        className="w-24 font-semibold"
-                        onChange={(e) =>
-                          setCalculatorData({
-                            ...calculatorData,
-                            design: {
-                              ...calculatorData.design,
-                              diametre_fondation: parseFloat(e.target.value) || null,
-                            },
-                          })
-                        }
-                      />
-                      <span className="text-xs text-muted-foreground font-mono">m</span>
+                  {/* Fondation Section */}
+                  <div className="space-y-4">
+                    <h3 className="text-sm font-bold text-primary">Fondation</h3>
+                    
+                    {/* Input parameters */}
+                    <div className="grid grid-cols-2 gap-4 bg-muted/30 p-4 rounded-md">
+                      {/* Diamètre fondation */}
+                      <div className="flex items-center gap-2">
+                        <Label className="text-xs min-w-[140px] font-medium">Diamètre fondation</Label>
+                        <Input
+                          type="number"
+                          value={calculatorData.design.diametre_fondation ?? ""}
+                          className="w-24 font-semibold"
+                          step="0.1"
+                          onChange={(e) =>
+                            setCalculatorData({
+                              ...calculatorData,
+                              design: {
+                                ...calculatorData.design,
+                                diametre_fondation: parseFloat(e.target.value) || null,
+                              },
+                            })
+                          }
+                        />
+                        <span className="text-xs text-muted-foreground font-mono">m</span>
+                      </div>
+
+                      {/* Marge de sécurité */}
+                      <div className="flex items-center gap-2">
+                        <Label className="text-xs min-w-[140px] font-medium">Marge de sécurité</Label>
+                        {!customMargin ? (
+                          <Select
+                            value={String(calculatorData.design.marge_securite)}
+                            onValueChange={(value) => {
+                              if (value === "custom") {
+                                setCustomMargin(true);
+                              } else {
+                                setCalculatorData({
+                                  ...calculatorData,
+                                  design: {
+                                    ...calculatorData.design,
+                                    marge_securite: parseFloat(value),
+                                  },
+                                });
+                              }
+                            }}
+                          >
+                            <SelectTrigger className="w-24">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="1">1 m</SelectItem>
+                              <SelectItem value="1.5">1.5 m</SelectItem>
+                              <SelectItem value="custom">Custom...</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <div className="flex items-center gap-1">
+                            <Input
+                              type="number"
+                              value={calculatorData.design.marge_securite}
+                              className="w-20 font-semibold"
+                              step="0.1"
+                              onChange={(e) =>
+                                setCalculatorData({
+                                  ...calculatorData,
+                                  design: {
+                                    ...calculatorData.design,
+                                    marge_securite: parseFloat(e.target.value) || 1.0,
+                                  },
+                                })
+                              }
+                            />
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 px-2"
+                              onClick={() => {
+                                setCustomMargin(false);
+                                setCalculatorData({
+                                  ...calculatorData,
+                                  design: { ...calculatorData.design, marge_securite: 1.0 },
+                                });
+                              }}
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        )}
+                        <span className="text-xs text-muted-foreground font-mono">m</span>
+                      </div>
+
+                      {/* Pente talus */}
+                      <div className="flex items-center gap-2">
+                        <Label className="text-xs min-w-[140px] font-medium">Pente talus</Label>
+                        {!customSlope ? (
+                          <Select
+                            value={calculatorData.design.pente_talus}
+                            onValueChange={(value) => {
+                              if (value === "custom") {
+                                setCustomSlope(true);
+                              } else {
+                                setCalculatorData({
+                                  ...calculatorData,
+                                  design: {
+                                    ...calculatorData.design,
+                                    pente_talus: value,
+                                  },
+                                });
+                              }
+                            }}
+                          >
+                            <SelectTrigger className="w-24">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="1:1">1:1</SelectItem>
+                              <SelectItem value="3:2">3:2</SelectItem>
+                              <SelectItem value="custom">Custom...</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <div className="flex items-center gap-1">
+                            <Input
+                              type="text"
+                              value={calculatorData.design.pente_talus}
+                              className="w-20 font-semibold font-mono"
+                              placeholder="x:y"
+                              onChange={(e) =>
+                                setCalculatorData({
+                                  ...calculatorData,
+                                  design: {
+                                    ...calculatorData.design,
+                                    pente_talus: e.target.value,
+                                  },
+                                })
+                              }
+                            />
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 px-2"
+                              onClick={() => {
+                                setCustomSlope(false);
+                                setCalculatorData({
+                                  ...calculatorData,
+                                  design: { ...calculatorData.design, pente_talus: "1:1" },
+                                });
+                              }}
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Hauteur cage ancrage */}
+                      <div className="flex items-center gap-2">
+                        <Label className="text-xs min-w-[140px] font-medium">Hauteur cage ancrage</Label>
+                        <Input
+                          type="number"
+                          value={calculatorData.design.hauteur_cage}
+                          className="w-24 font-semibold"
+                          step="0.01"
+                          onChange={(e) =>
+                            setCalculatorData({
+                              ...calculatorData,
+                              design: {
+                                ...calculatorData.design,
+                                hauteur_cage: parseFloat(e.target.value) || 3.5,
+                              },
+                            })
+                          }
+                        />
+                        <span className="text-xs text-muted-foreground font-mono">m</span>
+                      </div>
                     </div>
+
+                    {/* Calculated results */}
+                    {foundationMetrics && (
+                      <div className="bg-emerald-50 dark:bg-emerald-900/20 p-4 rounded-md border border-emerald-200 dark:border-emerald-800">
+                        <h4 className="text-xs font-bold text-emerald-700 dark:text-emerald-400 mb-3 uppercase tracking-wide">
+                          Résultats calculés
+                        </h4>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-muted-foreground">Surface fond de fouille</span>
+                            <span className="text-sm font-bold font-mono text-emerald-700 dark:text-emerald-400">
+                              {formatNumber(foundationMetrics.surfaceFondFouille, 1)} m²
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-muted-foreground">Volume terrassement</span>
+                            <span className="text-sm font-bold font-mono text-emerald-700 dark:text-emerald-400">
+                              {formatNumber(foundationMetrics.volumeTerrassement, 1)} m³
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Foundation diagram */}
+                    {foundationMetrics && calculatorData.design.diametre_fondation && (
+                      <FoundationDiagram
+                        diametre={calculatorData.design.diametre_fondation}
+                        marge={calculatorData.design.marge_securite}
+                        hauteurCage={calculatorData.design.hauteur_cage}
+                        penteTalus={calculatorData.design.pente_talus}
+                        rayonBas={foundationMetrics.rayonBas}
+                        rayonHaut={foundationMetrics.rayonHaut}
+                      />
+                    )}
                   </div>
                 </div>
               </ScrollArea>

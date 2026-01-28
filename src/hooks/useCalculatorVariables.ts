@@ -108,15 +108,13 @@ export const useCalculatorVariables = (calculatorData: CalculatorData | null): {
       { name: "$sum_bypass", value: sum_bypass, label: "Total Bypass", category: "Totaux" }
     );
 
-    // Total substitution volume
-    if (foundationMetrics && sumVolSubstitution > 0) {
-      vars.push({
-        name: "$sum_vol_substitution",
-        value: Math.round(sumVolSubstitution * 100) / 100,
-        label: "Total Vol. substitution (m³)",
-        category: "Totaux",
-      });
-    }
+    // Total substitution volume - always expose even if 0
+    vars.push({
+      name: "$sum_vol_substitution",
+      value: foundationMetrics ? Math.round(sumVolSubstitution * 100) / 100 : 0,
+      label: "Total Vol. substitution (m³)",
+      category: "Totaux",
+    });
 
     // Conditional totals (fondation type)
     const nb_eol_en_eau = calculatorData.turbines.filter((t) => t.fondation_type === "en eau").length;

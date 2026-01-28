@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { CalculatorData, CalculatorVariable } from "@/types/bpu";
+import { calculateFoundationMetrics, calculateSubstitutionVolume } from "@/lib/foundationCalculations";
 
 /**
  * Hook to generate all available variables from Calculator data
@@ -22,7 +23,34 @@ export const useCalculatorVariables = (calculatorData: CalculatorData | null): {
       category: "Global",
     });
 
+    // Foundation/Design variables
+    const design = calculatorData.design;
+    const foundationMetrics = calculateFoundationMetrics(
+      design?.diametre_fondation ?? null,
+      design?.marge_securite ?? 1.0,
+      design?.pente_talus ?? "1:1",
+      design?.hauteur_cage ?? 3.5
+    );
+
+    if (foundationMetrics) {
+      vars.push(
+        {
+          name: "$surface_fond_fouille",
+          value: Math.round(foundationMetrics.surfaceFondFouille * 100) / 100,
+          label: "Surface fond de fouille (m²)",
+          category: "Fondation",
+        },
+        {
+          name: "$volume_terrassement",
+          value: Math.round(foundationMetrics.volumeTerrassement * 100) / 100,
+          label: "Volume terrassement (m³)",
+          category: "Fondation",
+        }
+      );
+    }
+
     // Per-turbine variables
+    let sumVolSubstitution = 0;
     calculatorData.turbines.forEach((turbine) => {
       vars.push(
         {
@@ -50,6 +78,21 @@ export const useCalculatorVariables = (calculatorData: CalculatorData | null): {
           category: "Éoliennes",
         }
       );
+
+      // Volume substitution per turbine
+      if (foundationMetrics && turbine.substitution > 0) {
+        const volSub = calculateSubstitutionVolume(
+          foundationMetrics.surfaceFondFouille,
+          turbine.substitution
+        );
+        vars.push({
+          name: `$vol_sub_${turbine.name}`,
+          value: Math.round(volSub * 100) / 100,
+          label: `Vol. substitution ${turbine.name} (m³)`,
+          category: "Éoliennes",
+        });
+        sumVolSubstitution += volSub;
+      }
     });
 
     // Totals for turbines
@@ -64,6 +107,16 @@ export const useCalculatorVariables = (calculatorData: CalculatorData | null): {
       { name: "$sum_m3_bouger", value: sum_m3_bouger, label: "Total m³ à bouger", category: "Totaux" },
       { name: "$sum_bypass", value: sum_bypass, label: "Total Bypass", category: "Totaux" }
     );
+
+    // Total substitution volume
+    if (foundationMetrics && sumVolSubstitution > 0) {
+      vars.push({
+        name: "$sum_vol_substitution",
+        value: Math.round(sumVolSubstitution * 100) / 100,
+        label: "Total Vol. substitution (m³)",
+        category: "Totaux",
+      });
+    }
 
     // Conditional totals (fondation type)
     const nb_eol_en_eau = calculatorData.turbines.filter((t) => t.fondation_type === "en eau").length;

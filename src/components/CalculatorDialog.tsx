@@ -378,10 +378,11 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                                   value={turbine.surf_PF}
                                   onChange={(e) => updateTurbine(idx, "surf_PF", parseFloat(e.target.value) || 0)}
                                   className="h-7 text-xs text-center"
+                                  title={`Variable: $surf_PF_${turbine.name}`}
                                 />
                               </td>
                             ))}
-                            <td className="border p-2 text-xs text-center font-semibold bg-primary/5">
+                            <td className="border p-2 text-xs text-center font-semibold bg-primary/5" title="Variable: $sum_surf_PF">
                               {turbineTotals.surf_PF}
                             </td>
                           </tr>
@@ -395,10 +396,11 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                                   value={turbine.acces_PF}
                                   onChange={(e) => updateTurbine(idx, "acces_PF", parseFloat(e.target.value) || 0)}
                                   className="h-7 text-xs text-center"
+                                  title={`Variable: $acces_PF_${turbine.name}`}
                                 />
                               </td>
                             ))}
-                            <td className="border p-2 text-xs text-center font-semibold bg-primary/5">
+                            <td className="border p-2 text-xs text-center font-semibold bg-primary/5" title="Variable: $sum_acces_PF">
                               {turbineTotals.acces_PF}
                             </td>
                           </tr>
@@ -412,10 +414,11 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                                   value={turbine.m3_bouger}
                                   onChange={(e) => updateTurbine(idx, "m3_bouger", parseFloat(e.target.value) || 0)}
                                   className="h-7 text-xs text-center"
+                                  title={`Variable: $m3_bouger_${turbine.name}`}
                                 />
                               </td>
                             ))}
-                            <td className="border p-2 text-xs text-center font-semibold bg-primary/5">
+                            <td className="border p-2 text-xs text-center font-semibold bg-primary/5" title="Variable: $sum_m3_bouger">
                               {turbineTotals.m3_bouger}
                             </td>
                           </tr>
@@ -429,10 +432,11 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                                   value={turbine.bypass}
                                   onChange={(e) => updateTurbine(idx, "bypass", parseFloat(e.target.value) || 0)}
                                   className="h-7 text-xs text-center"
+                                  title={`Variable: $bypass_${turbine.name}`}
                                 />
                               </td>
                             ))}
-                            <td className="border p-2 text-xs text-center font-semibold bg-primary/5">
+                            <td className="border p-2 text-xs text-center font-semibold bg-primary/5" title="Variable: $sum_bypass">
                               {turbineTotals.bypass}
                             </td>
                           </tr>
@@ -481,6 +485,7 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                                   value={turbine.substitution}
                                   onChange={(e) => updateTurbine(idx, "substitution", parseFloat(e.target.value) || 0)}
                                   className="h-7 text-xs text-center"
+                                  title={`Variable: $vol_sub_${turbine.name} (volume calculé)`}
                                 />
                               </td>
                             ))}
@@ -507,7 +512,7 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                                   </td>
                                 );
                               })}
-                              <td className="border p-2 text-xs text-center font-bold bg-emerald-100 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400">
+                              <td className="border p-2 text-xs text-center font-bold bg-emerald-100 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400" title="Variable: $sum_vol_substitution">
                                 {formatNumber(
                                   calculatorData.turbines.reduce(
                                     (sum, t) =>
@@ -589,10 +594,11 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                                   value={segment.longueur}
                                   onChange={(e) => updateAccessSegment(idx, "longueur", parseFloat(e.target.value) || 0)}
                                   className="h-7 text-xs text-center"
+                                  title={`Variable: $longueur_${segment.name.replace(/\s+/g, "_")}`}
                                 />
                               </td>
                             ))}
-                            <td className="border p-2 text-xs text-center font-semibold bg-primary/5">
+                            <td className="border p-2 text-xs text-center font-semibold bg-primary/5" title="Variable: $sum_longueur_chemins">
                               {accessTotals.longueur}
                             </td>
                           </tr>
@@ -606,10 +612,11 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                                   value={segment.surface}
                                   onChange={(e) => updateAccessSegment(idx, "surface", parseFloat(e.target.value) || 0)}
                                   className="h-7 text-xs text-center"
+                                  title={`Variable: $surface_${segment.name.replace(/\s+/g, "_")}`}
                                 />
                               </td>
                             ))}
-                            <td className="border p-2 text-xs text-center font-semibold bg-primary/5">
+                            <td className="border p-2 text-xs text-center font-semibold bg-primary/5" title="Variable: $sum_surface_chemins">
                               {accessTotals.surface}
                             </td>
                           </tr>
@@ -747,6 +754,7 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                                   value={cable.alu_95}
                                   onChange={(e) => updateHTACable(idx, "alu_95", parseFloat(e.target.value) || 0)}
                                   className="h-7 text-xs text-center"
+                                  title={`Variable: $alu95_${cable.name.replace(/\s+/g, "_")}`}
                                 />
                               </td>
                               <td className="border p-1 bg-blue-50/50 dark:bg-blue-900/5">
@@ -755,6 +763,7 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                                   value={cable.alu_150}
                                   onChange={(e) => updateHTACable(idx, "alu_150", parseFloat(e.target.value) || 0)}
                                   className="h-7 text-xs text-center"
+                                  title={`Variable: $alu150_${cable.name.replace(/\s+/g, "_")}`}
                                 />
                               </td>
                               <td className="border p-1 bg-blue-50/50 dark:bg-blue-900/5">
@@ -763,6 +772,7 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                                   value={cable.alu_240}
                                   onChange={(e) => updateHTACable(idx, "alu_240", parseFloat(e.target.value) || 0)}
                                   className="h-7 text-xs text-center"
+                                  title={`Variable: $alu240_${cable.name.replace(/\s+/g, "_")}`}
                                 />
                               </td>
                               <td className="border p-1 bg-blue-50/50 dark:bg-blue-900/5">
@@ -771,6 +781,7 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                                   value={cable.alu_400}
                                   onChange={(e) => updateHTACable(idx, "alu_400", parseFloat(e.target.value) || 0)}
                                   className="h-7 text-xs text-center"
+                                  title={`Variable: $alu400_${cable.name.replace(/\s+/g, "_")}`}
                                 />
                               </td>
                               <td className="border p-1 bg-orange-50/50 dark:bg-orange-900/5">
@@ -779,6 +790,7 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                                   value={cable.cu_95}
                                   onChange={(e) => updateHTACable(idx, "cu_95", parseFloat(e.target.value) || 0)}
                                   className="h-7 text-xs text-center"
+                                  title={`Variable: $cu95_${cable.name.replace(/\s+/g, "_")}`}
                                 />
                               </td>
                               <td className="border p-1 bg-orange-50/50 dark:bg-orange-900/5">
@@ -787,6 +799,7 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                                   value={cable.cu_150}
                                   onChange={(e) => updateHTACable(idx, "cu_150", parseFloat(e.target.value) || 0)}
                                   className="h-7 text-xs text-center"
+                                  title={`Variable: $cu150_${cable.name.replace(/\s+/g, "_")}`}
                                 />
                               </td>
                               <td className="border p-1 bg-orange-50/50 dark:bg-orange-900/5">
@@ -795,6 +808,7 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                                   value={cable.cu_240}
                                   onChange={(e) => updateHTACable(idx, "cu_240", parseFloat(e.target.value) || 0)}
                                   className="h-7 text-xs text-center"
+                                  title={`Variable: $cu240_${cable.name.replace(/\s+/g, "_")}`}
                                 />
                               </td>
                               <td className="border p-1 text-center">

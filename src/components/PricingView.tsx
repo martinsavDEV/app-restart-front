@@ -5,15 +5,19 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { BPULine } from "@/types/bpu";
+import { BPULine, CalculatorData } from "@/types/bpu";
 import { toast } from "sonner";
 import { useQuotePricing } from "@/hooks/useQuotePricing";
 import { TemplateLoaderDialog } from "@/components/TemplateLoaderDialog";
 import { QuoteSummaryCard } from "@/components/QuoteSummaryCard";
 import { SectionDialog } from "@/components/SectionDialog";
 import { LotSection } from "@/components/LotSection";
+import { VariablesSidePanel } from "@/components/VariablesSidePanel";
+import { CalculatorDialog } from "@/components/CalculatorDialog";
+import { useCalculatorVariables } from "@/hooks/useCalculatorVariables";
 import { getLotColors } from "@/lib/lotColors";
 import { cn } from "@/lib/utils";
+import { Calculator, PanelRightClose, PanelRightOpen } from "lucide-react";
 
 interface PricingViewProps {
   projectId?: string | null;
@@ -30,6 +34,8 @@ export const PricingView = ({ projectId: initialProjectId, projectName: initialP
   const [sectionDialogOpen, setSectionDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<string | null>(null);
   const [selectedLotForSection, setSelectedLotForSection] = useState<string | null>(null);
+  const [showVariablesPanel, setShowVariablesPanel] = useState(false);
+  const [calculatorDialogOpen, setCalculatorDialogOpen] = useState(false);
 
   // Fetch projects
   const { data: projects } = useQuery({
@@ -55,6 +61,26 @@ export const PricingView = ({ projectId: initialProjectId, projectName: initialP
     },
     enabled: !!selectedProjectId,
   });
+
+  // Fetch quote settings for calculator data
+  const { data: quoteSettings } = useQuery({
+    queryKey: ["quote-settings", selectedVersionId],
+    queryFn: async () => {
+      if (!selectedVersionId) return null;
+      const { data, error } = await supabase
+        .from("quote_settings")
+        .select("*")
+        .eq("quote_version_id", selectedVersionId)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!selectedVersionId,
+  });
+
+  // Get calculator variables from settings
+  const calculatorData = quoteSettings?.calculator_data as unknown as CalculatorData | null;
+  const { variables } = useCalculatorVariables(calculatorData);
 
   // Use the quote pricing hook
   const { lots, isLoading, updateLine, addLine, deleteLine, loadTemplate, updateLinesOrder, updateLineSection } = useQuotePricing(selectedVersionId);
@@ -302,145 +328,184 @@ export const PricingView = ({ projectId: initialProjectId, projectName: initialP
   }
 
   return (
-    <div className="h-full overflow-y-auto">
-      <div className="p-4 space-y-3">
-      {/* Quote Summary Card */}
+    <div className="h-full flex">
+      {/* Main content area */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="p-4 space-y-3">
+          {/* Quote Summary Card */}
+          {selectedVersionId && (
+            <QuoteSummaryCard 
+              versionId={selectedVersionId} 
+              projectName={projectName} 
+              nWtg={selectedProject?.n_wtg}
+              onSettingsUpdate={() => {
+                // Refresh quote settings and lots when foundations count changes
+              }}
+            />
+          )}
+
+          {/* Project and Version Selectors */}
+          {!initialProjectId && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm">Sélection</CardTitle>
+              </CardHeader>
+              <CardContent className="flex gap-3">
+                <div className="flex-1">
+                  <Select value={selectedProjectId || ""} onValueChange={setSelectedProjectId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sélectionner un projet" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {projects?.map((project) => (
+                        <SelectItem key={project.id} value={project.id}>
+                          {project.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex-1">
+                  <Select
+                    value={selectedVersionId || ""}
+                    onValueChange={setSelectedVersionId}
+                    disabled={!selectedProjectId}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sélectionner une version" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {versions?.map((version) => (
+                        <SelectItem key={version.id} value={version.id}>
+                          {version.version_label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Main Content */}
+          {selectedVersionId && lots.length > 0 ? (
+            <Tabs value={activeTab || lots[0]?.id} onValueChange={setActiveTab} className="space-y-3">
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                  <h1 className="text-lg font-semibold">Chiffrage projet</h1>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {projectName ? `BPU par lots pour ${projectName}` : "BPU par lots"}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <TabsList className="w-full lg:w-auto flex-wrap justify-start bg-transparent gap-2">
+                    {lots.map((lot) => {
+                      const colors = getLotColors(lot.code);
+                      const isActive = activeTab === lot.id;
+                      return (
+                        <TabsTrigger 
+                          key={lot.id} 
+                          value={lot.id} 
+                          className={cn(
+                            "text-xs font-semibold px-4 py-2 rounded-lg border-2 transition-all data-[state=active]:shadow-none",
+                            isActive 
+                              ? `${colors.bgActive} ${colors.textActive} border-transparent shadow-lg` 
+                              : `${colors.bg} ${colors.text} ${colors.border} hover:shadow-md`
+                          )}
+                        >
+                          {lot.label}
+                        </TabsTrigger>
+                      );
+                    })}
+                  </TabsList>
+                  {/* Variables panel toggle */}
+                  <Button
+                    variant={showVariablesPanel ? "secondary" : "outline"}
+                    size="sm"
+                    onClick={() => setShowVariablesPanel(!showVariablesPanel)}
+                    className="gap-1.5 text-xs"
+                  >
+                    {showVariablesPanel ? (
+                      <PanelRightClose className="h-4 w-4" />
+                    ) : (
+                      <PanelRightOpen className="h-4 w-4" />
+                    )}
+                    <Calculator className="h-3.5 w-3.5" />
+                    Variables
+                  </Button>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                {lots.map((lot) => (
+                  <TabsContent key={lot.id} value={lot.id} className="space-y-3">
+                    <LotSection
+                      lot={lot}
+                      convertToBPULines={convertToBPULines}
+                      formatCurrency={formatCurrency}
+                      calculateLotTotal={calculateLotTotal}
+                      handleLineUpdate={handleLineUpdate}
+                      handleLineDelete={handleLineDelete}
+                      handleBulkDelete={handleBulkDelete}
+                      handleLinePaste={handleLinePaste}
+                      handleLoadTemplate={handleLoadTemplate}
+                      handleAddLine={handleAddLine}
+                      handleLinesReorder={updateLinesOrder}
+                      handleLineSectionChange={handleLineSectionChange}
+                      onCreateSection={(lotId) => {
+                        setSelectedLotForSection(lotId);
+                        setSectionDialogOpen(true);
+                      }}
+                    />
+                  </TabsContent>
+                ))}
+              </div>
+            </Tabs>
+          ) : (
+            <Card>
+              <CardContent className="py-12 text-center">
+                <p className="text-muted-foreground">
+                  {selectedProjectId
+                    ? "Sélectionnez une version de chiffrage"
+                    : "Sélectionnez un projet et une version"}
+                </p>
+              </CardContent>
+            </Card>
+          )}
+
+          <TemplateLoaderDialog
+            open={templateDialogOpen}
+            onOpenChange={setTemplateDialogOpen}
+            lotCode={selectedLotForTemplate?.code}
+            onLoadTemplate={handleTemplateSelected}
+          />
+
+          <SectionDialog
+            open={sectionDialogOpen}
+            onOpenChange={setSectionDialogOpen}
+            onConfirm={handleCreateSection}
+          />
+        </div>
+      </div>
+
+      {/* Variables Side Panel */}
+      <VariablesSidePanel
+        variables={variables}
+        isOpen={showVariablesPanel}
+        onClose={() => setShowVariablesPanel(false)}
+        onOpenCalculator={() => {
+          setCalculatorDialogOpen(true);
+        }}
+      />
+
+      {/* Calculator Dialog */}
       {selectedVersionId && (
-        <QuoteSummaryCard 
-          versionId={selectedVersionId} 
-          projectName={projectName} 
-          nWtg={selectedProject?.n_wtg}
-          onSettingsUpdate={() => {
-            // Refresh quote settings and lots when foundations count changes
-          }}
+        <CalculatorDialog
+          open={calculatorDialogOpen}
+          onOpenChange={setCalculatorDialogOpen}
+          versionId={selectedVersionId}
         />
       )}
-
-      {/* Project and Version Selectors */}
-      {!initialProjectId && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">Sélection</CardTitle>
-          </CardHeader>
-          <CardContent className="flex gap-3">
-            <div className="flex-1">
-              <Select value={selectedProjectId || ""} onValueChange={setSelectedProjectId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Sélectionner un projet" />
-                </SelectTrigger>
-                <SelectContent>
-                  {projects?.map((project) => (
-                    <SelectItem key={project.id} value={project.id}>
-                      {project.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex-1">
-              <Select
-                value={selectedVersionId || ""}
-                onValueChange={setSelectedVersionId}
-                disabled={!selectedProjectId}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Sélectionner une version" />
-                </SelectTrigger>
-                <SelectContent>
-                  {versions?.map((version) => (
-                    <SelectItem key={version.id} value={version.id}>
-                      {version.version_label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Main Content */}
-      {selectedVersionId && lots.length > 0 ? (
-        <Tabs value={activeTab || lots[0]?.id} onValueChange={setActiveTab} className="space-y-3">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <h1 className="text-lg font-semibold">Chiffrage projet</h1>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {projectName ? `BPU par lots pour ${projectName}` : "BPU par lots"}
-              </p>
-            </div>
-            <TabsList className="w-full lg:w-auto flex-wrap justify-start bg-transparent gap-2">
-              {lots.map((lot) => {
-                const colors = getLotColors(lot.code);
-                const isActive = activeTab === lot.id;
-                return (
-                  <TabsTrigger 
-                    key={lot.id} 
-                    value={lot.id} 
-                    className={cn(
-                      "text-xs font-semibold px-4 py-2 rounded-lg border-2 transition-all data-[state=active]:shadow-none",
-                      isActive 
-                        ? `${colors.bgActive} ${colors.textActive} border-transparent shadow-lg` 
-                        : `${colors.bg} ${colors.text} ${colors.border} hover:shadow-md`
-                    )}
-                  >
-                    {lot.label}
-                  </TabsTrigger>
-                );
-              })}
-            </TabsList>
-          </div>
-
-          <div className="space-y-3">
-            {lots.map((lot) => (
-              <TabsContent key={lot.id} value={lot.id} className="space-y-3">
-                <LotSection
-                  lot={lot}
-                  convertToBPULines={convertToBPULines}
-                  formatCurrency={formatCurrency}
-                  calculateLotTotal={calculateLotTotal}
-                  handleLineUpdate={handleLineUpdate}
-                  handleLineDelete={handleLineDelete}
-                  handleBulkDelete={handleBulkDelete}
-                  handleLinePaste={handleLinePaste}
-                  handleLoadTemplate={handleLoadTemplate}
-                  handleAddLine={handleAddLine}
-                  handleLinesReorder={updateLinesOrder}
-                  handleLineSectionChange={handleLineSectionChange}
-                  onCreateSection={(lotId) => {
-                    setSelectedLotForSection(lotId);
-                    setSectionDialogOpen(true);
-                  }}
-                />
-              </TabsContent>
-            ))}
-          </div>
-        </Tabs>
-      ) : (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <p className="text-muted-foreground">
-              {selectedProjectId
-                ? "Sélectionnez une version de chiffrage"
-                : "Sélectionnez un projet et une version"}
-            </p>
-          </CardContent>
-        </Card>
-      )}
-
-      <TemplateLoaderDialog
-        open={templateDialogOpen}
-        onOpenChange={setTemplateDialogOpen}
-        lotCode={selectedLotForTemplate?.code}
-        onLoadTemplate={handleTemplateSelected}
-      />
-
-      <SectionDialog
-        open={sectionDialogOpen}
-        onOpenChange={setSectionDialogOpen}
-        onConfirm={handleCreateSection}
-      />
-      </div>
     </div>
   );
 };

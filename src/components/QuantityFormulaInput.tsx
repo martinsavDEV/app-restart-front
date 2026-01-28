@@ -153,8 +153,9 @@ export const QuantityFormulaInput = ({
   const handleInputChange = (newValue: string) => {
     setInputValue(newValue);
 
-    // Open dropdown when user types $
-    if (newValue.includes("$")) {
+    // Open dropdown when user types $ OR when typing text that could be variable search
+    // (starts with letter or underscore)
+    if (newValue.includes("$") || /^[a-zA-Z_]/.test(newValue.trim())) {
       setOpen(true);
     } else {
       setOpen(false);
@@ -175,15 +176,30 @@ export const QuantityFormulaInput = ({
     }
   };
 
-  // Filter variables based on search
-  const filteredVariables = inputValue === "$" 
-    ? variables
-    : inputValue.startsWith("$") && inputValue.length > 1
-      ? variables.filter(v => 
-          v.name.toLowerCase().includes(inputValue.toLowerCase()) ||
-          v.label.toLowerCase().includes(inputValue.slice(1).toLowerCase())
-        )
-      : variables;
+  // Filter variables based on search - now works with or without $
+  const getFilteredVariables = () => {
+    const trimmed = inputValue.trim();
+    
+    // Show all variables when typing just $
+    if (trimmed === "$") return variables;
+    
+    // If input contains $ or is text that could be a variable search
+    if (trimmed.startsWith("$") || /^[a-zA-Z_]/.test(trimmed)) {
+      const query = trimmed.replace(/^\$/, "").toLowerCase();
+      if (query.length === 0) return variables;
+      
+      return variables.filter(
+        (v) =>
+          v.name.toLowerCase().includes(query) ||
+          v.name.toLowerCase().includes(`$${query}`) ||
+          v.label.toLowerCase().includes(query)
+      );
+    }
+    
+    return variables;
+  };
+  
+  const filteredVariables = getFilteredVariables();
 
   // Group by category
   const groupedVariables = filteredVariables.reduce((acc, v) => {

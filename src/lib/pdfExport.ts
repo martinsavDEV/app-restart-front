@@ -408,14 +408,23 @@ export const exportCapexToPDF = (data: SummaryData) => {
 
     // Lot header with color
     doc.setFillColor(...lotColor);
-    doc.roundedRect(margin, yPos, pageWidth - margin * 2, 10, 2, 2, "F");
+    doc.roundedRect(margin, yPos, pageWidth - margin * 2, lot.header_comment ? 16 : 10, 2, 2, "F");
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(11);
     doc.setFont("helvetica", "bold");
     doc.text(`LOT: ${lot.label.toUpperCase()}`, margin + 4, yPos + 7);
     doc.setFontSize(9);
     doc.text(formatCurrency(lot.total), pageWidth - margin - 4, yPos + 7, { align: "right" });
-    yPos += 16;
+    
+    // Lot header comment if present
+    if (lot.header_comment) {
+      doc.setFontSize(8);
+      doc.setFont("helvetica", "italic");
+      doc.text(`💬 ${lot.header_comment}`, margin + 4, yPos + 13);
+      yPos += 22;
+    } else {
+      yPos += 16;
+    }
 
     // Sections
     lot.sections.forEach((section) => {
@@ -437,18 +446,19 @@ export const exportCapexToPDF = (data: SummaryData) => {
       doc.text(formatCurrency(section.subtotal), pageWidth - margin, yPos, { align: "right" });
       yPos += 4;
 
-      // Lines table
+      // Lines table - now includes comment column
       const lineRows = section.lines.map((line) => [
-        line.designation.length > 50 ? line.designation.substring(0, 50) + "..." : line.designation,
+        line.designation.length > 45 ? line.designation.substring(0, 45) + "..." : line.designation,
         String(line.quantity),
         line.unit,
         formatCurrency(line.unit_price),
         formatCurrency(line.total_price),
+        line.comment ? (line.comment.length > 25 ? line.comment.substring(0, 25) + "..." : line.comment) : "",
       ]);
 
       autoTable(doc, {
         startY: yPos,
-        head: [["Désignation", "Qté", "U", "P.U.", "Total"]],
+        head: [["Désignation", "Qté", "U", "P.U.", "Total", "Commentaire"]],
         body: lineRows,
         theme: "plain",
         headStyles: { 
@@ -467,8 +477,9 @@ export const exportCapexToPDF = (data: SummaryData) => {
           0: { cellWidth: "auto" },
           1: { halign: "right", cellWidth: 12 },
           2: { halign: "center", cellWidth: 10 },
-          3: { halign: "right", cellWidth: 22 },
-          4: { halign: "right", cellWidth: 24 },
+          3: { halign: "right", cellWidth: 20 },
+          4: { halign: "right", cellWidth: 22 },
+          5: { cellWidth: 30, fontStyle: "italic", textColor: mutedText },
         },
         margin: { left: margin, right: margin },
       });

@@ -94,6 +94,7 @@ export type Database = {
           code: string
           created_at: string
           description: string | null
+          header_comment: string | null
           id: string
           is_enabled: boolean
           label: string
@@ -105,6 +106,7 @@ export type Database = {
           code: string
           created_at?: string
           description?: string | null
+          header_comment?: string | null
           id?: string
           is_enabled?: boolean
           label: string
@@ -116,6 +118,7 @@ export type Database = {
           code?: string
           created_at?: string
           description?: string | null
+          header_comment?: string | null
           id?: string
           is_enabled?: boolean
           label?: string

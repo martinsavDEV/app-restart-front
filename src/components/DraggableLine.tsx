@@ -160,6 +160,15 @@ export const DraggableLine = ({
           onChange={(value) => onLineUpdate(line.id, { priceSource: value })}
         />
       </td>
+      <td className="py-1 px-2">
+        <input
+          type="text"
+          value={line.comment || ""}
+          onChange={(e) => onLineUpdate(line.id, { comment: e.target.value })}
+          placeholder="Commentaire..."
+          className="w-full h-7 px-2 text-xs border rounded-md bg-background hover:bg-muted/50 focus:bg-background focus:ring-1 focus:ring-primary"
+        />
+      </td>
       <td className="py-1 px-2 text-center">
         <div className="flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
           <Button

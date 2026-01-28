@@ -9,6 +9,7 @@ export const bpuLineSchema = z.object({
   priceSource: z.string().optional(),
   linkedVariable: z.string().optional(),
   quantity_formula: z.string().nullable().optional(),
+  comment: z.string().nullable().optional(),
 });
 
 export type BPULine = z.infer<typeof bpuLineSchema>;

@@ -32,6 +32,7 @@ export interface SummaryData {
     label: string;
     code: string;
     total: number;
+    header_comment: string | null;
     sections: Array<{
       id: string;
       name: string;
@@ -99,6 +100,7 @@ export const useSummaryData = (
           label,
           code,
           order_index,
+          header_comment,
           quote_sections (
             id,
             name,
@@ -159,6 +161,7 @@ export const useSummaryData = (
           label: lot.label,
           code: lot.code,
           total,
+          header_comment: lot.header_comment || null,
           sections,
         };
       });

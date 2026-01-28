@@ -138,33 +138,40 @@ export const exportCapexToCSV = (data: any) => {
   
   // Summary
   csvContent += `RÉSUMÉ PAR LOT\n`;
-  csvContent += `Lot,Montant\n`;
+  csvContent += `Lot,Montant,Commentaire\n`;
   data.lots.forEach((lot: any) => {
-    csvContent += `${lot.label},${lot.total.toFixed(2)}\n`;
+    const lotComment = lot.header_comment ? `"${lot.header_comment.replace(/"/g, '""')}"` : "";
+    csvContent += `${lot.label},${lot.total.toFixed(2)},${lotComment}\n`;
   });
-  csvContent += `TOTAL CAPEX,${data.totalCapex.toFixed(2)}\n`;
+  csvContent += `TOTAL CAPEX,${data.totalCapex.toFixed(2)},\n`;
   csvContent += `\n`;
   
   // Detailed breakdown
   data.lots.forEach((lot: any) => {
     csvContent += `\nLOT: ${lot.label}\n`;
     
+    // Add lot header comment if present
+    if (lot.header_comment) {
+      csvContent += `Commentaire:,"${lot.header_comment.replace(/"/g, '""')}"\n`;
+    }
+    
     lot.sections.forEach((section: any) => {
       const sectionTitle = section.is_multiple
         ? `Section: ${section.name} (x${section.multiplier})`
         : `Section: ${section.name}`;
       csvContent += `${sectionTitle}\n`;
-      csvContent += `Désignation,Qté,Unité,P.U.,Total\n`;
+      csvContent += `Désignation,Qté,Unité,P.U.,Total,Commentaire\n`;
       
       section.lines.forEach((line: any) => {
-        csvContent += `${line.designation},${line.quantity},${line.unit},${line.unit_price.toFixed(2)},${line.total_price.toFixed(2)}\n`;
+        const lineComment = line.comment ? `"${line.comment.replace(/"/g, '""')}"` : "";
+        csvContent += `"${line.designation.replace(/"/g, '""')}",${line.quantity},${line.unit},${line.unit_price.toFixed(2)},${line.total_price.toFixed(2)},${lineComment}\n`;
       });
       
-      csvContent += `Sous-total section,,,${section.subtotal.toFixed(2)}\n`;
+      csvContent += `Sous-total section,,,,${section.subtotal.toFixed(2)},\n`;
       csvContent += `\n`;
     });
     
-    csvContent += `Total Lot,,,${lot.total.toFixed(2)}\n`;
+    csvContent += `Total Lot,,,,${lot.total.toFixed(2)},\n`;
     csvContent += `\n`;
   });
   

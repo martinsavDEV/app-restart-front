@@ -21,7 +21,7 @@ export const SummaryLotDetail = ({ lot }: SummaryLotDetailProps) => {
   return (
     <Card className={cn("border-l-4", colors.border)}>
       <CardContent className="pt-6">
-        <div className="flex justify-between items-center mb-4">
+        <div className="flex justify-between items-center mb-2">
           <h3 className={cn("text-lg font-semibold flex items-center gap-2", colors.text)}>
             <div className={cn("w-3 h-3 rounded-full", colors.bgActive)} />
             LOT: {lot.label.toUpperCase()}
@@ -30,6 +30,14 @@ export const SummaryLotDetail = ({ lot }: SummaryLotDetailProps) => {
             Total: {lot.total.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €
           </span>
         </div>
+        
+        {/* Lot header comment */}
+        {lot.header_comment && (
+          <p className="text-sm text-muted-foreground italic mb-4 flex items-center gap-2">
+            <span>💬</span>
+            {lot.header_comment}
+          </p>
+        )}
 
         <div className="space-y-6">
           {lot.sections.map((section) => (

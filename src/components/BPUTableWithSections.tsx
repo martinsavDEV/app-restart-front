@@ -303,6 +303,9 @@ export const BPUTableWithSections = ({
                 <th className="text-left py-2 px-2 font-medium text-muted-foreground text-[11px] uppercase">
                   Source prix
                 </th>
+                <th className="text-left py-2 px-2 font-medium text-muted-foreground text-[11px] uppercase w-36">
+                  Commentaire
+                </th>
                 <th className="text-center py-2 px-2 font-medium text-muted-foreground text-[11px] uppercase">
                   Actions
                 </th>
@@ -390,6 +393,26 @@ export const BPUTableWithSections = ({
         const sectionLines = linesBySection[section.id] || [];
         const sectionTotal = calculateSectionTotal(sectionLines);
         
+        // Resolve multiplier from variable or quote settings
+        const resolveMultiplier = (): number => {
+          if (!section.is_multiple) return 1;
+          
+          // If linked to a Calculator variable ($xxx)
+          if (section.linked_field?.startsWith('$')) {
+            return getVariableValue(section.linked_field) ?? section.multiplier;
+          }
+          
+          // If linked to a quote_settings field (n_wtg, n_foundations)
+          if (section.linked_field && quoteSettings) {
+            return (quoteSettings as any)[section.linked_field] ?? section.multiplier;
+          }
+          
+          return section.multiplier;
+        };
+        
+        const resolvedMultiplier = resolveMultiplier();
+        const isLinkedToVariable = section.linked_field?.startsWith('$');
+        
         return (
           <div key={section.id} className="mb-6">
             {/* Section Header */}
@@ -403,7 +426,7 @@ export const BPUTableWithSections = ({
                       <input
                         type="number"
                         min="1"
-                        value={section.linked_field && quoteSettings ? (quoteSettings as any)[section.linked_field] || section.multiplier : section.multiplier}
+                        value={resolvedMultiplier}
                         onChange={(e) => onSectionUpdate(section.id, Math.max(1, parseInt(e.target.value) || 1))}
                         disabled={!!section.linked_field}
                         className={`w-16 h-7 px-2 text-xs border rounded-md ${
@@ -411,9 +434,17 @@ export const BPUTableWithSections = ({
                             ? 'bg-muted text-orange-500 font-medium cursor-not-allowed' 
                             : 'bg-background'
                         }`}
+                        title={isLinkedToVariable ? `Lié à ${section.linked_field}` : undefined}
                       />
                       {section.linked_field && (
-                        <Link2 className="h-3 w-3 text-orange-500 flex-shrink-0" />
+                        <span className="flex items-center gap-1" title={`Variable: ${section.linked_field}`}>
+                          <Link2 className="h-3 w-3 text-orange-500 flex-shrink-0" />
+                          {isLinkedToVariable && (
+                            <span className="text-[10px] text-orange-500 font-mono">
+                              {section.linked_field}
+                            </span>
+                          )}
+                        </span>
                       )}
                     </div>
                   </div>
@@ -458,10 +489,10 @@ export const BPUTableWithSections = ({
                   Sous-total {section.is_multiple ? "unitaire" : ""} {section.name}: <span className="tabular-nums">{formatCurrency(sectionTotal)}</span>
                 </div>
               </div>
-              {section.is_multiple && section.multiplier > 1 && (
+              {section.is_multiple && resolvedMultiplier > 1 && (
                 <div className="flex justify-end text-sm">
-                  <span className="text-muted-foreground mr-2">× {section.multiplier} =</span>
-                  <span className="font-bold tabular-nums">{formatCurrency(sectionTotal * section.multiplier)}</span>
+                  <span className="text-muted-foreground mr-2">× {resolvedMultiplier} =</span>
+                  <span className="font-bold tabular-nums">{formatCurrency(sectionTotal * resolvedMultiplier)}</span>
                 </div>
               )}
             </div>

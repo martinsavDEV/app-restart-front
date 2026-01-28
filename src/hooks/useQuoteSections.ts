@@ -36,11 +36,13 @@ export const useQuoteSections = (lotId?: string | null) => {
       name,
       isMultiple,
       multiplier,
+      linkedField,
     }: {
       lotId: string;
       name: string;
       isMultiple: boolean;
       multiplier: number;
+      linkedField?: string;
     }) => {
       const { data: existingSections } = await supabase
         .from("quote_sections")
@@ -60,6 +62,7 @@ export const useQuoteSections = (lotId?: string | null) => {
           name,
           is_multiple: isMultiple,
           multiplier: isMultiple ? multiplier : 1,
+          linked_field: linkedField || null,
           order_index: nextOrderIndex,
         })
         .select()

@@ -288,6 +288,9 @@ export const BPUTableWithSections = ({
                 <th className="text-left py-2 px-2 font-medium text-muted-foreground text-[11px] uppercase">
                   Désignation
                 </th>
+                <th className="text-left py-2 px-2 font-medium text-muted-foreground text-[11px] uppercase w-36">
+                  Commentaire
+                </th>
                 <th className="text-right py-2 px-2 font-medium text-muted-foreground text-[11px] uppercase">
                   Qté
                 </th>
@@ -302,9 +305,6 @@ export const BPUTableWithSections = ({
                 </th>
                 <th className="text-left py-2 px-2 font-medium text-muted-foreground text-[11px] uppercase">
                   Source prix
-                </th>
-                <th className="text-left py-2 px-2 font-medium text-muted-foreground text-[11px] uppercase w-36">
-                  Commentaire
                 </th>
                 <th className="text-center py-2 px-2 font-medium text-muted-foreground text-[11px] uppercase">
                   Actions

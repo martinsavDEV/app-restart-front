@@ -9,6 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { BPULine, CalculatorVariable } from "@/types/bpu";
 import { Copy, Trash2, GripVertical } from "lucide-react";
+import { useState, useEffect } from "react";
 
 interface BPULineWithSection extends BPULine {
   section?: string;
@@ -54,6 +55,14 @@ export const DraggableLine = ({
     transition,
     isDragging,
   } = useSortable({ id: line.id });
+
+  // Local state for comment to avoid race conditions with instant saves
+  const [localComment, setLocalComment] = useState(line.comment || "");
+
+  // Sync local state when line.comment changes from external source
+  useEffect(() => {
+    setLocalComment(line.comment || "");
+  }, [line.comment]);
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -108,6 +117,25 @@ export const DraggableLine = ({
         />
       </td>
       <td className="py-1 px-2">
+        <input
+          type="text"
+          value={localComment}
+          onChange={(e) => setLocalComment(e.target.value)}
+          onBlur={() => {
+            if (localComment !== (line.comment || "")) {
+              onLineUpdate(line.id, { comment: localComment });
+            }
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.currentTarget.blur();
+            }
+          }}
+          placeholder="Commentaire..."
+          className="w-full h-7 px-2 text-xs border rounded-md bg-background hover:bg-muted/50 focus:bg-background focus:ring-1 focus:ring-primary"
+        />
+      </td>
+      <td className="py-1 px-2">
         <QuantityFormulaInput
           value={typeof line.quantity === 'number' ? line.quantity : parseFloat(String(line.quantity)) || 0}
           formula={line.quantity_formula}
@@ -158,15 +186,6 @@ export const DraggableLine = ({
             });
           }}
           onChange={(value) => onLineUpdate(line.id, { priceSource: value })}
-        />
-      </td>
-      <td className="py-1 px-2">
-        <input
-          type="text"
-          value={line.comment || ""}
-          onChange={(e) => onLineUpdate(line.id, { comment: e.target.value })}
-          placeholder="Commentaire..."
-          className="w-full h-7 px-2 text-xs border rounded-md bg-background hover:bg-muted/50 focus:bg-background focus:ring-1 focus:ring-primary"
         />
       </td>
       <td className="py-1 px-2 text-center">

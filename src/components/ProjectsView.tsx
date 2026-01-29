@@ -142,15 +142,6 @@ export function ProjectsView({ onOpenPricing }: ProjectsViewProps) {
     }
   };
 
-  // Calculate estimated budget for each project
-  const getEstimatedBudget = (project: Project) => {
-    // Find active version total_amount
-    const versions = project.id === selectedProjectId ? quoteVersions : [];
-    if (versions.length > 0) {
-      return versions[0]?.total_amount || null;
-    }
-    return null;
-  };
 
   if (isLoading) {
     return (
@@ -214,7 +205,6 @@ export function ProjectsView({ onOpenPricing }: ProjectsViewProps) {
                     setProjectToDelete(project.id);
                     setDeleteDialogOpen(true);
                   }}
-                  estimatedBudget={getEstimatedBudget(project) || undefined}
                 />
               ))}
             </div>

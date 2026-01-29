@@ -15,7 +15,8 @@ interface Project {
   department?: string | null;
   n_wtg?: number | null;
   description?: string | null;
-  quote_versions?: { id: string; last_update: string | null }[];
+  quote_count?: number;
+  latest_update?: string | null;
 }
 
 interface ProjectCardProps {
@@ -24,7 +25,6 @@ interface ProjectCardProps {
   onClick: () => void;
   onEdit: () => void;
   onDelete: () => void;
-  estimatedBudget?: number;
 }
 
 export const ProjectCard = ({
@@ -33,7 +33,6 @@ export const ProjectCard = ({
   onClick,
   onEdit,
   onDelete,
-  estimatedBudget,
 }: ProjectCardProps) => {
   // Get initials from project name
   const initials = project.name
@@ -42,7 +41,17 @@ export const ProjectCard = ({
     .map((word) => word[0]?.toUpperCase() || "")
     .join("");
 
-  const nbVersions = project.quote_versions?.length || 0;
+  const nbVersions = project.quote_count || 0;
+  
+  // Format the latest update date
+  const formatDate = (dateString?: string | null) => {
+    if (!dateString) return null;
+    return new Date(dateString).toLocaleDateString('fr-FR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+  };
 
   return (
     <div
@@ -95,18 +104,18 @@ export const ProjectCard = ({
         </div>
       </div>
 
-      {/* Budget & Versions */}
+      {/* Versions & Last Update */}
       <div className="text-right shrink-0 z-10 pointer-events-none">
-        {estimatedBudget ? (
-          <div className="font-mono text-sm font-medium text-foreground">
-            {(estimatedBudget / 1000000).toFixed(1)}M €
-          </div>
-        ) : (
-          <div className="text-xs text-muted-foreground">-</div>
-        )}
-        <div className="text-[11px] text-muted-foreground mt-0.5">
+        <div className="text-xs font-medium text-foreground">
           {nbVersions} version{nbVersions !== 1 ? "s" : ""}
         </div>
+        {project.latest_update ? (
+          <div className="text-[11px] text-muted-foreground mt-0.5">
+            MAJ: {formatDate(project.latest_update)}
+          </div>
+        ) : (
+          <div className="text-[11px] text-muted-foreground mt-0.5">-</div>
+        )}
       </div>
 
       {/* Actions dropdown */}

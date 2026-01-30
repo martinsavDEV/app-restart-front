@@ -23,6 +23,7 @@ interface NavItem {
   id: string;
   label: string;
   icon: React.ElementType;
+  adminOnly?: boolean;
 }
 
 const navItems: NavItem[] = [
@@ -32,7 +33,7 @@ const navItems: NavItem[] = [
   { id: "summary", label: "Export CAPEX", icon: FileSpreadsheet },
   { id: "price-db", label: "Base de prix", icon: Coins },
   { id: "templates", label: "Templates", icon: Layout },
-  { id: "data-admin", label: "Admin Data", icon: Settings },
+  { id: "data-admin", label: "Admin / Utilisateurs", icon: Settings, adminOnly: true },
 ];
 
 interface SidebarProps {
@@ -42,7 +43,10 @@ interface SidebarProps {
 }
 
 export const Sidebar = ({ activeView, onViewChange, quotesEnabled = false }: SidebarProps) => {
-  const { signOut } = useAuth();
+  const { signOut, isAdmin } = useAuth();
+
+  // Filter nav items based on admin status
+  const visibleNavItems = navItems.filter((item) => !item.adminOnly || isAdmin);
 
   return (
     <TooltipProvider delayDuration={100}>
@@ -54,7 +58,7 @@ export const Sidebar = ({ activeView, onViewChange, quotesEnabled = false }: Sid
 
         {/* Navigation */}
         <nav className="flex-1 flex flex-col gap-1 w-full px-2">
-          {navItems.map((item) => {
+          {visibleNavItems.map((item) => {
             const isActive = activeView === item.id;
             const isDisabled = item.id === "quotes" && !quotesEnabled;
             const Icon = item.icon;

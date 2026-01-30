@@ -13,7 +13,7 @@ import { SummaryView } from "@/components/SummaryView";
 import { Loader2 } from "lucide-react";
 
 const Index = () => {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, isAdmin } = useAuth();
   const navigate = useNavigate();
   const [activeView, setActiveView] = useState("projects");
   const [quotesEnabled, setQuotesEnabled] = useState(false);
@@ -42,7 +42,13 @@ const Index = () => {
 
   const handleViewChange = (view: string) => {
     if (view === "quotes" && !quotesEnabled) return;
+    // Prevent non-admins from accessing admin view
+    if (view === "data-admin" && !isAdmin) return;
     setActiveView(view);
+  };
+
+  const handleNavigateAdmin = () => {
+    setActiveView("data-admin");
   };
 
   const handleOpenPricing = (
@@ -92,7 +98,7 @@ const Index = () => {
       case "templates":
         return <TemplatesView />;
       case "data-admin":
-        return <DataAdminView />;
+        return isAdmin ? <DataAdminView /> : <ProjectsView />;
       default:
         return <ProjectsView />;
     }
@@ -111,6 +117,7 @@ const Index = () => {
           projectCode={selectedProjectId}
           versionLabel={selectedVersionLabel}
           currentView={activeView}
+          onNavigateAdmin={handleNavigateAdmin}
         />
         <main className="flex-1 overflow-y-auto">{renderView()}</main>
       </div>

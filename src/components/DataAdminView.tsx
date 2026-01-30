@@ -1,298 +1,287 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Download, Upload, FileText } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { exportToCSV, downloadTemplate, parseCSV, validateData } from "@/lib/csvUtils";
-
-const tableConfigs = {
-  projects: {
-    label: "Projets",
-    columns: ["name", "department", "n_wtg", "description"],
-    requiredColumns: ["name"],
-  },
-  quote_versions: {
-    label: "Versions de chiffrage",
-    columns: ["project_id", "version_label", "type", "comment", "total_amount"],
-    requiredColumns: ["project_id", "version_label"],
-  },
-  reference_documents: {
-    label: "Documents de référence",
-    columns: ["version_id", "label", "reference", "comment"],
-    requiredColumns: ["version_id", "label"],
-  },
-  user_roles: {
-    label: "Rôles utilisateurs",
-    columns: ["user_id", "role"],
-    requiredColumns: ["user_id", "role"],
-  },
-  lot_templates: {
-    label: "Templates de lots",
-    columns: ["code", "label", "description"],
-    requiredColumns: ["code", "label"],
-  },
-};
+import { Label } from "@/components/ui/label";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Badge } from "@/components/ui/badge";
+import { UserPlus, Trash2, Loader2, Users, Mail, Shield, ShieldCheck } from "lucide-react";
+import { useUserManagement } from "@/hooks/useUserManagement";
+import { useAuth } from "@/contexts/AuthContext";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
 
 export const DataAdminView = () => {
-  const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState<keyof typeof tableConfigs>("projects");
-  const [importFile, setImportFile] = useState<File | null>(null);
-  const [previewData, setPreviewData] = useState<any[] | null>(null);
+  const { user } = useAuth();
+  const {
+    usersWithRoles,
+    pendingInvitations,
+    isLoading,
+    inviteUser,
+    updateRole,
+    removeUser,
+    cancelInvitation,
+  } = useUserManagement();
 
-  // Fetch data for all tables
-  const { data: projects, refetch: refetchProjects } = useQuery({
-    queryKey: ["admin-projects"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("projects").select("*");
-      if (error) throw error;
-      return data;
-    },
-  });
+  const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteRole, setInviteRole] = useState<"admin" | "user">("user");
 
-  const { data: quoteVersions, refetch: refetchQuoteVersions } = useQuery({
-    queryKey: ["admin-quote-versions"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("quote_versions").select("*");
-      if (error) throw error;
-      return data;
-    },
-  });
+  const handleInvite = async () => {
+    if (!inviteEmail.trim()) return;
+    
+    await inviteUser.mutateAsync({ email: inviteEmail, role: inviteRole });
+    setInviteDialogOpen(false);
+    setInviteEmail("");
+    setInviteRole("user");
+  };
 
-  const { data: referenceDocs, refetch: refetchReferenceDocs } = useQuery({
-    queryKey: ["admin-reference-documents"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("reference_documents").select("*");
-      if (error) throw error;
-      return data;
-    },
-  });
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return "-";
+    return format(new Date(dateString), "dd/MM/yyyy", { locale: fr });
+  };
 
-  const { data: userRoles, refetch: refetchUserRoles } = useQuery({
-    queryKey: ["admin-user-roles"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("user_roles").select("*");
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  const { data: lotTemplates, refetch: refetchLotTemplates } = useQuery({
-    queryKey: ["admin-lot-templates"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("lot_templates").select("id, code, label, description");
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  const getCurrentData = () => {
-    switch (activeTab) {
-      case "projects": return projects || [];
-      case "quote_versions": return quoteVersions || [];
-      case "reference_documents": return referenceDocs || [];
-      case "user_roles": return userRoles || [];
-      case "lot_templates": return lotTemplates || [];
+  const getRoleBadge = (role: "admin" | "user") => {
+    if (role === "admin") {
+      return (
+        <Badge variant="default" className="bg-accent">
+          <ShieldCheck className="w-3 h-3 mr-1" />
+          Admin
+        </Badge>
+      );
     }
+    return (
+      <Badge variant="secondary">
+        <Shield className="w-3 h-3 mr-1" />
+        Utilisateur
+      </Badge>
+    );
   };
 
-  const refetchCurrentData = () => {
-    switch (activeTab) {
-      case "projects": return refetchProjects();
-      case "quote_versions": return refetchQuoteVersions();
-      case "reference_documents": return refetchReferenceDocs();
-      case "user_roles": return refetchUserRoles();
-      case "lot_templates": return refetchLotTemplates();
-    }
-  };
-
-  const handleExport = () => {
-    const data = getCurrentData();
-    const config = tableConfigs[activeTab];
-    exportToCSV(data, activeTab, config.columns);
-    toast({ title: "Export réussi", description: `${data.length} lignes exportées` });
-  };
-
-  const handleDownloadTemplate = () => {
-    const config = tableConfigs[activeTab];
-    downloadTemplate(config.columns, activeTab);
-    toast({ title: "Template téléchargé" });
-  };
-
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    try {
-      const data = await parseCSV(file);
-      setImportFile(file);
-      setPreviewData(data);
-      toast({ title: "Fichier chargé", description: `${data.length} lignes à importer` });
-    } catch (error) {
-      toast({ 
-        title: "Erreur", 
-        description: error instanceof Error ? error.message : "Erreur de parsing",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const handleImport = async () => {
-    if (!previewData) return;
-
-    const config = tableConfigs[activeTab];
-    const validation = validateData(previewData, config.requiredColumns);
-
-    if (!validation.valid) {
-      toast({
-        title: "Erreurs de validation",
-        description: validation.errors.join(", "),
-        variant: "destructive"
-      });
-      return;
-    }
-
-    try {
-      const { error } = await supabase.from(activeTab).insert(previewData);
-      
-      if (error) throw error;
-
-      toast({ title: "Import réussi", description: `${previewData.length} lignes ajoutées` });
-      setPreviewData(null);
-      setImportFile(null);
-      refetchCurrentData();
-    } catch (error) {
-      toast({
-        title: "Erreur d'import",
-        description: error instanceof Error ? error.message : "Erreur inconnue",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const renderTable = (data: any[], columns: string[]) => (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          {columns.map((col) => (
-            <TableHead key={col}>{col}</TableHead>
-          ))}
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {data.length === 0 ? (
-          <TableRow>
-            <TableCell colSpan={columns.length} className="text-center text-muted-foreground">
-              Aucune donnée
-            </TableCell>
-          </TableRow>
-        ) : (
-          data.map((row, i) => (
-            <TableRow key={i}>
-              {columns.map((col) => (
-                <TableCell key={col}>{row[col]?.toString() || "-"}</TableCell>
-              ))}
-            </TableRow>
-          ))
-        )}
-      </TableBody>
-    </Table>
-  );
+  if (isLoading) {
+    return (
+      <div className="h-full flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-accent" />
+      </div>
+    );
+  }
 
   return (
     <div className="h-full overflow-y-auto">
       <div className="p-6 space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold">Administration des données</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Import/Export CSV pour toutes les tables
-        </p>
-      </div>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-semibold flex items-center gap-2">
+              <Users className="w-6 h-6" />
+              Gestion des utilisateurs
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Invitez des utilisateurs et gérez leurs droits d'accès
+            </p>
+          </div>
 
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as keyof typeof tableConfigs)}>
-        <TabsList>
-          {Object.entries(tableConfigs).map(([key, config]) => (
-            <TabsTrigger key={key} value={key}>
-              {config.label}
-            </TabsTrigger>
-          ))}
-        </TabsList>
+          <Dialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <UserPlus className="w-4 h-4 mr-2" />
+                Inviter un utilisateur
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Inviter un utilisateur</DialogTitle>
+                <DialogDescription>
+                  L'utilisateur recevra un accès à l'application après avoir créé son compte.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="invite-email">Email</Label>
+                  <Input
+                    id="invite-email"
+                    type="email"
+                    placeholder="utilisateur@exemple.com"
+                    value={inviteEmail}
+                    onChange={(e) => setInviteEmail(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-3">
+                  <Label>Rôle</Label>
+                  <RadioGroup
+                    value={inviteRole}
+                    onValueChange={(v) => setInviteRole(v as "admin" | "user")}
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="user" id="role-user" />
+                      <Label htmlFor="role-user" className="font-normal cursor-pointer">
+                        <span className="font-medium">Utilisateur</span>
+                        <span className="text-muted-foreground ml-2">— Accès standard</span>
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="admin" id="role-admin" />
+                      <Label htmlFor="role-admin" className="font-normal cursor-pointer">
+                        <span className="font-medium">Administrateur</span>
+                        <span className="text-muted-foreground ml-2">— Gestion complète</span>
+                      </Label>
+                    </div>
+                  </RadioGroup>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setInviteDialogOpen(false)}>
+                  Annuler
+                </Button>
+                <Button onClick={handleInvite} disabled={inviteUser.isPending || !inviteEmail.trim()}>
+                  {inviteUser.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                  Inviter
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
 
-        {Object.entries(tableConfigs).map(([key, config]) => (
-          <TabsContent key={key} value={key}>
-            <div className="space-y-4">
-              {/* Actions */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Actions</CardTitle>
-                  <CardDescription>Export et import de données CSV</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex gap-2">
-                    <Button onClick={handleExport} variant="outline">
-                      <Download className="mr-2 h-4 w-4" />
-                      Exporter CSV
-                    </Button>
-                    <Button onClick={handleDownloadTemplate} variant="outline">
-                      <FileText className="mr-2 h-4 w-4" />
-                      Télécharger Template
-                    </Button>
-                  </div>
+        {/* Active Users */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Users className="w-5 h-5" />
+              Utilisateurs actifs ({usersWithRoles.length})
+            </CardTitle>
+            <CardDescription>
+              Utilisateurs ayant accès à l'application
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>ID Utilisateur</TableHead>
+                  <TableHead>Rôle</TableHead>
+                  <TableHead>Depuis</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {usersWithRoles.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center text-muted-foreground">
+                      Aucun utilisateur
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  usersWithRoles.map((userRole) => (
+                    <TableRow key={userRole.id}>
+                      <TableCell className="font-mono text-xs">
+                        {userRole.user_id === user?.id ? (
+                          <span className="flex items-center gap-2">
+                            {userRole.user_id.slice(0, 8)}...
+                            <Badge variant="outline" className="text-xs">Vous</Badge>
+                          </span>
+                        ) : (
+                          `${userRole.user_id.slice(0, 8)}...`
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {userRole.user_id === user?.id ? (
+                          getRoleBadge(userRole.role)
+                        ) : (
+                          <Select
+                            value={userRole.role}
+                            onValueChange={(newRole) =>
+                              updateRole.mutate({
+                                userId: userRole.user_id,
+                                newRole: newRole as "admin" | "user",
+                              })
+                            }
+                          >
+                            <SelectTrigger className="w-32">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="user">Utilisateur</SelectItem>
+                              <SelectItem value="admin">Admin</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        )}
+                      </TableCell>
+                      <TableCell>{formatDate(userRole.created_at)}</TableCell>
+                      <TableCell className="text-right">
+                        {userRole.user_id !== user?.id && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-destructive hover:text-destructive"
+                            onClick={() => removeUser.mutate(userRole.user_id)}
+                            disabled={removeUser.isPending}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
 
-                  <div className="space-y-2">
-                    <Input
-                      type="file"
-                      accept=".csv"
-                      onChange={handleFileSelect}
-                      className="cursor-pointer"
-                    />
-                    {importFile && (
-                      <Button onClick={handleImport}>
-                        <Upload className="mr-2 h-4 w-4" />
-                        Importer {previewData?.length || 0} lignes
-                      </Button>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Preview Import */}
-              {previewData && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">Aperçu des données à importer</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {renderTable(previewData.slice(0, 10), config.columns)}
-                    {previewData.length > 10 && (
-                      <p className="text-sm text-muted-foreground mt-2">
-                        ... et {previewData.length - 10} lignes supplémentaires
-                      </p>
-                    )}
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Current Data */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Données actuelles</CardTitle>
-                  <CardDescription>
-                    {getCurrentData().length} lignes dans la table
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {renderTable(getCurrentData(), config.columns)}
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-        ))}
-      </Tabs>
+        {/* Pending Invitations */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Mail className="w-5 h-5" />
+              Invitations en attente ({pendingInvitations.length})
+            </CardTitle>
+            <CardDescription>
+              Utilisateurs invités qui ne se sont pas encore connectés
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Rôle prévu</TableHead>
+                  <TableHead>Invité le</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {pendingInvitations.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center text-muted-foreground">
+                      Aucune invitation en attente
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  pendingInvitations.map((invitation) => (
+                    <TableRow key={invitation.id}>
+                      <TableCell>{invitation.email}</TableCell>
+                      <TableCell>{getRoleBadge(invitation.role)}</TableCell>
+                      <TableCell>{formatDate(invitation.invited_at)}</TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-destructive hover:text-destructive"
+                          onClick={() => cancelInvitation.mutate(invitation.id)}
+                          disabled={cancelInvitation.isPending}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

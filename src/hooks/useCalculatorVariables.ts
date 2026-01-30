@@ -49,41 +49,54 @@ export const useCalculatorVariables = (calculatorData: CalculatorData | null): {
       );
     }
 
+    // Helper to safely convert to number
+    const toNumber = (val: unknown): number => {
+      if (typeof val === 'number') return val;
+      if (typeof val === 'string') return parseFloat(val) || 0;
+      return 0;
+    };
+
     // Per-turbine variables
     let sumVolSubstitution = 0;
     calculatorData.turbines.forEach((turbine) => {
+      const surfPF = toNumber(turbine.surf_PF);
+      const accesPF = toNumber(turbine.acces_PF);
+      const m3Bouger = toNumber(turbine.m3_bouger);
+      const bypass = toNumber(turbine.bypass);
+      const substitution = toNumber(turbine.substitution);
+
       vars.push(
         {
           name: `$surf_PF_${turbine.name}`,
-          value: turbine.surf_PF,
+          value: surfPF,
           label: `Surface PF ${turbine.name}`,
           category: "Éoliennes",
         },
         {
           name: `$acces_PF_${turbine.name}`,
-          value: turbine.acces_PF,
+          value: accesPF,
           label: `Accès PF ${turbine.name}`,
           category: "Éoliennes",
         },
         {
           name: `$m3_bouger_${turbine.name}`,
-          value: turbine.m3_bouger,
+          value: m3Bouger,
           label: `m³ à bouger ${turbine.name}`,
           category: "Éoliennes",
         },
         {
           name: `$bypass_${turbine.name}`,
-          value: turbine.bypass,
+          value: bypass,
           label: `Bypass ${turbine.name}`,
           category: "Éoliennes",
         }
       );
 
       // Volume substitution per turbine
-      if (foundationMetrics && turbine.substitution > 0) {
+      if (foundationMetrics && substitution > 0) {
         const volSub = calculateSubstitutionVolume(
           foundationMetrics.surfaceFondFouille,
-          turbine.substitution
+          substitution
         );
         vars.push({
           name: `$vol_sub_${turbine.name}`,
@@ -95,11 +108,11 @@ export const useCalculatorVariables = (calculatorData: CalculatorData | null): {
       }
     });
 
-    // Totals for turbines
-    const sum_surf_PF = calculatorData.turbines.reduce((sum, t) => sum + t.surf_PF, 0);
-    const sum_acces_PF = calculatorData.turbines.reduce((sum, t) => sum + t.acces_PF, 0);
-    const sum_m3_bouger = calculatorData.turbines.reduce((sum, t) => sum + t.m3_bouger, 0);
-    const sum_bypass = calculatorData.turbines.reduce((sum, t) => sum + t.bypass, 0);
+    // Totals for turbines (with safe number conversion)
+    const sum_surf_PF = calculatorData.turbines.reduce((sum, t) => sum + toNumber(t.surf_PF), 0);
+    const sum_acces_PF = calculatorData.turbines.reduce((sum, t) => sum + toNumber(t.acces_PF), 0);
+    const sum_m3_bouger = calculatorData.turbines.reduce((sum, t) => sum + toNumber(t.m3_bouger), 0);
+    const sum_bypass = calculatorData.turbines.reduce((sum, t) => sum + toNumber(t.bypass), 0);
 
     vars.push(
       { name: "$sum_surf_PF", value: sum_surf_PF, label: "Total Surface PF", category: "Totaux" },
@@ -125,30 +138,30 @@ export const useCalculatorVariables = (calculatorData: CalculatorData | null): {
       { name: "$nb_eol_sans_eau", value: nb_eol_sans_eau, label: "Nb éoliennes sans eau", category: "Totaux" }
     );
 
-    // Access segments variables
+    // Access segments variables (with safe number conversion)
     calculatorData.access_segments.forEach((segment) => {
       vars.push(
         {
           name: `$longueur_${segment.name.replace(/\s+/g, "_")}`,
-          value: segment.longueur,
+          value: toNumber(segment.longueur),
           label: `Longueur ${segment.name}`,
           category: "Accès",
         },
         {
           name: `$surface_${segment.name.replace(/\s+/g, "_")}`,
-          value: segment.surface,
+          value: toNumber(segment.surface),
           label: `Surface ${segment.name}`,
           category: "Accès",
         }
       );
     });
 
-    // Totals for access segments
-    const sum_longueur = calculatorData.access_segments.reduce((sum, s) => sum + s.longueur, 0);
-    const sum_surface_chemins = calculatorData.access_segments.reduce((sum, s) => sum + s.surface, 0);
-    const sum_GNT = calculatorData.access_segments.filter((s) => s.gnt).reduce((sum, s) => sum + s.surface, 0);
-    const sum_bicouche = calculatorData.access_segments.reduce((sum, s) => sum + s.bicouche, 0);
-    const sum_enrobe = calculatorData.access_segments.reduce((sum, s) => sum + s.enrobe, 0);
+    // Totals for access segments (with safe number conversion)
+    const sum_longueur = calculatorData.access_segments.reduce((sum, s) => sum + toNumber(s.longueur), 0);
+    const sum_surface_chemins = calculatorData.access_segments.reduce((sum, s) => sum + toNumber(s.surface), 0);
+    const sum_GNT = calculatorData.access_segments.filter((s) => s.gnt).reduce((sum, s) => sum + toNumber(s.surface), 0);
+    const sum_bicouche = calculatorData.access_segments.reduce((sum, s) => sum + toNumber(s.bicouche), 0);
+    const sum_enrobe = calculatorData.access_segments.reduce((sum, s) => sum + toNumber(s.enrobe), 0);
 
     vars.push(
       { name: "$sum_longueur_chemins", value: sum_longueur, label: "Total Longueur chemins", category: "Totaux" },
@@ -158,63 +171,63 @@ export const useCalculatorVariables = (calculatorData: CalculatorData | null): {
       { name: "$sum_enrobe", value: sum_enrobe, label: "Total Enrobé", category: "Totaux" }
     );
 
-    // HTA Cables variables
+    // HTA Cables variables (with safe number conversion)
     if (calculatorData.hta_cables) {
       calculatorData.hta_cables.forEach((cable) => {
         vars.push(
           {
             name: `$alu95_${cable.name.replace(/\s+/g, "_")}`,
-            value: cable.alu_95,
+            value: toNumber(cable.alu_95),
             label: `95² alu ${cable.name}`,
             category: "Électricité",
           },
           {
             name: `$alu150_${cable.name.replace(/\s+/g, "_")}`,
-            value: cable.alu_150,
+            value: toNumber(cable.alu_150),
             label: `150² alu ${cable.name}`,
             category: "Électricité",
           },
           {
             name: `$alu240_${cable.name.replace(/\s+/g, "_")}`,
-            value: cable.alu_240,
+            value: toNumber(cable.alu_240),
             label: `240² alu ${cable.name}`,
             category: "Électricité",
           },
           {
             name: `$alu400_${cable.name.replace(/\s+/g, "_")}`,
-            value: cable.alu_400,
+            value: toNumber(cable.alu_400),
             label: `400² alu ${cable.name}`,
             category: "Électricité",
           },
           {
             name: `$cu95_${cable.name.replace(/\s+/g, "_")}`,
-            value: cable.cu_95,
+            value: toNumber(cable.cu_95),
             label: `95² cu ${cable.name}`,
             category: "Électricité",
           },
           {
             name: `$cu150_${cable.name.replace(/\s+/g, "_")}`,
-            value: cable.cu_150,
+            value: toNumber(cable.cu_150),
             label: `150² cu ${cable.name}`,
             category: "Électricité",
           },
           {
             name: `$cu240_${cable.name.replace(/\s+/g, "_")}`,
-            value: cable.cu_240,
+            value: toNumber(cable.cu_240),
             label: `240² cu ${cable.name}`,
             category: "Électricité",
           }
         );
       });
 
-      // Totals for HTA cables
-      const sum_alu95 = calculatorData.hta_cables.reduce((sum, c) => sum + c.alu_95, 0);
-      const sum_alu150 = calculatorData.hta_cables.reduce((sum, c) => sum + c.alu_150, 0);
-      const sum_alu240 = calculatorData.hta_cables.reduce((sum, c) => sum + c.alu_240, 0);
-      const sum_alu400 = calculatorData.hta_cables.reduce((sum, c) => sum + c.alu_400, 0);
-      const sum_cu95 = calculatorData.hta_cables.reduce((sum, c) => sum + c.cu_95, 0);
-      const sum_cu150 = calculatorData.hta_cables.reduce((sum, c) => sum + c.cu_150, 0);
-      const sum_cu240 = calculatorData.hta_cables.reduce((sum, c) => sum + c.cu_240, 0);
+      // Totals for HTA cables (with safe number conversion)
+      const sum_alu95 = calculatorData.hta_cables.reduce((sum, c) => sum + toNumber(c.alu_95), 0);
+      const sum_alu150 = calculatorData.hta_cables.reduce((sum, c) => sum + toNumber(c.alu_150), 0);
+      const sum_alu240 = calculatorData.hta_cables.reduce((sum, c) => sum + toNumber(c.alu_240), 0);
+      const sum_alu400 = calculatorData.hta_cables.reduce((sum, c) => sum + toNumber(c.alu_400), 0);
+      const sum_cu95 = calculatorData.hta_cables.reduce((sum, c) => sum + toNumber(c.cu_95), 0);
+      const sum_cu150 = calculatorData.hta_cables.reduce((sum, c) => sum + toNumber(c.cu_150), 0);
+      const sum_cu240 = calculatorData.hta_cables.reduce((sum, c) => sum + toNumber(c.cu_240), 0);
 
       vars.push(
         { name: "$sum_alu95", value: sum_alu95, label: "Total 95² alu (ml)", category: "Totaux" },

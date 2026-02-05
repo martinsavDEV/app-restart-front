@@ -9,7 +9,8 @@ import { BPULine } from "@/types/bpu";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-
+import { getLotColors } from "@/lib/lotColors";
+import { cn } from "@/lib/utils";
 interface LotSectionProps {
   lot: any;
   convertToBPULines: (lines: any[]) => (BPULine & { section_id?: string | null; lot_id?: string })[];
@@ -69,13 +70,15 @@ export const LotSection = ({
     updateLotCommentMutation.mutate(headerComment);
   };
 
+  const colors = getLotColors(lot.code);
+
   return (
     <>
-      <Card>
+      <Card className={cn("border-2", colors.border, colors.bg)}>
         <CardHeader className="pb-3">
           <div className="flex items-start justify-between">
             <div className="flex-1">
-              <CardTitle className="text-sm">{lot.label}</CardTitle>
+              <CardTitle className={cn("text-sm", colors.text)}>{lot.label}</CardTitle>
               <CardDescription className="text-xs">{lot.description}</CardDescription>
               
               {/* Header Comment Section */}
@@ -145,7 +148,7 @@ export const LotSection = ({
         </CardHeader>
       </Card>
 
-      <Card>
+      <Card className={cn("border-2", colors.border)}>
         <CardHeader className="pb-3">
           <div className="flex justify-between items-start">
             <CardTitle className="text-sm">Lignes de chiffrage</CardTitle>

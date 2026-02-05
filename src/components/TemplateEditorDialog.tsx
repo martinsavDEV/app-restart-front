@@ -40,15 +40,15 @@ interface TemplateEditorDialogProps {
 }
 
 const LOT_OPTIONS = [
-  { value: "fondation", label: "Fondations" },
   { value: "terrassement", label: "Terrassement" },
-  { value: "renforcement", label: "Renforcement" },
+  { value: "renforcement", label: "Renforcement de sol" },
+  { value: "fondation", label: "Fondations" },
   { value: "electricite", label: "Électricité" },
-  { value: "turbine", label: "Turbine" },
+  { value: "turbine", label: "Turbinier" },
 ];
 
 export const TemplateEditorDialog = ({ open, onOpenChange, template, onSave }: TemplateEditorDialogProps) => {
-  const [code, setCode] = useState(template?.code || "fondation");
+  const [code, setCode] = useState(template?.code || "terrassement");
   const [label, setLabel] = useState(template?.label || "");
   const [description, setDescription] = useState(template?.description || "");
   const [sections, setSections] = useState<WorkSection[]>([]);

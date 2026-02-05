@@ -414,9 +414,9 @@ export const BPUTableWithSections = ({
         return (
           <div key={section.id} className="mb-6">
             {/* Section Header */}
-            <div className={`${lotColors.bg} px-3 py-2 mb-2 rounded-md flex items-center justify-between border-2 ${lotColors.border}`}>
+            <div className="bg-emerald-500/20 px-3 py-2 mb-2 rounded-md flex items-center justify-between border border-emerald-500/30">
               <div className="flex items-center gap-3">
-                <h3 className={`text-sm font-semibold ${lotColors.text}`}>{section.name}</h3>
+                <h3 className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">{section.name}</h3>
                 {section.is_multiple && onSectionUpdate && (
                   <div className="flex items-center gap-2">
                     <label className="text-xs text-muted-foreground">Nombre:</label>

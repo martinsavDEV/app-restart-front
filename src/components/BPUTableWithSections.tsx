@@ -4,6 +4,7 @@ import { BPULine } from "@/types/bpu";
 import { Trash2, Clipboard, Plus, Link2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { getLotColors } from "@/lib/lotColors";
 import { useLineSelection } from "@/hooks/useLineSelection";
 import { toast } from "sonner";
 import { useCalculatorVariables } from "@/hooks/useCalculatorVariables";
@@ -388,6 +389,7 @@ export const BPUTableWithSections = ({
         {sections.map((section) => {
         const sectionLines = linesBySection[section.id] || [];
         const sectionTotal = calculateSectionTotal(sectionLines);
+        const lotColors = getLotColors(lotCode || '');
         
         // Resolve multiplier from variable or quote settings
         const resolveMultiplier = (): number => {
@@ -412,9 +414,9 @@ export const BPUTableWithSections = ({
         return (
           <div key={section.id} className="mb-6">
             {/* Section Header */}
-            <div className="bg-emerald-500/20 px-3 py-2 mb-2 rounded-md flex items-center justify-between border border-emerald-500/30">
+            <div className={`${lotColors.bg} px-3 py-2 mb-2 rounded-md flex items-center justify-between border-2 ${lotColors.border}`}>
               <div className="flex items-center gap-3">
-                <h3 className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">{section.name}</h3>
+                <h3 className={`text-sm font-semibold ${lotColors.text}`}>{section.name}</h3>
                 {section.is_multiple && onSectionUpdate && (
                   <div className="flex items-center gap-2">
                     <label className="text-xs text-muted-foreground">Nombre:</label>

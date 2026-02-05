@@ -12,7 +12,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, AlertCircle } from "lucide-react";
+import { Loader2, AlertCircle, Check } from "lucide-react";
 import { useTemplates } from "@/hooks/useTemplates";
 import { usePriceItems, PriceItem } from "@/hooks/usePriceItems";
 import { WorkSection, BPULine } from "@/types/bpu";
@@ -70,15 +70,27 @@ export const TemplateLoaderDialog = ({
     if (!selectedTemplate) return;
 
     const templateData = selectedTemplate.template_lines as any;
-    const sections: WorkSection[] = templateData.sections || [];
+    let sections: WorkSection[] = templateData.sections || [];
 
     // Find lines with multiple price variants
     const linesWithMultipleVariants: LineWithVariants[] = [];
     
-    sections.forEach((section) => {
-      section.lines?.forEach((line: BPULine) => {
+    // Update prices automatically for items with single variant
+    sections = sections.map((section) => ({
+      ...section,
+      lines: section.lines?.map((line: BPULine) => {
         const variants = findVariants(line.designation);
-        if (variants.length > 1) {
+        
+        if (variants.length === 1) {
+          // Single variant: update automatically
+          const priceItem = variants[0];
+          return {
+            ...line,
+            unitPrice: priceItem.unit_price,
+            priceSource: priceItem.price_reference || priceItem.item,
+          };
+        } else if (variants.length > 1) {
+          // Multiple variants: collect for selector
           linesWithMultipleVariants.push({
             sectionId: section.id,
             sectionTitle: section.title,
@@ -86,8 +98,10 @@ export const TemplateLoaderDialog = ({
             variants,
           });
         }
-      });
-    });
+        // No variant: keep original price
+        return line;
+      }) || [],
+    }));
 
     if (linesWithMultipleVariants.length > 0) {
       setPendingSections(sections);
@@ -126,7 +140,7 @@ export const TemplateLoaderDialog = ({
     setLinesWithVariants([]);
   };
 
-  // Check if selected template has lines with multiple variants
+  // Check if selected template has lines with price updates
   const selectedTemplateVariantsInfo = useMemo(() => {
     if (!selectedTemplate) return null;
     
@@ -134,16 +148,23 @@ export const TemplateLoaderDialog = ({
     const sections = templateData.sections || [];
     
     let linesWithMultipleVariants = 0;
+    let linesWithAutoUpdate = 0;
+    
     sections.forEach((section: any) => {
       section.lines?.forEach((line: any) => {
         const variants = findVariants(line.designation);
         if (variants.length > 1) {
           linesWithMultipleVariants++;
+        } else if (variants.length === 1) {
+          linesWithAutoUpdate++;
         }
       });
     });
 
-    return linesWithMultipleVariants > 0 ? linesWithMultipleVariants : null;
+    return {
+      multipleVariants: linesWithMultipleVariants > 0 ? linesWithMultipleVariants : null,
+      autoUpdate: linesWithAutoUpdate > 0 ? linesWithAutoUpdate : null,
+    };
   }, [selectedTemplate, variantsMap]);
 
   return (
@@ -200,12 +221,20 @@ export const TemplateLoaderDialog = ({
                     <CardHeader>
                       <CardTitle className="text-sm flex items-center justify-between">
                         <span>Aperçu des lignes</span>
-                        {selectedTemplateVariantsInfo && (
-                          <Badge variant="secondary" className="bg-amber-100 text-amber-700 flex items-center gap-1">
-                            <AlertCircle className="h-3 w-3" />
-                            {selectedTemplateVariantsInfo} ligne(s) avec plusieurs prix
-                          </Badge>
-                        )}
+                        <div className="flex items-center gap-2">
+                          {selectedTemplateVariantsInfo?.autoUpdate && (
+                            <Badge variant="secondary" className="bg-green-100 text-green-700 flex items-center gap-1">
+                              <Check className="h-3 w-3" />
+                              {selectedTemplateVariantsInfo.autoUpdate} prix MAJ auto
+                            </Badge>
+                          )}
+                          {selectedTemplateVariantsInfo?.multipleVariants && (
+                            <Badge variant="secondary" className="bg-amber-100 text-amber-700 flex items-center gap-1">
+                              <AlertCircle className="h-3 w-3" />
+                              {selectedTemplateVariantsInfo.multipleVariants} ligne(s) avec plusieurs prix
+                            </Badge>
+                          )}
+                        </div>
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
@@ -216,13 +245,17 @@ export const TemplateLoaderDialog = ({
                             {section.lines?.map((line: any, lineIndex: number) => {
                               const variants = findVariants(line.designation);
                               const hasMultipleVariants = variants.length > 1;
+                              const hasSingleVariant = variants.length === 1;
+                              const updatedPrice = hasSingleVariant ? variants[0].unit_price : null;
                               return (
                                 <div
                                   key={lineIndex}
                                   className={`text-xs p-2 rounded flex justify-between ml-3 ${
                                     hasMultipleVariants 
                                       ? "bg-amber-50 border border-amber-200" 
-                                      : "bg-muted/50"
+                                      : hasSingleVariant
+                                        ? "bg-green-50 border border-green-200"
+                                        : "bg-muted/50"
                                   }`}
                                 >
                                   <div className="flex items-center gap-2">
@@ -235,9 +268,24 @@ export const TemplateLoaderDialog = ({
                                         {variants.length} prix
                                       </Badge>
                                     )}
+                                    {hasSingleVariant && (
+                                      <Badge 
+                                        variant="secondary" 
+                                        className="bg-green-100 text-green-700 text-[10px] px-1.5 py-0 h-4"
+                                      >
+                                        Prix MAJ
+                                      </Badge>
+                                    )}
                                   </div>
                                   <span className="text-muted-foreground">
-                                    {line.unitPrice}€/{line.unit}
+                                    {hasSingleVariant && updatedPrice !== line.unitPrice ? (
+                                      <>
+                                        <span className="line-through mr-1">{line.unitPrice}€</span>
+                                        <span className="text-green-600 font-medium">{updatedPrice}€/{line.unit}</span>
+                                      </>
+                                    ) : (
+                                      <>{line.unitPrice}€/{line.unit}</>
+                                    )}
                                   </span>
                                 </div>
                               );

@@ -19,11 +19,11 @@ import { getLotColors } from "@/lib/lotColors";
 import { cn } from "@/lib/utils";
 
 const LOT_TABS = [
-  { value: "fondation", label: "Fondations" },
   { value: "terrassement", label: "Terrassement" },
-  { value: "renforcement", label: "Renforcement" },
+  { value: "renforcement", label: "Renforcement de sol" },
+  { value: "fondation", label: "Fondations" },
   { value: "electricite", label: "Électricité" },
-  { value: "turbine", label: "Turbine" },
+  { value: "turbine", label: "Turbinier" },
 ];
 
 export const TemplatesView = () => {
@@ -32,7 +32,7 @@ export const TemplatesView = () => {
   const [editingTemplate, setEditingTemplate] = useState<any>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [templateToDelete, setTemplateToDelete] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState("fondation");
+  const [activeTab, setActiveTab] = useState("terrassement");
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('fr-FR', {

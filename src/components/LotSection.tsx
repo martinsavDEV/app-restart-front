@@ -74,7 +74,7 @@ export const LotSection = ({
 
   return (
     <>
-      <Card className={cn("border-2", colors.border, colors.bg)}>
+      <Card className={cn("border-2", colors.border)}>
         <CardHeader className="pb-3">
           <div className="flex items-start justify-between">
             <div className="flex-1">

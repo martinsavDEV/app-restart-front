@@ -353,6 +353,7 @@ export function useQuoteVersions(projectId: string | null) {
             code: lot.code,
             label: lot.label,
             description: lot.description,
+            header_comment: lot.header_comment,
             order_index: lot.order_index,
             is_enabled: lot.is_enabled,
           }])
@@ -411,6 +412,7 @@ export function useQuoteVersions(projectId: string | null) {
             designation: line.designation,
             unit: line.unit,
             quantity: line.quantity,
+            quantity_formula: line.quantity_formula,
             unit_price: line.unit_price,
             total_price: line.total_price,
             price_source: line.price_source,
@@ -418,6 +420,27 @@ export function useQuoteVersions(projectId: string | null) {
             comment: line.comment,
             order_index: line.order_index,
           }]);
+      }
+
+      // 6. Copier les documents de référence
+      const { data: sourceDocs, error: docsError } = await supabase
+        .from("reference_documents")
+        .select("*")
+        .eq("version_id", sourceVersionId);
+
+      if (docsError) throw docsError;
+
+      if (sourceDocs && sourceDocs.length > 0) {
+        await supabase
+          .from("reference_documents")
+          .insert(
+            sourceDocs.map((doc) => ({
+              version_id: newVersion.id,
+              label: doc.label,
+              reference: doc.reference,
+              comment: doc.comment,
+            }))
+          );
       }
 
       // 6. Copier les settings

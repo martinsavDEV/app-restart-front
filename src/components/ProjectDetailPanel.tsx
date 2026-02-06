@@ -13,6 +13,7 @@ interface QuoteVersion {
   last_update?: string | null;
   comment?: string | null;
   type?: string | null;
+  is_starred?: boolean;
 }
 
 interface Project {
@@ -29,6 +30,10 @@ interface ProjectDetailPanelProps {
   activeVersionId?: string | null;
   onOpenPricing: (versionId: string) => void;
   onCreateVersion: () => void;
+  onDuplicateVersion?: (versionId: string, label: string) => void;
+  onRenameVersion?: (versionId: string, label: string) => void;
+  onDeleteVersion?: (versionId: string) => void;
+  onToggleStarVersion?: (versionId: string, isStarred: boolean) => void;
   isLoadingVersions?: boolean;
 }
 
@@ -38,6 +43,10 @@ export const ProjectDetailPanel = ({
   activeVersionId,
   onOpenPricing,
   onCreateVersion,
+  onDuplicateVersion,
+  onRenameVersion,
+  onDeleteVersion,
+  onToggleStarVersion,
   isLoadingVersions,
 }: ProjectDetailPanelProps) => {
   // Calculate estimated power
@@ -149,6 +158,10 @@ export const ProjectDetailPanel = ({
                   isSelected={version.id === selectedVersionId}
                   onSelect={() => setSelectedVersionId(version.id)}
                   onOpen={() => onOpenPricing(version.id)}
+                  onDuplicate={() => onDuplicateVersion?.(version.id, version.version_label)}
+                  onRename={() => onRenameVersion?.(version.id, version.version_label)}
+                  onDelete={() => onDeleteVersion?.(version.id)}
+                  onToggleStar={() => onToggleStarVersion?.(version.id, !version.is_starred)}
                 />
               ))}
             </div>

@@ -16,6 +16,7 @@ import { useProjects, useQuoteVersions, type Project } from "@/hooks/useProjects
 import { ProjectDialog } from "./ProjectDialog";
 import { QuoteVersionDialog } from "./QuoteVersionDialog";
 import { DuplicateQuoteDialog } from "./DuplicateQuoteDialog";
+import { RenameQuoteDialog } from "./RenameQuoteDialog";
 import { ProjectCard } from "./ProjectCard";
 import { ProjectDetailPanel } from "./ProjectDetailPanel";
 
@@ -35,7 +36,8 @@ export function ProjectsView({ onOpenPricing }: ProjectsViewProps) {
   const [quoteToDelete, setQuoteToDelete] = useState<string | null>(null);
   const [duplicateQuoteDialogOpen, setDuplicateQuoteDialogOpen] = useState(false);
   const [quoteToDuplicate, setQuoteToDuplicate] = useState<{ id: string; label: string } | null>(null);
-
+  const [renameQuoteDialogOpen, setRenameQuoteDialogOpen] = useState(false);
+  const [quoteToRename, setQuoteToRename] = useState<{ id: string; label: string } | null>(null);
   const {
     projects,
     isLoading,
@@ -56,6 +58,9 @@ export function ProjectsView({ onOpenPricing }: ProjectsViewProps) {
     isDeletingQuote,
     duplicateQuoteVersion,
     isDuplicatingQuote,
+    renameQuoteVersion,
+    isRenamingQuote,
+    toggleStarQuoteVersion,
   } = useQuoteVersions(selectedProjectId);
 
   const filteredProjects = projects.filter((project) => {
@@ -142,7 +147,38 @@ export function ProjectsView({ onOpenPricing }: ProjectsViewProps) {
     }
   };
 
+  const handleSubmitRenameQuote = (newLabel: string) => {
+    if (quoteToRename) {
+      renameQuoteVersion(
+        { versionId: quoteToRename.id, newLabel },
+        {
+          onSuccess: () => {
+            setRenameQuoteDialogOpen(false);
+            setQuoteToRename(null);
+          },
+        }
+      );
+    }
+  };
 
+  const handleDuplicateVersion = (versionId: string, label: string) => {
+    setQuoteToDuplicate({ id: versionId, label });
+    setDuplicateQuoteDialogOpen(true);
+  };
+
+  const handleRenameVersion = (versionId: string, label: string) => {
+    setQuoteToRename({ id: versionId, label });
+    setRenameQuoteDialogOpen(true);
+  };
+
+  const handleDeleteVersion = (versionId: string) => {
+    setQuoteToDelete(versionId);
+    setDeleteQuoteDialogOpen(true);
+  };
+
+  const handleToggleStarVersion = (versionId: string, isStarred: boolean) => {
+    toggleStarQuoteVersion({ versionId, isStarred });
+  };
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -221,6 +257,10 @@ export function ProjectsView({ onOpenPricing }: ProjectsViewProps) {
             activeVersionId={quoteVersions[0]?.id}
             onOpenPricing={handleOpenPricing}
             onCreateVersion={handleCreateQuote}
+            onDuplicateVersion={handleDuplicateVersion}
+            onRenameVersion={handleRenameVersion}
+            onDeleteVersion={handleDeleteVersion}
+            onToggleStarVersion={handleToggleStarVersion}
             isLoadingVersions={isLoadingVersions}
           />
         ) : (
@@ -300,6 +340,14 @@ export function ProjectsView({ onOpenPricing }: ProjectsViewProps) {
         onSubmit={handleSubmitDuplicateQuote}
         sourceLabel={quoteToDuplicate?.label || ""}
         isLoading={isDuplicatingQuote}
+      />
+
+      <RenameQuoteDialog
+        open={renameQuoteDialogOpen}
+        onOpenChange={setRenameQuoteDialogOpen}
+        onSubmit={handleSubmitRenameQuote}
+        currentLabel={quoteToRename?.label || ""}
+        isLoading={isRenamingQuote}
       />
     </div>
   );

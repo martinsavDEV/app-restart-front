@@ -1,8 +1,6 @@
-import { createContext, useContext, useEffect, useState, useRef, useCallback } from "react";
+import { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigate } from "react-router-dom";
-import { useToast } from "@/hooks/use-toast";
 
 type AppRole = "admin" | "user";
 
@@ -24,13 +22,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [userRole, setUserRole] = useState<AppRole | null>(null);
   const [isPendingApproval, setIsPendingApproval] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const navigate = useNavigate();
-  const { toast } = useToast();
-  
-  const navigateRef = useRef(navigate);
-  const toastRef = useRef(toast);
-  useEffect(() => { navigateRef.current = navigate; }, [navigate]);
-  useEffect(() => { toastRef.current = toast; }, [toast]);
 
   const checkUserRole = useCallback(async (userId: string, userEmail: string | undefined) => {
     // First check if user already has a role
@@ -88,10 +79,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const hasRole = await checkUserRole(session.user.id, session.user.email);
           
           if (!hasRole) {
-            // User is pending approval - keep them signed in but show pending state
             setUserRole(null);
-          } else if (event === "SIGNED_IN") {
-            navigateRef.current("/");
           }
           setIsLoading(false);
         }, 0);
@@ -119,7 +107,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUserRole(null);
     setIsPendingApproval(false);
     await supabase.auth.signOut();
-    navigate("/auth");
+    window.location.href = "/auth";
   };
 
   return (

@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState, useRef, useCallback } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
@@ -24,8 +24,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
   const { toast } = useToast();
+  
+  // Use refs to avoid re-running the effect when navigate/toast change
+  const navigateRef = useRef(navigate);
+  const toastRef = useRef(toast);
+  useEffect(() => { navigateRef.current = navigate; }, [navigate]);
+  useEffect(() => { toastRef.current = toast; }, [toast]);
 
-  const checkUserRole = async (userId: string, userEmail: string | undefined) => {
+  const checkUserRole = useCallback(async (userId: string, userEmail: string | undefined) => {
     // First check if user already has a role
     const { data: roleData } = await supabase
       .from("user_roles")
@@ -64,7 +70,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // No role found - user is not authorized
     return false;
-  };
+  }, []);
 
   useEffect(() => {
     // Set up auth state listener FIRST
@@ -83,14 +89,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             // User is not authorized
             setUserRole(null);
             await supabase.auth.signOut();
-            toast({
+            toastRef.current({
               title: "Accès refusé",
               description: "Vous n'êtes pas autorisé à accéder à cette application. Contactez un administrateur.",
               variant: "destructive",
             });
-            navigate("/auth");
+            navigateRef.current("/auth");
           } else if (event === "SIGNED_IN") {
-            navigate("/");
+            navigateRef.current("/");
           }
           setIsLoading(false);
         }, 0);
@@ -116,7 +122,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
 
     return () => subscription.unsubscribe();
-  }, [navigate, toast]);
+  }, [checkUserRole]);
 
   const signOut = async () => {
     setUserRole(null);

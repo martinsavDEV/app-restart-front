@@ -23,6 +23,7 @@ export interface QuoteVersion {
   last_update: string;
   total_amount: number;
   comment: string | null;
+  is_starred: boolean;
 }
 
 export function useProjects() {
@@ -484,6 +485,42 @@ export function useQuoteVersions(projectId: string | null) {
     },
   });
 
+  const renameQuoteVersion = useMutation({
+    mutationFn: async ({ versionId, newLabel }: { versionId: string; newLabel: string }) => {
+      const { error } = await supabase
+        .from("quote_versions")
+        .update({ version_label: newLabel })
+        .eq("id", versionId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["quote-versions", projectId] });
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
+      toast({ title: "Chiffrage renommé" });
+    },
+    onError: (error: any) => {
+      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const toggleStarQuoteVersion = useMutation({
+    mutationFn: async ({ versionId, isStarred }: { versionId: string; isStarred: boolean }) => {
+      const { error } = await supabase
+        .from("quote_versions")
+        .update({ is_starred: isStarred })
+        .eq("id", versionId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["quote-versions", projectId] });
+    },
+    onError: (error: any) => {
+      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+    },
+  });
+
   return {
     ...query,
     createQuoteVersion: createQuoteVersion.mutate,
@@ -492,5 +529,8 @@ export function useQuoteVersions(projectId: string | null) {
     isDeletingQuote: deleteQuoteVersion.isPending,
     duplicateQuoteVersion: duplicateQuoteVersion.mutate,
     isDuplicatingQuote: duplicateQuoteVersion.isPending,
+    renameQuoteVersion: renameQuoteVersion.mutate,
+    isRenamingQuote: renameQuoteVersion.isPending,
+    toggleStarQuoteVersion: toggleStarQuoteVersion.mutate,
   };
 }

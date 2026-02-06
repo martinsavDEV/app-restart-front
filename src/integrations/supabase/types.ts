@@ -477,6 +477,7 @@ export type Database = {
           created_at: string | null
           date_creation: string | null
           id: string
+          is_starred: boolean
           last_update: string | null
           project_id: string
           total_amount: number | null
@@ -489,6 +490,7 @@ export type Database = {
           created_at?: string | null
           date_creation?: string | null
           id?: string
+          is_starred?: boolean
           last_update?: string | null
           project_id: string
           total_amount?: number | null
@@ -501,6 +503,7 @@ export type Database = {
           created_at?: string | null
           date_creation?: string | null
           id?: string
+          is_starred?: boolean
           last_update?: string | null
           project_id?: string
           total_amount?: number | null

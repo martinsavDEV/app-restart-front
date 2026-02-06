@@ -10,10 +10,11 @@ import { PriceDBView } from "@/components/PriceDBView";
 import { TemplatesView } from "@/components/TemplatesView";
 import { DataAdminView } from "@/components/DataAdminView";
 import { SummaryView } from "@/components/SummaryView";
+import { PendingApprovalView } from "@/components/PendingApprovalView";
 import { Loader2 } from "lucide-react";
 
 const Index = () => {
-  const { user, isLoading, isAdmin } = useAuth();
+  const { user, isLoading, isAdmin, isPendingApproval } = useAuth();
   const navigate = useNavigate();
   const [activeView, setActiveView] = useState("projects");
   const [quotesEnabled, setQuotesEnabled] = useState(false);
@@ -38,6 +39,11 @@ const Index = () => {
 
   if (!user) {
     return null;
+  }
+
+  // Show pending approval screen
+  if (isPendingApproval) {
+    return <PendingApprovalView />;
   }
 
   const handleViewChange = (view: string) => {

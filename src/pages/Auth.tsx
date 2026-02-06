@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { Navigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, ArrowLeft, Wind } from "lucide-react";
 
 export default function Auth() {
+  const { user, isLoading: authLoading } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
@@ -102,6 +105,11 @@ export default function Auth() {
       setIsLoading(false);
     }
   };
+
+  // Redirect if already logged in
+  if (!authLoading && user) {
+    return <Navigate to="/" replace />;
+  }
 
   if (showResetPassword) {
     return (

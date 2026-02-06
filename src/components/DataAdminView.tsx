@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Badge } from "@/components/ui/badge";
-import { UserPlus, Trash2, Loader2, Users, Mail, Shield, ShieldCheck } from "lucide-react";
+import { UserPlus, Trash2, Loader2, Users, Mail, Shield, ShieldCheck, UserCheck, UserX, Clock } from "lucide-react";
 import { useUserManagement } from "@/hooks/useUserManagement";
 import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
@@ -18,9 +18,12 @@ export const DataAdminView = () => {
   const { user } = useAuth();
   const {
     usersWithRoles,
+    pendingUsers,
     pendingInvitations,
     isLoading,
     inviteUser,
+    approveUser,
+    rejectUser,
     updateRole,
     removeUser,
     cancelInvitation,
@@ -41,7 +44,7 @@ export const DataAdminView = () => {
 
   const formatDate = (dateString: string | null) => {
     if (!dateString) return "-";
-    return format(new Date(dateString), "dd/MM/yyyy", { locale: fr });
+    return format(new Date(dateString), "dd/MM/yyyy HH:mm", { locale: fr });
   };
 
   const getRoleBadge = (role: "admin" | "user") => {
@@ -79,7 +82,7 @@ export const DataAdminView = () => {
               Gestion des utilisateurs
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
-              Invitez des utilisateurs et gérez leurs droits d'accès
+              Validez les inscriptions et gérez les droits d'accès
             </p>
           </div>
 
@@ -94,7 +97,7 @@ export const DataAdminView = () => {
               <DialogHeader>
                 <DialogTitle>Inviter un utilisateur</DialogTitle>
                 <DialogDescription>
-                  L'utilisateur recevra un accès à l'application après avoir créé son compte.
+                  L'utilisateur recevra un accès automatique après avoir créé son compte avec cet email.
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4 py-4">
@@ -144,6 +147,64 @@ export const DataAdminView = () => {
           </Dialog>
         </div>
 
+        {/* Pending Users - Show first for visibility */}
+        {pendingUsers.length > 0 && (
+          <Card className="border-amber-500/50">
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2 text-amber-600 dark:text-amber-400">
+                <Clock className="w-5 h-5" />
+                Inscriptions en attente ({pendingUsers.length})
+              </CardTitle>
+              <CardDescription>
+                Ces utilisateurs ont créé un compte et attendent votre validation
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Nom</TableHead>
+                    <TableHead>Inscrit le</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {pendingUsers.map((pendingUser) => (
+                    <TableRow key={pendingUser.id}>
+                      <TableCell className="font-medium">{pendingUser.email}</TableCell>
+                      <TableCell>{pendingUser.display_name || "-"}</TableCell>
+                      <TableCell>{formatDate(pendingUser.created_at)}</TableCell>
+                      <TableCell className="text-right space-x-2">
+                        <Button
+                          size="sm"
+                          variant="default"
+                          className="bg-emerald-600 hover:bg-emerald-700"
+                          onClick={() => approveUser.mutate({ userId: pendingUser.user_id, role: "user" })}
+                          disabled={approveUser.isPending}
+                        >
+                          <UserCheck className="w-4 h-4 mr-1" />
+                          Approuver
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-destructive hover:text-destructive"
+                          onClick={() => rejectUser.mutate(pendingUser.id)}
+                          disabled={rejectUser.isPending}
+                        >
+                          <UserX className="w-4 h-4 mr-1" />
+                          Refuser
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Active Users */}
         <Card>
           <CardHeader>
@@ -159,7 +220,8 @@ export const DataAdminView = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>ID Utilisateur</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Nom</TableHead>
                   <TableHead>Rôle</TableHead>
                   <TableHead>Depuis</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
@@ -168,23 +230,24 @@ export const DataAdminView = () => {
               <TableBody>
                 {usersWithRoles.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={4} className="text-center text-muted-foreground">
+                    <TableCell colSpan={5} className="text-center text-muted-foreground">
                       Aucun utilisateur
                     </TableCell>
                   </TableRow>
                 ) : (
                   usersWithRoles.map((userRole) => (
                     <TableRow key={userRole.id}>
-                      <TableCell className="font-mono text-xs">
-                        {userRole.user_id === user?.id ? (
-                          <span className="flex items-center gap-2">
+                      <TableCell className="font-medium">
+                        {userRole.email || (
+                          <span className="font-mono text-xs text-muted-foreground">
                             {userRole.user_id.slice(0, 8)}...
-                            <Badge variant="outline" className="text-xs">Vous</Badge>
                           </span>
-                        ) : (
-                          `${userRole.user_id.slice(0, 8)}...`
+                        )}
+                        {userRole.user_id === user?.id && (
+                          <Badge variant="outline" className="text-xs ml-2">Vous</Badge>
                         )}
                       </TableCell>
+                      <TableCell>{userRole.display_name || "-"}</TableCell>
                       <TableCell>
                         {userRole.user_id === user?.id ? (
                           getRoleBadge(userRole.role)
@@ -238,7 +301,7 @@ export const DataAdminView = () => {
               Invitations en attente ({pendingInvitations.length})
             </CardTitle>
             <CardDescription>
-              Utilisateurs invités qui ne se sont pas encore connectés
+              Utilisateurs pré-invités — ils seront approuvés automatiquement à l'inscription
             </CardDescription>
           </CardHeader>
           <CardContent>

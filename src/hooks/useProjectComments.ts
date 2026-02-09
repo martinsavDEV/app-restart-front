@@ -7,7 +7,6 @@ export interface ProjectComment {
   id: string;
   project_id: string;
   user_id: string;
-  user_email: string;
   user_name: string | null;
   content: string;
   created_at: string;
@@ -43,8 +42,7 @@ export function useProjectComments(projectId: string | null) {
         .insert({
           project_id: projectId,
           user_id: user.id,
-          user_email: user.email || "unknown@email.com",
-          user_name: user.user_metadata?.full_name || null,
+          user_name: user.user_metadata?.full_name || "Utilisateur",
           content,
         })
         .select()

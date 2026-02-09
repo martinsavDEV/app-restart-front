@@ -6,7 +6,6 @@ export interface QuoteComment {
   id: string;
   quote_version_id: string;
   user_id: string;
-  user_email: string;
   user_name: string | null;
   content: string;
   created_at: string;
@@ -42,8 +41,7 @@ export function useQuoteComments(quoteVersionId: string | null) {
         .insert({
           quote_version_id: quoteVersionId,
           user_id: user.id,
-          user_email: user.email || "",
-          user_name: user.user_metadata?.full_name || user.email?.split("@")[0] || null,
+          user_name: user.user_metadata?.full_name || user.email?.split("@")[0] || "Utilisateur",
           content,
         })
         .select()

@@ -61,14 +61,14 @@ export const QuoteComments = ({ quoteVersionId, compact = false }: QuoteComments
     }
   };
 
-  const getInitials = (name: string | null, email: string) => {
+  const getInitials = (name: string | null) => {
     if (name) {
       const parts = name.split(" ");
       return parts.length > 1
         ? `${parts[0][0]}${parts[1][0]}`.toUpperCase()
         : name.slice(0, 2).toUpperCase();
     }
-    return email.slice(0, 2).toUpperCase();
+    return "U";
   };
 
   if (!quoteVersionId) {
@@ -98,13 +98,13 @@ export const QuoteComments = ({ quoteVersionId, compact = false }: QuoteComments
               className="flex gap-3 p-3 rounded-lg bg-muted/50"
             >
               <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center text-xs font-medium text-accent shrink-0">
-                {getInitials(comment.user_name, comment.user_email)}
+                {getInitials(comment.user_name)}
               </div>
               
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-medium text-sm text-foreground">
-                    {comment.user_name || comment.user_email.split("@")[0]}
+                    {comment.user_name || "Utilisateur"}
                   </span>
                   <span className="text-[11px] text-muted-foreground">
                     {format(new Date(comment.created_at), "dd/MM/yyyy à HH:mm", { locale: fr })}

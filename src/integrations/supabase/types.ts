@@ -205,7 +205,6 @@ export type Database = {
           created_at: string
           id: string
           project_id: string
-          user_email: string
           user_id: string
           user_name: string | null
         }
@@ -214,7 +213,6 @@ export type Database = {
           created_at?: string
           id?: string
           project_id: string
-          user_email: string
           user_id: string
           user_name?: string | null
         }
@@ -223,7 +221,6 @@ export type Database = {
           created_at?: string
           id?: string
           project_id?: string
-          user_email?: string
           user_id?: string
           user_name?: string | null
         }
@@ -273,7 +270,6 @@ export type Database = {
           created_at: string
           id: string
           quote_version_id: string
-          user_email: string
           user_id: string
           user_name: string | null
         }
@@ -282,7 +278,6 @@ export type Database = {
           created_at?: string
           id?: string
           quote_version_id: string
-          user_email: string
           user_id: string
           user_name?: string | null
         }
@@ -291,7 +286,6 @@ export type Database = {
           created_at?: string
           id?: string
           quote_version_id?: string
-          user_email?: string
           user_id?: string
           user_name?: string | null
         }

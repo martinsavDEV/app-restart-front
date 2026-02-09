@@ -22,9 +22,9 @@ const CommentItem = ({
   onDelete: () => void;
   isDeleting: boolean;
 }) => {
-  const displayName = comment.user_name || comment.user_email.split("@")[0];
+  const displayName = comment.user_name || "Utilisateur";
   const initials = displayName
-    .split(/[\s@]+/)
+    .split(/[\s]+/)
     .slice(0, 2)
     .map((w) => w[0]?.toUpperCase() || "")
     .join("");

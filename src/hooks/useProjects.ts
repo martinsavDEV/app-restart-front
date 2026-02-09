@@ -394,20 +394,20 @@ export function useQuoteVersions(projectId: string | null) {
       }
 
       // 5. Récupérer et copier les lignes
-      const { data: sourceLines, error: linesError } = await supabase
-        .from("quote_lines")
-        .select("*")
-        .in("lot_id", Object.keys(lotMapping))
-        .order("order_index");
-
-      if (linesError) throw linesError;
-
-      for (const line of sourceLines || []) {
-        await supabase
+      const sourceLotIds = Object.keys(lotMapping);
+      if (sourceLotIds.length > 0) {
+        const { data: sourceLines, error: linesError } = await supabase
           .from("quote_lines")
-          .insert([{
+          .select("*")
+          .in("lot_id", sourceLotIds)
+          .order("order_index");
+
+        if (linesError) throw linesError;
+
+        if (sourceLines && sourceLines.length > 0) {
+          const linesToInsert = sourceLines.map((line) => ({
             lot_id: lotMapping[line.lot_id],
-            section_id: line.section_id ? sectionMapping[line.section_id] : null,
+            section_id: line.section_id ? (sectionMapping[line.section_id] || null) : null,
             code: line.code,
             designation: line.designation,
             unit: line.unit,
@@ -419,7 +419,14 @@ export function useQuoteVersions(projectId: string | null) {
             linked_variable: line.linked_variable,
             comment: line.comment,
             order_index: line.order_index,
-          }]);
+          }));
+
+          const { error: insertLinesError } = await supabase
+            .from("quote_lines")
+            .insert(linesToInsert);
+
+          if (insertLinesError) throw insertLinesError;
+        }
       }
 
       // 6. Copier les documents de référence

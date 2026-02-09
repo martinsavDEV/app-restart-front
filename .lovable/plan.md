@@ -1,275 +1,88 @@
 
-## Plan: Rechargement automatique des prix + Ordre des onglets + Couleurs dynamiques des lots
+# Gestion du point du pave numerique comme virgule decimale
 
-### Objectif
-1. **Rechargement automatique des prix au chargement d'un template** - Si un item du template existe dans la base de prix, utiliser le tarif a jour
-2. **Corriger l'ordre des onglets Templates** - Terrassement, Renforcement de sol, Fondations, Electricite, Turbinier
-3. **Ameliorations visuelles des lots** - Lot actif avec fond + bordure de couleur, lots inactifs avec bordure seule, sections colorees selon le lot
+## Probleme
+En France, le separateur decimal est la virgule (`,`), mais le pave numerique produit un point (`.`). Actuellement, les champs numeriques de l'application ne gerent pas cette conversion, ce qui empeche la saisie fluide de valeurs decimales.
 
----
+## Zones impactees
+L'application comporte plusieurs types de champs numeriques :
 
-### Partie 1 : Rechargement automatique des prix
+1. **EditableCell** - Cellules editables pour prix unitaires, quantites (BPUTable, DraggableLine)
+2. **QuantityFormulaInput** - Champ quantite avec support de formules et variables
+3. **CalculatorDialog** - Tous les champs du calculateur (turbines, acces, cables HTA, fondation) - environ 20 champs `type="number"`
+4. **LinkedCell** - Cellules liees aux variables
+5. **Divers** - SectionDialog, ProjectDialog, SummaryHeader, BPUTableWithSections, TemplateEditorDialog
 
-**Fichier : `src/components/TemplateLoaderDialog.tsx`**
+## Solution
 
-Actuellement le code verifie deja les variantes de prix (`variantsMap`), mais il ne met pas a jour les prix des items qui n'ont qu'une seule variante.
+### 1. Utilitaire centralise (`src/lib/numpadDecimal.ts`)
 
-| Modification | Detail |
-|--------------|--------|
-| Mise a jour automatique | Pour chaque ligne du template, chercher dans la base de prix |
-| Si 1 variante trouvee | Appliquer automatiquement le nouveau prix |
-| Si plusieurs variantes | Afficher le selecteur (comportement actuel) |
-| Si aucune variante | Garder le prix du template |
+Creer un helper reutilisable qui intercepte la frappe du `.` du pave numerique et le remplace par `,` dans les champs texte, ou qui normalise la saisie pour les champs numeriques.
 
-**Logique modifiee dans `handleLoad()`** :
-```typescript
-const handleLoad = () => {
-  if (!selectedTemplate) return;
+La strategie : pour les champs `type="number"`, le navigateur gere deja le `.` comme separateur valide. Le probleme est que pour la locale francaise, le `.` n'est pas reconnu. La solution est de **convertir les champs `type="number"` en `type="text"`** avec un pattern de validation, et d'intercepter le `.` pour le remplacer par `,` a la saisie.
 
-  const templateData = selectedTemplate.template_lines as any;
-  let sections: WorkSection[] = templateData.sections || [];
+Cependant, la solution la plus simple et la moins invasive est d'**ajouter un gestionnaire `onKeyDown` global** au niveau de l'application qui intercepte le `.` du pave numerique dans tous les inputs numeriques et le remplace par `,`.
 
-  // Lignes avec plusieurs variantes (afficher selecteur)
-  const linesWithMultipleVariants: LineWithVariants[] = [];
-  
-  // Mettre a jour automatiquement les prix avec 1 seule variante
-  sections = sections.map((section) => ({
-    ...section,
-    lines: section.lines?.map((line: BPULine) => {
-      const variants = findVariants(line.designation);
-      
-      if (variants.length === 1) {
-        // Une seule variante : mettre a jour automatiquement
-        const priceItem = variants[0];
-        return {
-          ...line,
-          unitPrice: priceItem.unit_price,
-          priceSource: priceItem.price_reference || priceItem.item,
-        };
-      } else if (variants.length > 1) {
-        // Plusieurs variantes : collecter pour le selecteur
-        linesWithMultipleVariants.push({
-          sectionId: section.id,
-          sectionTitle: section.title,
-          line,
-          variants,
-        });
-      }
-      // Aucune variante : garder le prix original
-      return line;
-    }),
-  }));
+### 2. Modifier le composant `Input` (`src/components/ui/input.tsx`)
 
-  if (linesWithMultipleVariants.length > 0) {
-    setPendingSections(sections);
-    setLinesWithVariants(linesWithMultipleVariants);
-    setShowVariantSelector(true);
-  } else {
-    onLoadTemplate(sections);
-    onOpenChange(false);
-    setSelectedTemplateId(null);
-  }
-};
-```
+Ajouter une logique dans le composant `Input` de base pour intercepter le `.` du pave numerique :
+- Quand l'utilisateur appuie sur la touche `.` du pave numerique (code `NumpadDecimal` ou `Decimal`), empecher le comportement par defaut et inserer une `,` a la place
+- Cela fonctionne pour les champs `type="text"` utilises dans EditableCell, QuantityFormulaInput, etc.
 
-**Feedback visuel dans l'apercu** :
-- Items avec prix mis a jour automatiquement : badge vert "Prix MAJ"
-- Items avec plusieurs variantes : badge ambre "X prix" (existant)
-- Items sans correspondance : pas de badge
+### 3. Convertir les champs numeriques du CalculatorDialog
 
----
+Le CalculatorDialog utilise `type="number"` pour tous ses champs. Pour que la virgule fonctionne :
+- Changer `type="number"` en `type="text"` avec `inputMode="decimal"` 
+- Adapter les `onChange` pour normaliser les virgules en points avant le `parseFloat`
+- Ajouter un `pattern` pour la validation visuelle
 
-### Partie 2 : Corriger l'ordre des onglets Templates
+### 4. Appliquer aux autres composants mineurs
 
-**Fichier : `src/components/TemplatesView.tsx`**
+- **BPUTableWithSections** : champ multiplicateur de section
+- **SectionDialog** : champ multiplicateur
+- **ProjectDialog** : nombre d'eoliennes (entier, moins critique)
+- **SummaryHeader** : nombre d'eoliennes
+- **TemplateEditorDialog** : multiplicateur de section
 
-Modifier le tableau `LOT_TABS` (ligne 21-27) :
+## Details techniques
 
-**Avant** :
-```typescript
-const LOT_TABS = [
-  { value: "fondation", label: "Fondations" },
-  { value: "terrassement", label: "Terrassement" },
-  { value: "renforcement", label: "Renforcement" },
-  { value: "electricite", label: "Électricité" },
-  { value: "turbine", label: "Turbine" },
-];
-```
-
-**Apres** :
-```typescript
-const LOT_TABS = [
-  { value: "terrassement", label: "Terrassement" },
-  { value: "renforcement", label: "Renforcement de sol" },
-  { value: "fondation", label: "Fondations" },
-  { value: "electricite", label: "Électricité" },
-  { value: "turbine", label: "Turbinier" },
-];
-```
-
-**Mettre a jour aussi `activeTab` par defaut** :
-```typescript
-const [activeTab, setActiveTab] = useState("terrassement");
-```
-
-**Fichier : `src/components/TemplateEditorDialog.tsx`**
-
-Modifier `LOT_OPTIONS` (ligne 42-48) pour correspondre au meme ordre :
-```typescript
-const LOT_OPTIONS = [
-  { value: "terrassement", label: "Terrassement" },
-  { value: "renforcement", label: "Renforcement de sol" },
-  { value: "fondation", label: "Fondations" },
-  { value: "electricite", label: "Électricité" },
-  { value: "turbine", label: "Turbinier" },
-];
-```
-
----
-
-### Partie 3 : Ameliorations visuelles des lots
-
-#### A. Cards de lot actif avec fond + bordure coloree
-
-**Fichier : `src/components/LotSection.tsx`**
-
-Passer `lotCode` en prop et appliquer les couleurs aux Cards :
-
-```typescript
-interface LotSectionProps {
-  lot: any;
-  // ... autres props
-}
-
-export const LotSection = ({ lot, ... }: LotSectionProps) => {
-  const colors = getLotColors(lot.code);
-  
-  return (
-    <>
-      {/* Card principale du lot - bordure + fond colore */}
-      <Card className={cn("border-2", colors.border, colors.bg)}>
-        <CardHeader className="pb-3">
-          ...
-        </CardHeader>
-      </Card>
-
-      {/* Card des lignes de chiffrage - bordure coloree */}
-      <Card className={cn("border-2", colors.border)}>
-        ...
-      </Card>
-    </>
-  );
-};
-```
-
-#### B. Sections colorees selon le lot
-
-**Fichier : `src/components/BPUTableWithSections.tsx`**
-
-Remplacer les couleurs emerald fixes par les couleurs dynamiques du lot :
-
-**Avant** (ligne 415) :
-```typescript
-<div className="bg-emerald-500/20 px-3 py-2 mb-2 rounded-md flex items-center justify-between border border-emerald-500/30">
-  <h3 className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">{section.name}</h3>
-```
-
-**Apres** :
-```typescript
-// Recevoir lotCode en prop et utiliser getLotColors
-const colors = getLotColors(lotCode || '');
-
-// Dans le rendu des sections
-<div className={cn(
-  "px-3 py-2 mb-2 rounded-md flex items-center justify-between border-2",
-  colors.bg,
-  colors.border
-)}>
-  <h3 className={cn("text-sm font-semibold", colors.text)}>{section.name}</h3>
-```
-
-**Ajouter l'import** :
-```typescript
-import { getLotColors } from "@/lib/lotColors";
-import { cn } from "@/lib/utils";
-```
-
-**Stocker les couleurs dans le composant** :
-```typescript
-export const BPUTableWithSections = ({ 
-  lines, 
-  sections,
-  ...,
-  lotCode, // deja present
-}: BPUTableWithSectionsProps) => {
-  
-  const lotColors = getLotColors(lotCode || '');
-  
-  // Utiliser lotColors dans le rendu
-```
-
----
-
-### Resume des fichiers a modifier
-
-| Fichier | Modifications |
-|---------|---------------|
-| `src/components/TemplateLoaderDialog.tsx` | Mise a jour auto des prix si 1 variante |
-| `src/components/TemplatesView.tsx` | Ordre des onglets + activeTab par defaut |
-| `src/components/TemplateEditorDialog.tsx` | Ordre des LOT_OPTIONS |
-| `src/components/LotSection.tsx` | Couleurs sur les Cards |
-| `src/components/BPUTableWithSections.tsx` | Couleurs dynamiques des sections |
-
----
-
-### Apercu visuel - Lot Fondations (jaune) actif
+### Nouveau fichier : `src/lib/numpadDecimal.ts`
 
 ```text
-┌─ FOND JAUNE + BORDURE JAUNE ─────────────────────────────────────────────────┐
-│ Fondations                                                                    │
-│ Travaux de fondation pour eoliennes                                          │
-│                                           [Charger template]  Total: 450,000€│
-└──────────────────────────────────────────────────────────────────────────────┘
-
-┌─ BORDURE JAUNE ──────────────────────────────────────────────────────────────┐
-│ Lignes de chiffrage                      [Creer section] [Ajouter une ligne] │
-│                                                                               │
-│ ┌─ FOND JAUNE CLAIR + BORDURE JAUNE ──────────────────────────────────────┐  │
-│ │ Cage d'ancrage                                      Nombre: 4 [$nb_eol]  │  │
-│ └──────────────────────────────────────────────────────────────────────────┘  │
-│                                                                               │
-│  □  | Designation              | Comment | Qte | Unite | PU      | Total     │
-│ ────┼──────────────────────────┼─────────┼─────┼───────┼─────────┼───────────│
-│  ☐  | Beton C35/45             |         | 450 | m³    | 185,00€ | 83,250€   │
-│                                                                               │
-└──────────────────────────────────────────────────────────────────────────────┘
+- Fonction handleNumpadDecimal(e: KeyboardEvent) : intercepte NumpadDecimal, 
+  preventDefault, insere "," a la position du curseur
+- Fonction parseLocaleNumber(value: string): number : remplace "," par "." 
+  puis parseFloat
+- Constante NUMERIC_PATTERN = "[0-9]*[,.]?[0-9]*" pour les attributs pattern
 ```
 
----
+### Modification : `src/components/ui/input.tsx`
 
-### Apercu visuel - Onglets Templates (nouvel ordre)
+Ajouter un onKeyDown conditionnel : quand le type est "text" ou "number" et que le code de la touche est "NumpadDecimal", remplacer le `.` par `,`.
 
-```text
-┌──────────────────────────────────────────────────────────────────────────────┐
-│ Templates                                            [+ Nouveau template]    │
-│ Modeles de chiffrage reutilisables                                           │
-│                                                                               │
-│ [TERRASSEMENT] [RENF. SOL] [FONDATIONS] [ELECTRICITE] [TURBINIER]           │
-│    (orange)      (rose)     (jaune)      (bleu ciel)   (bleu fonce)         │
-│                                                                               │
-│   Onglet actif = fond colore + texte blanc                                   │
-│   Onglets inactifs = fond pastel + bordure coloree + texte colore            │
-└──────────────────────────────────────────────────────────────────────────────┘
-```
+### Modification : `src/components/CalculatorDialog.tsx`
 
----
+- Remplacer tous les `type="number"` par `type="text"` + `inputMode="decimal"`
+- Modifier tous les `parseFloat(e.target.value)` par `parseLocaleNumber(e.target.value)`
+- Le champ `nb_eol` (nombre d'eoliennes) reste en `type="number"` car c'est un entier
 
-### Details techniques - Couleurs par lot
+### Modifications mineures dans les autres composants
 
-| Lot | Code | Fond pastel | Fond actif | Bordure | Texte |
-|-----|------|-------------|------------|---------|-------|
-| Terrassement | `terrassement` | `bg-orange-100` | `bg-orange-500` | `border-orange-400` | `text-orange-700` |
-| Renforcement | `renforcement` | `bg-pink-100` | `bg-pink-500` | `border-pink-400` | `text-pink-700` |
-| Fondations | `fondation` | `bg-yellow-100` | `bg-yellow-500` | `border-yellow-400` | `text-yellow-700` |
-| Electricite | `electricite` | `bg-sky-100` | `bg-sky-500` | `border-sky-400` | `text-sky-700` |
-| Turbinier | `turbine` | `bg-blue-100` | `bg-blue-600` | `border-blue-500` | `text-blue-700` |
+- `BPUTableWithSections.tsx` : convertir le champ multiplicateur
+- `SectionDialog.tsx` : convertir le champ multiplicateur  
+- `SummaryHeader.tsx` : champ entier, peut rester tel quel
+- `EditableCell.tsx` : deja en `type="text"`, ajuster le parse
+- `QuantityFormulaInput.tsx` : deja en `type="text"`, deja gere
+
+### Fichiers concernes
+
+| Fichier | Modification |
+|---------|-------------|
+| `src/lib/numpadDecimal.ts` | Nouveau - utilitaires |
+| `src/components/ui/input.tsx` | Intercepter NumpadDecimal |
+| `src/components/CalculatorDialog.tsx` | Convertir ~20 champs number en text |
+| `src/components/BPUTableWithSections.tsx` | Convertir champ multiplicateur |
+| `src/components/SectionDialog.tsx` | Convertir champ multiplicateur |
+| `src/components/LinkedCell.tsx` | Ajouter gestion du point |
+| `src/components/EditableCell.tsx` | Verifier le parse |
+| `src/components/QuantityFormulaInput.tsx` | Verifier le parse |

@@ -149,8 +149,8 @@ export const SectionDialog = ({ open, onOpenChange, onConfirm, variables = [] }:
                   <Label htmlFor="multiplier">Multiplicateur</Label>
                   <Input
                     id="multiplier"
-                    type="number"
-                    min="1"
+                    type="text"
+                    inputMode="numeric"
                     value={multiplier}
                     onChange={(e) => setMultiplier(Math.max(1, parseInt(e.target.value) || 1))}
                     placeholder="Nombre d'unités"

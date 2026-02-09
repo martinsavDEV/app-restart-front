@@ -17,7 +17,10 @@ export const EditableCell = ({
   className,
   align = "left",
   format = (v) => v.toString(),
-  parse = (v) => parseFloat(v.replace(/[^\d.,]/g, "").replace(",", ".")),
+  parse = (v) => {
+    const cleaned = v.replace(/[^\d.,\-]/g, "").replace(",", ".");
+    return parseFloat(cleaned);
+  },
 }: EditableCellProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState("");

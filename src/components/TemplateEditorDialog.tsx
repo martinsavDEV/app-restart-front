@@ -272,8 +272,8 @@ export const TemplateEditorDialog = ({ open, onOpenChange, template, onSave }: T
                           </Label>
                           <Input
                             id={`multiplier-${section.id}`}
-                            type="number"
-                            min="1"
+                            type="text"
+                            inputMode="numeric"
                             value={section.multiplier || 1}
                             onChange={(e) => updateSectionMultiplier(section.id, parseInt(e.target.value) || 1)}
                             className="w-20 h-8"

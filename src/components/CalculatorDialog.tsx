@@ -15,6 +15,7 @@ import { useCalculatorVariables } from "@/hooks/useCalculatorVariables";
 import { FoundationDiagram } from "@/components/FoundationDiagram";
 import { calculateFoundationMetrics, calculateSubstitutionVolume, formatNumber } from "@/lib/foundationCalculations";
 import { cn } from "@/lib/utils";
+import { parseLocaleNumber } from "@/lib/numpadDecimal";
 
 interface CalculatorDialogProps {
   open: boolean;
@@ -374,9 +375,10 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                             {calculatorData.turbines.map((turbine, idx) => (
                               <td key={idx} className="border p-1">
                                 <Input
-                                  type="number"
+                                  type="text"
+                                  inputMode="decimal"
                                   value={turbine.surf_PF}
-                                  onChange={(e) => updateTurbine(idx, "surf_PF", parseFloat(e.target.value) || 0)}
+                                  onChange={(e) => updateTurbine(idx, "surf_PF", parseLocaleNumber(e.target.value) || 0)}
                                   className="h-7 text-xs text-center"
                                   title={`Variable: $surf_PF_${turbine.name}`}
                                 />
@@ -392,9 +394,10 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                             {calculatorData.turbines.map((turbine, idx) => (
                               <td key={idx} className="border p-1">
                                 <Input
-                                  type="number"
+                                  type="text"
+                                  inputMode="decimal"
                                   value={turbine.acces_PF}
-                                  onChange={(e) => updateTurbine(idx, "acces_PF", parseFloat(e.target.value) || 0)}
+                                  onChange={(e) => updateTurbine(idx, "acces_PF", parseLocaleNumber(e.target.value) || 0)}
                                   className="h-7 text-xs text-center"
                                   title={`Variable: $acces_PF_${turbine.name}`}
                                 />
@@ -410,9 +413,10 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                             {calculatorData.turbines.map((turbine, idx) => (
                               <td key={idx} className="border p-1">
                                 <Input
-                                  type="number"
+                                  type="text"
+                                  inputMode="decimal"
                                   value={turbine.m3_bouger}
-                                  onChange={(e) => updateTurbine(idx, "m3_bouger", parseFloat(e.target.value) || 0)}
+                                  onChange={(e) => updateTurbine(idx, "m3_bouger", parseLocaleNumber(e.target.value) || 0)}
                                   className="h-7 text-xs text-center"
                                   title={`Variable: $m3_bouger_${turbine.name}`}
                                 />
@@ -428,9 +432,10 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                             {calculatorData.turbines.map((turbine, idx) => (
                               <td key={idx} className="border p-1">
                                 <Input
-                                  type="number"
+                                  type="text"
+                                  inputMode="decimal"
                                   value={turbine.bypass}
-                                  onChange={(e) => updateTurbine(idx, "bypass", parseFloat(e.target.value) || 0)}
+                                  onChange={(e) => updateTurbine(idx, "bypass", parseLocaleNumber(e.target.value) || 0)}
                                   className="h-7 text-xs text-center"
                                   title={`Variable: $bypass_${turbine.name}`}
                                 />
@@ -481,9 +486,10 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                             {calculatorData.turbines.map((turbine, idx) => (
                               <td key={idx} className="border p-1">
                                 <Input
-                                  type="number"
+                                  type="text"
+                                  inputMode="decimal"
                                   value={turbine.substitution}
-                                  onChange={(e) => updateTurbine(idx, "substitution", parseFloat(e.target.value) || 0)}
+                                  onChange={(e) => updateTurbine(idx, "substitution", parseLocaleNumber(e.target.value) || 0)}
                                   className="h-7 text-xs text-center"
                                   title={`Variable: $vol_sub_${turbine.name} (volume calculé)`}
                                 />
@@ -590,9 +596,10 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                             {calculatorData.access_segments.map((segment, idx) => (
                               <td key={idx} className="border p-1">
                                 <Input
-                                  type="number"
+                                  type="text"
+                                  inputMode="decimal"
                                   value={segment.longueur}
-                                  onChange={(e) => updateAccessSegment(idx, "longueur", parseFloat(e.target.value) || 0)}
+                                  onChange={(e) => updateAccessSegment(idx, "longueur", parseLocaleNumber(e.target.value) || 0)}
                                   className="h-7 text-xs text-center"
                                   title={`Variable: $longueur_${segment.name.replace(/\s+/g, "_")}`}
                                 />
@@ -608,9 +615,10 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                             {calculatorData.access_segments.map((segment, idx) => (
                               <td key={idx} className="border p-1">
                                 <Input
-                                  type="number"
+                                  type="text"
+                                  inputMode="decimal"
                                   value={segment.surface}
-                                  onChange={(e) => updateAccessSegment(idx, "surface", parseFloat(e.target.value) || 0)}
+                                  onChange={(e) => updateAccessSegment(idx, "surface", parseLocaleNumber(e.target.value) || 0)}
                                   className="h-7 text-xs text-center"
                                   title={`Variable: $surface_${segment.name.replace(/\s+/g, "_")}`}
                                 />
@@ -641,9 +649,10 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                             {calculatorData.access_segments.map((segment, idx) => (
                               <td key={idx} className="border p-1">
                                 <Input
-                                  type="number"
+                                  type="text"
+                                  inputMode="decimal"
                                   value={segment.bicouche}
-                                  onChange={(e) => updateAccessSegment(idx, "bicouche", parseFloat(e.target.value) || 0)}
+                                  onChange={(e) => updateAccessSegment(idx, "bicouche", parseLocaleNumber(e.target.value) || 0)}
                                   className="h-7 text-xs text-center"
                                 />
                               </td>
@@ -658,9 +667,10 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                             {calculatorData.access_segments.map((segment, idx) => (
                               <td key={idx} className="border p-1">
                                 <Input
-                                  type="number"
+                                  type="text"
+                                  inputMode="decimal"
                                   value={segment.enrobe}
-                                  onChange={(e) => updateAccessSegment(idx, "enrobe", parseFloat(e.target.value) || 0)}
+                                  onChange={(e) => updateAccessSegment(idx, "enrobe", parseLocaleNumber(e.target.value) || 0)}
                                   className="h-7 text-xs text-center"
                                 />
                               </td>
@@ -750,63 +760,70 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                               </td>
                               <td className="border p-1 bg-blue-50/50 dark:bg-blue-900/5">
                                 <Input
-                                  type="number"
+                                  type="text"
+                                  inputMode="decimal"
                                   value={cable.alu_95}
-                                  onChange={(e) => updateHTACable(idx, "alu_95", parseFloat(e.target.value) || 0)}
+                                  onChange={(e) => updateHTACable(idx, "alu_95", parseLocaleNumber(e.target.value) || 0)}
                                   className="h-7 text-xs text-center"
                                   title={`Variable: $alu95_${cable.name.replace(/\s+/g, "_")}`}
                                 />
                               </td>
                               <td className="border p-1 bg-blue-50/50 dark:bg-blue-900/5">
                                 <Input
-                                  type="number"
+                                  type="text"
+                                  inputMode="decimal"
                                   value={cable.alu_150}
-                                  onChange={(e) => updateHTACable(idx, "alu_150", parseFloat(e.target.value) || 0)}
+                                  onChange={(e) => updateHTACable(idx, "alu_150", parseLocaleNumber(e.target.value) || 0)}
                                   className="h-7 text-xs text-center"
                                   title={`Variable: $alu150_${cable.name.replace(/\s+/g, "_")}`}
                                 />
                               </td>
                               <td className="border p-1 bg-blue-50/50 dark:bg-blue-900/5">
                                 <Input
-                                  type="number"
+                                  type="text"
+                                  inputMode="decimal"
                                   value={cable.alu_240}
-                                  onChange={(e) => updateHTACable(idx, "alu_240", parseFloat(e.target.value) || 0)}
+                                  onChange={(e) => updateHTACable(idx, "alu_240", parseLocaleNumber(e.target.value) || 0)}
                                   className="h-7 text-xs text-center"
                                   title={`Variable: $alu240_${cable.name.replace(/\s+/g, "_")}`}
                                 />
                               </td>
                               <td className="border p-1 bg-blue-50/50 dark:bg-blue-900/5">
                                 <Input
-                                  type="number"
+                                  type="text"
+                                  inputMode="decimal"
                                   value={cable.alu_400}
-                                  onChange={(e) => updateHTACable(idx, "alu_400", parseFloat(e.target.value) || 0)}
+                                  onChange={(e) => updateHTACable(idx, "alu_400", parseLocaleNumber(e.target.value) || 0)}
                                   className="h-7 text-xs text-center"
                                   title={`Variable: $alu400_${cable.name.replace(/\s+/g, "_")}`}
                                 />
                               </td>
                               <td className="border p-1 bg-orange-50/50 dark:bg-orange-900/5">
                                 <Input
-                                  type="number"
+                                  type="text"
+                                  inputMode="decimal"
                                   value={cable.cu_95}
-                                  onChange={(e) => updateHTACable(idx, "cu_95", parseFloat(e.target.value) || 0)}
+                                  onChange={(e) => updateHTACable(idx, "cu_95", parseLocaleNumber(e.target.value) || 0)}
                                   className="h-7 text-xs text-center"
                                   title={`Variable: $cu95_${cable.name.replace(/\s+/g, "_")}`}
                                 />
                               </td>
                               <td className="border p-1 bg-orange-50/50 dark:bg-orange-900/5">
                                 <Input
-                                  type="number"
+                                  type="text"
+                                  inputMode="decimal"
                                   value={cable.cu_150}
-                                  onChange={(e) => updateHTACable(idx, "cu_150", parseFloat(e.target.value) || 0)}
+                                  onChange={(e) => updateHTACable(idx, "cu_150", parseLocaleNumber(e.target.value) || 0)}
                                   className="h-7 text-xs text-center"
                                   title={`Variable: $cu150_${cable.name.replace(/\s+/g, "_")}`}
                                 />
                               </td>
                               <td className="border p-1 bg-orange-50/50 dark:bg-orange-900/5">
                                 <Input
-                                  type="number"
+                                  type="text"
+                                  inputMode="decimal"
                                   value={cable.cu_240}
-                                  onChange={(e) => updateHTACable(idx, "cu_240", parseFloat(e.target.value) || 0)}
+                                  onChange={(e) => updateHTACable(idx, "cu_240", parseLocaleNumber(e.target.value) || 0)}
                                   className="h-7 text-xs text-center"
                                   title={`Variable: $cu240_${cable.name.replace(/\s+/g, "_")}`}
                                 />
@@ -840,16 +857,16 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                       <div className="flex items-center gap-2">
                         <Label className="text-xs min-w-[140px] font-medium">Diamètre fondation</Label>
                         <Input
-                          type="number"
+                          type="text"
+                          inputMode="decimal"
                           value={calculatorData.design.diametre_fondation ?? ""}
                           className="w-24 font-semibold"
-                          step="0.1"
                           onChange={(e) =>
                             setCalculatorData({
                               ...calculatorData,
                               design: {
                                 ...calculatorData.design,
-                                diametre_fondation: parseFloat(e.target.value) || null,
+                                diametre_fondation: parseLocaleNumber(e.target.value) || null,
                               },
                             })
                           }
@@ -889,16 +906,16 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                         ) : (
                           <div className="flex items-center gap-1">
                             <Input
-                              type="number"
+                              type="text"
+                              inputMode="decimal"
                               value={calculatorData.design.marge_securite}
                               className="w-20 font-semibold"
-                              step="0.1"
                               onChange={(e) =>
                                 setCalculatorData({
                                   ...calculatorData,
                                   design: {
                                     ...calculatorData.design,
-                                    marge_securite: parseFloat(e.target.value) || 1.0,
+                                    marge_securite: parseLocaleNumber(e.target.value) || 1.0,
                                   },
                                 })
                               }
@@ -990,16 +1007,16 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                       <div className="flex items-center gap-2">
                         <Label className="text-xs min-w-[140px] font-medium">Hauteur cage ancrage</Label>
                         <Input
-                          type="number"
+                          type="text"
+                          inputMode="decimal"
                           value={calculatorData.design.hauteur_cage}
                           className="w-24 font-semibold"
-                          step="0.01"
                           onChange={(e) =>
                             setCalculatorData({
                               ...calculatorData,
                               design: {
                                 ...calculatorData.design,
-                                hauteur_cage: parseFloat(e.target.value) || 3.5,
+                                hauteur_cage: parseLocaleNumber(e.target.value) || 3.5,
                               },
                             })
                           }

@@ -19,7 +19,7 @@ export const LinkedCell = ({
   isInput = false,
   onChange,
   disabled = false,
-  type = "number",
+  type = "text",
   min,
   className,
 }: LinkedCellProps) => {

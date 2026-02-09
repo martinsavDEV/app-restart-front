@@ -111,8 +111,8 @@ export function ProjectDialog({
               <Label htmlFor="n_wtg">Nombre d'éoliennes *</Label>
               <Input
                 id="n_wtg"
-                type="number"
-                min="1"
+                type="text"
+                inputMode="numeric"
                 value={formData.n_wtg}
                 onChange={(e) =>
                   setFormData({ ...formData, n_wtg: parseInt(e.target.value) || 1 })

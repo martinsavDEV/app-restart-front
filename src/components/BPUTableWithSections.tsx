@@ -422,8 +422,8 @@ export const BPUTableWithSections = ({
                     <label className="text-xs text-muted-foreground">Nombre:</label>
                     <div className="flex items-center gap-1">
                       <input
-                        type="number"
-                        min="1"
+                        type="text"
+                        inputMode="numeric"
                         value={resolvedMultiplier}
                         onChange={(e) => onSectionUpdate(section.id, Math.max(1, parseInt(e.target.value) || 1))}
                         disabled={!!section.linked_field}

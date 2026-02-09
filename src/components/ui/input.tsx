@@ -3,7 +3,36 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 
 const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
-  ({ className, type, ...props }, ref) => {
+  ({ className, type, onKeyDown, ...props }, ref) => {
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+      // Intercept numpad decimal key and replace "." with ","
+      if (e.code === "NumpadDecimal") {
+        e.preventDefault();
+        const input = e.currentTarget;
+        const start = input.selectionStart ?? 0;
+        const end = input.selectionEnd ?? 0;
+        const value = input.value;
+        const newValue = value.substring(0, start) + "," + value.substring(end);
+
+        // Use native setter to trigger React's onChange
+        const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+          window.HTMLInputElement.prototype,
+          "value"
+        )?.set;
+        nativeInputValueSetter?.call(input, newValue);
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+
+        // Restore cursor position
+        requestAnimationFrame(() => {
+          input.selectionStart = start + 1;
+          input.selectionEnd = start + 1;
+        });
+      }
+
+      // Call the original onKeyDown handler if provided
+      onKeyDown?.(e);
+    };
+
     return (
       <input
         type={type}
@@ -12,6 +41,7 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
           className,
         )}
         ref={ref}
+        onKeyDown={handleKeyDown}
         {...props}
       />
     );

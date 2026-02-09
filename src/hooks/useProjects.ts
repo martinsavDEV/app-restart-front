@@ -414,7 +414,6 @@ export function useQuoteVersions(projectId: string | null) {
             quantity: line.quantity,
             quantity_formula: line.quantity_formula,
             unit_price: line.unit_price,
-            total_price: line.total_price,
             price_source: line.price_source,
             linked_variable: line.linked_variable,
             comment: line.comment,

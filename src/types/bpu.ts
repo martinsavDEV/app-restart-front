@@ -56,7 +56,7 @@ export interface TurbineData {
 
 export interface AccessSegment {
   name: string; // "Accès E03", "E03-E01", etc.
-  longueur: number;
+  longueur?: number; // deprecated, kept for backward compat
   surface: number;
   renforcement: string; // "refresh" | "traitement"
   gnt: boolean;
@@ -69,16 +69,21 @@ export interface HTACableSegment {
   alu_95: number;
   alu_150: number;
   alu_240: number;
+  alu_300: number;
   alu_400: number;
   cu_95: number;
   cu_150: number;
   cu_240: number;
+  cu_300: number;
+  cu_400: number;
+  custom_cables?: Array<{ section: string; material: string; length: number }>;
 }
 
 export interface CalculatorData {
   global: {
     nb_eol: number;
     typ_eol: string;
+    tension_hta?: string; // "20kV" | "30kV"
   };
   turbines: TurbineData[];
   access_segments: AccessSegment[];

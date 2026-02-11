@@ -77,7 +77,8 @@ export const exportCapexToPDF = (data: SummaryData) => {
 
   doc.text(`Version: ${version}`, infoCol1X, infoY);
   doc.text(`Éoliennes: ${nWtg}`, infoCol1X, infoY + 5);
-  doc.text(`Dernière modification: ${lastUpdate}`, infoCol2X, infoY);
+  const tensionHta = (data.quoteSettings as any)?.calculator_data?.global?.tension_hta || "";
+  doc.text(`Dernière modification: ${lastUpdate}${tensionHta ? `  |  Tension HTA: ${tensionHta}` : ""}`, infoCol2X, infoY);
   
   // Total CAPEX in box
   doc.setFillColor(...primaryColor);
@@ -307,25 +308,23 @@ export const exportCapexToPDF = (data: SummaryData) => {
 
       const accessRows = calcData.access_segments.map((a: any) => [
         a.name || "-",
-        `${a.longueur || 0}`,
         `${a.surface || 0}`,
         a.renforcement || "-",
-        a.gnt ? "Oui" : "Non",
+        a.gnt ? `${a.surface || 0}` : "-",
       ]);
 
       autoTable(doc, {
         startY: yPos,
-        head: [["Segment", "Long. (m)", "Surf. (m²)", "Renforcement", "GNT"]],
+        head: [["Segment", "Surface (m²)", "Renforcement", "GNT (m²)"]],
         body: accessRows,
         theme: "striped",
         headStyles: { fillColor: headerBg, textColor: 255, fontSize: 6.5, fontStyle: "bold", cellPadding: 2 },
         styles: { fontSize: 6.5, cellPadding: 1.5 },
         columnStyles: {
           0: { cellWidth: "auto" },
-          1: { cellWidth: 22, halign: "right" },
-          2: { cellWidth: 22, halign: "right" },
-          3: { cellWidth: 28 },
-          4: { cellWidth: 15, halign: "center" },
+          1: { cellWidth: 25, halign: "right" },
+          2: { cellWidth: 28 },
+          3: { cellWidth: 22, halign: "right" },
         },
         margin: { left: margin, right: margin },
       });

@@ -30,11 +30,17 @@ interface QuoteSettings {
   [key: string]: any;
 }
 
+const defaultHTACable = (): HTACableSegment => ({
+  name: `Tronçon 1`,
+  alu_95: 0, alu_150: 0, alu_240: 0, alu_300: 0, alu_400: 0,
+  cu_95: 0, cu_150: 0, cu_240: 0, cu_300: 0, cu_400: 0,
+});
+
 export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDialogProps) => {
   const queryClient = useQueryClient();
   
   const [calculatorData, setCalculatorData] = useState<CalculatorData>({
-    global: { nb_eol: 1, typ_eol: "Vestas" },
+    global: { nb_eol: 1, typ_eol: "Vestas", tension_hta: "20kV" },
     turbines: [],
     access_segments: [],
     hta_cables: [],
@@ -72,9 +78,21 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
       
       // Validate structure before using
       if (data.global && data.turbines && data.access_segments && data.design) {
+        // Migrate HTA cables: add missing fields
+        const migratedCables = (data.hta_cables || []).map((c: any) => ({
+          ...c,
+          alu_300: c.alu_300 ?? 0,
+          cu_300: c.cu_300 ?? 0,
+          cu_400: c.cu_400 ?? 0,
+        }));
+
         setCalculatorData({
           ...data,
-          hta_cables: data.hta_cables || [],
+          global: {
+            ...data.global,
+            tension_hta: data.global.tension_hta ?? "20kV",
+          },
+          hta_cables: migratedCables,
           design: {
             diametre_fondation: data.design.diametre_fondation ?? null,
             marge_securite: data.design.marge_securite ?? 1.0,
@@ -93,7 +111,6 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
           setCustomSlope(true);
         }
       }
-      // Otherwise, keep default values initialized in useState
     }
   }, [settings]);
 
@@ -185,7 +202,6 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
   const addAccessSegment = () => {
     const newSegment: AccessSegment = {
       name: `Tronçon ${calculatorData.access_segments.length + 1}`,
-      longueur: 0,
       surface: 0,
       renforcement: "refresh",
       gnt: false,
@@ -210,19 +226,11 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
   };
 
   const addHTACable = () => {
-    const newCable: HTACableSegment = {
-      name: `Tronçon ${calculatorData.hta_cables.length + 1}`,
-      alu_95: 0,
-      alu_150: 0,
-      alu_240: 0,
-      alu_400: 0,
-      cu_95: 0,
-      cu_150: 0,
-      cu_240: 0,
-    };
+    const cable = defaultHTACable();
+    cable.name = `Tronçon ${calculatorData.hta_cables.length + 1}`;
     setCalculatorData({
       ...calculatorData,
-      hta_cables: [...calculatorData.hta_cables, newCable],
+      hta_cables: [...calculatorData.hta_cables, cable],
     });
   };
 
@@ -231,36 +239,63 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
     setCalculatorData({ ...calculatorData, hta_cables: newCables });
   };
 
-  const updateHTACable = (index: number, field: keyof HTACableSegment, value: any) => {
+  const updateHTACable = (index: number, field: string, value: any) => {
     const newCables = [...calculatorData.hta_cables];
     newCables[index] = { ...newCables[index], [field]: value };
     setCalculatorData({ ...calculatorData, hta_cables: newCables });
   };
 
+  const addCustomCable = (cableIndex: number) => {
+    const newCables = [...calculatorData.hta_cables];
+    const cable = newCables[cableIndex];
+    const customs = cable.custom_cables || [];
+    newCables[cableIndex] = {
+      ...cable,
+      custom_cables: [...customs, { section: "500", material: "alu", length: 0 }],
+    };
+    setCalculatorData({ ...calculatorData, hta_cables: newCables });
+  };
+
+  const updateCustomCable = (cableIndex: number, customIndex: number, field: string, value: any) => {
+    const newCables = [...calculatorData.hta_cables];
+    const customs = [...(newCables[cableIndex].custom_cables || [])];
+    customs[customIndex] = { ...customs[customIndex], [field]: value };
+    newCables[cableIndex] = { ...newCables[cableIndex], custom_cables: customs };
+    setCalculatorData({ ...calculatorData, hta_cables: newCables });
+  };
+
+  const removeCustomCable = (cableIndex: number, customIndex: number) => {
+    const newCables = [...calculatorData.hta_cables];
+    const customs = [...(newCables[cableIndex].custom_cables || [])];
+    customs.splice(customIndex, 1);
+    newCables[cableIndex] = { ...newCables[cableIndex], custom_cables: customs.length > 0 ? customs : undefined };
+    setCalculatorData({ ...calculatorData, hta_cables: newCables });
+  };
+
   // Calculate totals
+  const toNum = (v: any) => (typeof v === 'number' ? v : parseFloat(v) || 0);
+
   const turbineTotals = {
-    surf_PF: calculatorData.turbines.reduce((sum, t) => sum + t.surf_PF, 0),
-    acces_PF: calculatorData.turbines.reduce((sum, t) => sum + t.acces_PF, 0),
-    m3_bouger: calculatorData.turbines.reduce((sum, t) => sum + t.m3_bouger, 0),
-    bypass: calculatorData.turbines.reduce((sum, t) => sum + t.bypass, 0),
+    surf_PF: calculatorData.turbines.reduce((sum, t) => sum + toNum(t.surf_PF), 0),
+    acces_PF: calculatorData.turbines.reduce((sum, t) => sum + toNum(t.acces_PF), 0),
+    m3_bouger: calculatorData.turbines.reduce((sum, t) => sum + toNum(t.m3_bouger), 0),
+    bypass: calculatorData.turbines.reduce((sum, t) => sum + toNum(t.bypass), 0),
   };
 
   const accessTotals = {
-    longueur: calculatorData.access_segments.reduce((sum, s) => sum + s.longueur, 0),
-    surface: calculatorData.access_segments.reduce((sum, s) => sum + s.surface, 0),
-    bicouche: calculatorData.access_segments.reduce((sum, s) => sum + s.bicouche, 0),
-    enrobe: calculatorData.access_segments.reduce((sum, s) => sum + s.enrobe, 0),
+    surface: calculatorData.access_segments.reduce((sum, s) => sum + toNum(s.surface), 0),
+    gnt: calculatorData.access_segments.filter((s) => s.gnt).reduce((sum, s) => sum + toNum(s.surface), 0),
+    bicouche: calculatorData.access_segments.reduce((sum, s) => sum + toNum(s.bicouche), 0),
+    enrobe: calculatorData.access_segments.reduce((sum, s) => sum + toNum(s.enrobe), 0),
   };
 
-  const htaTotals = {
-    alu_95: calculatorData.hta_cables.reduce((sum, c) => sum + c.alu_95, 0),
-    alu_150: calculatorData.hta_cables.reduce((sum, c) => sum + c.alu_150, 0),
-    alu_240: calculatorData.hta_cables.reduce((sum, c) => sum + c.alu_240, 0),
-    alu_400: calculatorData.hta_cables.reduce((sum, c) => sum + c.alu_400, 0),
-    cu_95: calculatorData.hta_cables.reduce((sum, c) => sum + c.cu_95, 0),
-    cu_150: calculatorData.hta_cables.reduce((sum, c) => sum + c.cu_150, 0),
-    cu_240: calculatorData.hta_cables.reduce((sum, c) => sum + c.cu_240, 0),
-  };
+  const htaFields = ["alu_95", "alu_150", "alu_240", "alu_300", "alu_400", "cu_95", "cu_150", "cu_240", "cu_300", "cu_400"] as const;
+  const htaTotals = Object.fromEntries(
+    htaFields.map((f) => [f, calculatorData.hta_cables.reduce((sum, c) => sum + toNum((c as any)[f]), 0)])
+  ) as Record<string, number>;
+
+  const htaTotalLineaire = Object.values(htaTotals).reduce((a, b) => a + b, 0) +
+    calculatorData.hta_cables.reduce((sum, c) => sum + (c.custom_cables || []).reduce((s, cc) => s + toNum(cc.length), 0), 0);
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -296,7 +331,7 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                   {/* Global Section */}
                   <div className="space-y-2">
                     <h3 className="text-sm font-bold text-primary">Paramètres globaux</h3>
-                    <div className="flex gap-4 items-center bg-muted/30 p-3 rounded-md">
+                    <div className="flex gap-4 items-center flex-wrap bg-muted/30 p-3 rounded-md">
                       <div className="flex items-center gap-2">
                         <Label className="text-xs min-w-[140px] font-medium">Nombre d'éoliennes</Label>
                         <Input
@@ -325,6 +360,27 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                           }
                         />
                         <span className="text-xs text-muted-foreground font-mono">Typ_Eol</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Label className="text-xs min-w-[100px] font-medium">Tension HTA</Label>
+                        <Select
+                          value={calculatorData.global.tension_hta || "20kV"}
+                          onValueChange={(value) =>
+                            setCalculatorData({
+                              ...calculatorData,
+                              global: { ...calculatorData.global, tension_hta: value },
+                            })
+                          }
+                        >
+                          <SelectTrigger className="w-24">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="20kV">20 kV</SelectItem>
+                            <SelectItem value="30kV">30 kV</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <span className="text-xs text-muted-foreground font-mono">tension_hta</span>
                       </div>
                     </div>
                   </div>
@@ -582,24 +638,7 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                         </thead>
                         <tbody>
                           <tr>
-                            <td className="border p-2 text-xs">Longueur chemin</td>
-                            <td className="border p-2 text-xs text-muted-foreground">ml</td>
-                            {calculatorData.access_segments.map((segment, idx) => (
-                              <td key={idx} className="border p-1">
-                                <NumericInput
-                                  value={segment.longueur}
-                                  onValueChange={(val) => updateAccessSegment(idx, "longueur", val)}
-                                  className="h-7 text-xs text-center"
-                                  title={`Variable: $longueur_${segment.name.replace(/\s+/g, "_")}`}
-                                />
-                              </td>
-                            ))}
-                            <td className="border p-2 text-xs text-center font-semibold bg-primary/5" title="Variable: $sum_longueur_chemins">
-                              {accessTotals.longueur}
-                            </td>
-                          </tr>
-                          <tr>
-                            <td className="border p-2 text-xs">Surface (5ml)</td>
+                            <td className="border p-2 text-xs">Surface chemin</td>
                             <td className="border p-2 text-xs text-muted-foreground">m²</td>
                             {calculatorData.access_segments.map((segment, idx) => (
                               <td key={idx} className="border p-1">
@@ -617,18 +656,27 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                           </tr>
                           <tr>
                             <td className="border p-2 text-xs">GNT</td>
-                            <td className="border p-2 text-xs text-muted-foreground">binaire</td>
+                            <td className="border p-2 text-xs text-muted-foreground">m²</td>
                             {calculatorData.access_segments.map((segment, idx) => (
-                              <td key={idx} className="border p-1 text-center">
-                                <input
-                                  type="checkbox"
-                                  checked={segment.gnt}
-                                  onChange={(e) => updateAccessSegment(idx, "gnt", e.target.checked)}
-                                  className="h-4 w-4"
-                                />
+                              <td key={idx} className="border p-1">
+                                <div className="flex items-center gap-1 justify-center">
+                                  <input
+                                    type="checkbox"
+                                    checked={segment.gnt}
+                                    onChange={(e) => updateAccessSegment(idx, "gnt", e.target.checked)}
+                                    className="h-4 w-4"
+                                  />
+                                  {segment.gnt && (
+                                    <span className="text-xs font-mono text-muted-foreground">
+                                      {toNum(segment.surface)}
+                                    </span>
+                                  )}
+                                </div>
                               </td>
                             ))}
-                            <td className="border p-2 text-xs text-center bg-primary/5"></td>
+                            <td className="border p-2 text-xs text-center font-semibold bg-primary/5" title="Variable: $sum_GNT">
+                              {accessTotals.gnt}
+                            </td>
                           </tr>
                           <tr>
                             <td className="border p-2 text-xs">Bicouche</td>
@@ -695,7 +743,7 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <Zap className="h-4 w-4 text-primary" />
-                        <h3 className="text-sm font-bold text-primary">Électricité - Câbles HTA</h3>
+                        <h3 className="text-sm font-bold text-primary">Électricité - Câbles HTA ({calculatorData.global.tension_hta || "20kV"})</h3>
                       </div>
                       <Button onClick={addHTACable} size="sm" variant="outline" className="font-semibold">
                         <Plus className="h-4 w-4 mr-1" />
@@ -711,10 +759,13 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                             <th className="border p-2 text-center text-xs font-bold bg-blue-100 dark:bg-blue-900/30">95² alu</th>
                             <th className="border p-2 text-center text-xs font-bold bg-blue-100 dark:bg-blue-900/30">150² alu</th>
                             <th className="border p-2 text-center text-xs font-bold bg-blue-100 dark:bg-blue-900/30">240² alu</th>
+                            <th className="border p-2 text-center text-xs font-bold bg-blue-100 dark:bg-blue-900/30">300² alu</th>
                             <th className="border p-2 text-center text-xs font-bold bg-blue-100 dark:bg-blue-900/30">400² alu</th>
-                            <th className="border p-2 text-center text-xs font-bold bg-orange-100 dark:bg-orange-900/30">95² cuivre</th>
-                            <th className="border p-2 text-center text-xs font-bold bg-orange-100 dark:bg-orange-900/30">150² cuivre</th>
-                            <th className="border p-2 text-center text-xs font-bold bg-orange-100 dark:bg-orange-900/30">240² cuivre</th>
+                            <th className="border p-2 text-center text-xs font-bold bg-orange-100 dark:bg-orange-900/30">95² cu</th>
+                            <th className="border p-2 text-center text-xs font-bold bg-orange-100 dark:bg-orange-900/30">150² cu</th>
+                            <th className="border p-2 text-center text-xs font-bold bg-orange-100 dark:bg-orange-900/30">240² cu</th>
+                            <th className="border p-2 text-center text-xs font-bold bg-orange-100 dark:bg-orange-900/30">300² cu</th>
+                            <th className="border p-2 text-center text-xs font-bold bg-orange-100 dark:bg-orange-900/30">400² cu</th>
                             <th className="border p-2 text-center text-xs font-bold">Actions</th>
                           </tr>
                         </thead>
@@ -722,13 +773,11 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                           {/* Sum row */}
                           <tr className="bg-primary/20 font-bold">
                             <td className="border p-2 text-xs font-bold">Somme (ml)</td>
-                            <td className="border p-2 text-xs text-center bg-blue-50 dark:bg-blue-900/10">{htaTotals.alu_95}</td>
-                            <td className="border p-2 text-xs text-center bg-blue-50 dark:bg-blue-900/10">{htaTotals.alu_150}</td>
-                            <td className="border p-2 text-xs text-center bg-blue-50 dark:bg-blue-900/10">{htaTotals.alu_240}</td>
-                            <td className="border p-2 text-xs text-center bg-blue-50 dark:bg-blue-900/10">{htaTotals.alu_400}</td>
-                            <td className="border p-2 text-xs text-center bg-orange-50 dark:bg-orange-900/10">{htaTotals.cu_95}</td>
-                            <td className="border p-2 text-xs text-center bg-orange-50 dark:bg-orange-900/10">{htaTotals.cu_150}</td>
-                            <td className="border p-2 text-xs text-center bg-orange-50 dark:bg-orange-900/10">{htaTotals.cu_240}</td>
+                            {htaFields.map((f) => (
+                              <td key={f} className={cn("border p-2 text-xs text-center", f.startsWith("alu") ? "bg-blue-50 dark:bg-blue-900/10" : "bg-orange-50 dark:bg-orange-900/10")}>
+                                {htaTotals[f]}
+                              </td>
+                            ))}
                             <td className="border p-2"></td>
                           </tr>
                           {/* Data rows */}
@@ -741,74 +790,95 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                                   className="h-7 text-xs"
                                 />
                               </td>
-                              <td className="border p-1 bg-blue-50/50 dark:bg-blue-900/5">
-                                <NumericInput
-                                  value={cable.alu_95}
-                                  onValueChange={(val) => updateHTACable(idx, "alu_95", val)}
-                                  className="h-7 text-xs text-center"
-                                  title={`Variable: $alu95_${cable.name.replace(/\s+/g, "_")}`}
-                                />
-                              </td>
-                              <td className="border p-1 bg-blue-50/50 dark:bg-blue-900/5">
-                                <NumericInput
-                                  value={cable.alu_150}
-                                  onValueChange={(val) => updateHTACable(idx, "alu_150", val)}
-                                  className="h-7 text-xs text-center"
-                                  title={`Variable: $alu150_${cable.name.replace(/\s+/g, "_")}`}
-                                />
-                              </td>
-                              <td className="border p-1 bg-blue-50/50 dark:bg-blue-900/5">
-                                <NumericInput
-                                  value={cable.alu_240}
-                                  onValueChange={(val) => updateHTACable(idx, "alu_240", val)}
-                                  className="h-7 text-xs text-center"
-                                  title={`Variable: $alu240_${cable.name.replace(/\s+/g, "_")}`}
-                                />
-                              </td>
-                              <td className="border p-1 bg-blue-50/50 dark:bg-blue-900/5">
-                                <NumericInput
-                                  value={cable.alu_400}
-                                  onValueChange={(val) => updateHTACable(idx, "alu_400", val)}
-                                  className="h-7 text-xs text-center"
-                                  title={`Variable: $alu400_${cable.name.replace(/\s+/g, "_")}`}
-                                />
-                              </td>
-                              <td className="border p-1 bg-orange-50/50 dark:bg-orange-900/5">
-                                <NumericInput
-                                  value={cable.cu_95}
-                                  onValueChange={(val) => updateHTACable(idx, "cu_95", val)}
-                                  className="h-7 text-xs text-center"
-                                  title={`Variable: $cu95_${cable.name.replace(/\s+/g, "_")}`}
-                                />
-                              </td>
-                              <td className="border p-1 bg-orange-50/50 dark:bg-orange-900/5">
-                                <NumericInput
-                                  value={cable.cu_150}
-                                  onValueChange={(val) => updateHTACable(idx, "cu_150", val)}
-                                  className="h-7 text-xs text-center"
-                                  title={`Variable: $cu150_${cable.name.replace(/\s+/g, "_")}`}
-                                />
-                              </td>
-                              <td className="border p-1 bg-orange-50/50 dark:bg-orange-900/5">
-                                <NumericInput
-                                  value={cable.cu_240}
-                                  onValueChange={(val) => updateHTACable(idx, "cu_240", val)}
-                                  className="h-7 text-xs text-center"
-                                  title={`Variable: $cu240_${cable.name.replace(/\s+/g, "_")}`}
-                                />
-                              </td>
+                              {htaFields.map((f) => (
+                                <td key={f} className={cn("border p-1", f.startsWith("alu") ? "bg-blue-50/50 dark:bg-blue-900/5" : "bg-orange-50/50 dark:bg-orange-900/5")}>
+                                  <NumericInput
+                                    value={toNum((cable as any)[f])}
+                                    onValueChange={(val) => updateHTACable(idx, f, val)}
+                                    className="h-7 text-xs text-center"
+                                    title={`Variable: $${f.replace("_", "")}_${cable.name.replace(/\s+/g, "_")}`}
+                                  />
+                                </td>
+                              ))}
                               <td className="border p-1 text-center">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => removeHTACable(idx)}
-                                  className="h-6 w-6 p-0"
-                                >
-                                  <X className="h-3 w-3" />
-                                </Button>
+                                <div className="flex items-center gap-1 justify-center">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => addCustomCable(idx)}
+                                    className="h-6 w-6 p-0"
+                                    title="Ajouter section custom"
+                                  >
+                                    <Plus className="h-3 w-3" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => removeHTACable(idx)}
+                                    className="h-6 w-6 p-0"
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </Button>
+                                </div>
                               </td>
                             </tr>
                           ))}
+                          {/* Custom cables rows */}
+                          {calculatorData.hta_cables.map((cable, cIdx) =>
+                            (cable.custom_cables || []).map((cc, ccIdx) => (
+                              <tr key={`custom-${cIdx}-${ccIdx}`} className="bg-purple-50/50 dark:bg-purple-900/5">
+                                <td className="border p-1 text-xs text-muted-foreground pl-4">
+                                  ↳ {cable.name}
+                                </td>
+                                <td colSpan={10} className="border p-1">
+                                  <div className="flex items-center gap-2">
+                                    <NumericInput
+                                      value={parseFloat(cc.section) || 0}
+                                      onValueChange={(val) => updateCustomCable(cIdx, ccIdx, "section", String(val))}
+                                      className="h-7 text-xs w-20 text-center"
+                                    />
+                                    <span className="text-xs">mm²</span>
+                                    <Select
+                                      value={cc.material}
+                                      onValueChange={(val) => updateCustomCable(cIdx, ccIdx, "material", val)}
+                                    >
+                                      <SelectTrigger className="h-7 text-xs w-20">
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="alu">Alu</SelectItem>
+                                        <SelectItem value="cu">Cuivre</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                    <NumericInput
+                                      value={cc.length}
+                                      onValueChange={(val) => updateCustomCable(cIdx, ccIdx, "length", val)}
+                                      className="h-7 text-xs w-24 text-center"
+                                    />
+                                    <span className="text-xs">ml</span>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => removeCustomCable(cIdx, ccIdx)}
+                                      className="h-6 w-6 p-0"
+                                    >
+                                      <X className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                </td>
+                                <td className="border p-1"></td>
+                              </tr>
+                            ))
+                          )}
+                          {/* Total linéaire row */}
+                          <tr className="bg-emerald-50 dark:bg-emerald-900/10 font-bold">
+                            <td className="border p-2 text-xs font-bold text-emerald-700 dark:text-emerald-400" colSpan={htaFields.length + 1}>
+                              Total linéaire câbles HTA
+                            </td>
+                            <td className="border p-2 text-xs text-center font-bold text-emerald-700 dark:text-emerald-400" title="Variable: $sum_lineaire_hta">
+                              {htaTotalLineaire} ml
+                            </td>
+                          </tr>
                         </tbody>
                       </table>
                     </div>

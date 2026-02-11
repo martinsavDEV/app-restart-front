@@ -140,6 +140,14 @@ export const SummaryHeader = ({ data, versionId, onUpdate }: SummaryHeaderProps)
                   {data.quoteSettings?.n_wtg || data.project?.n_wtg || 0}
                 </span>
               </div>
+              {(data.quoteSettings as any)?.calculator_data?.global?.tension_hta && (
+                <div>
+                  <span className="font-medium">Tension HTA:</span>{" "}
+                  <span className="text-muted-foreground">
+                    {(data.quoteSettings as any).calculator_data.global.tension_hta}
+                  </span>
+                </div>
+              )}
               <div>
                 <span className="font-medium">Dernière modification:</span>{" "}
                 <span className="text-muted-foreground">

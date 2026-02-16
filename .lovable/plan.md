@@ -1,55 +1,66 @@
 
-# Reparation : formules, variables et affichage
 
-## Problemes identifies
+# Refonte de l'autocompletion des variables dans les formules
 
-### 1. `math.evaluate` est desactive (bug critique)
-Dans `formulaUtils.ts`, la ligne 16 remplace `math.evaluate` par une fonction qui lance une erreur. Ensuite, la ligne 77 appelle `math.evaluate(normalized)` qui echoue systematiquement. La reference `limitedEvaluate` (ligne 11) qui sauvegardait l'original n'est jamais utilisee.
+## Probleme actuel
 
-Resultat : **aucune formule ne peut etre evaluee** (ni `1+1`, ni `3*150`, rien).
+Quand on tape `$nb_eol` puis un operateur comme `*3`, le systeme pense que `$nb_eol*3` est un seul nom de variable. L'autocompletion et le filtrage se basent sur l'ensemble du texte saisi, pas sur le "token" variable en cours de frappe.
 
-### 2. `normalizeFormula` corrompt les noms de variables
-Le remplacement `/[x×]/gi` transforme toutes les lettres `x` en `*`, y compris celles dans les noms de variables (`$max_val` devient `$ma*_val`).
+De meme, quand on selectionne une variable dans le dropdown, tout le contenu de l'input est remplace par le nom de la variable, ce qui empeche de construire une formule avec plusieurs variables.
 
-### 3. `hasVariables` alterne vrai/faux
-Le regex `VARIABLE_REGEX` est defini avec le flag `/g` (global). Quand on appelle `.test()` sur un regex global, le `lastIndex` est mis a jour et le prochain appel recommence depuis cette position. Cela cause un comportement aleatoire.
+## Solution
 
-### 4. Les formules avec variables ne s'affichent pas en orange
-Le composant `QuantityFormulaInput` affiche en orange uniquement quand `isLinkedVariable` est vrai (variable pure sans operateur). Une formule comme `3*$var` n'est pas coloree en orange.
+Rendre l'autocompletion "contextuelle" : elle doit detecter le token variable en cours de saisie (le `$mot` sous le curseur), et inserer la variable selectionnee a cet emplacement sans effacer le reste de la formule.
 
-## Corrections prevues
-
-### Fichier `src/lib/formulaUtils.ts`
-
-| Correction | Detail |
-|------------|--------|
-| Utiliser `limitedEvaluate` | Remplacer `math.evaluate(normalized)` par `limitedEvaluate(normalized)` dans `evaluateFormula` |
-| Corriger `normalizeFormula` | Remplacer le regex `/[x×]/gi` par un pattern qui ne remplace `x` que quand il est entre deux nombres ou apres un `)`, pas dans les identifiants. Exemple : `/(?<=[\d\)])[\s]*[x×][\s]*(?=[\d\($])/gi` |
-| Corriger `hasVariables` | Utiliser un nouveau regex sans flag `/g` pour `.test()`, ou recreer le regex a chaque appel |
-
-### Fichier `src/components/QuantityFormulaInput.tsx`
-
-| Correction | Detail |
-|------------|--------|
-| Affichage orange pour formules avec variables | Ajouter une condition : si `formula` contient des `$variables`, afficher le resultat en orange (meme logique que `isLinkedVariable`) |
-| Icone adaptee | Formule avec variable = icone Lock orange. Formule pure = icone Calculator bleue |
-
-### Logique d'affichage resumee
+## Comportement cible
 
 ```text
-Etat                           | Couleur  | Icone      | Au clic: affiche
--------------------------------|----------|------------|------------------
-Valeur simple (ex: 450)        | Normal   | Aucune     | "450"
-Variable pure ($nb_eol)        | Orange   | Lock       | "$nb_eol"
-Formule pure (3*150)           | Bleu     | Calculator | "3*150"
-Formule + variable (3*$nb_eol) | Orange   | Calculator | "3*$nb_eol"
+Frappe utilisateur          | Dropdown | Filtre sur
+----------------------------|----------|------------
+"3*"                        | ferme    | -
+"3*$"                       | ouvert   | toutes les variables
+"3*$nb"                     | ouvert   | variables contenant "nb"
+"3*$nb_eol"                 | ouvert   | variables contenant "nb_eol"
+[clic sur $nb_eol]          | ferme    | - (input = "3*$nb_eol")
+"3*$nb_eol+"                | ferme    | -
+"3*$nb_eol+$"               | ouvert   | toutes les variables
+"3*$nb_eol+$su"             | ouvert   | variables contenant "su"
+[clic sur $surf_PF]         | ferme    | - (input = "3*$nb_eol+$surf_PF")
 ```
 
-### Detail technique de la correction `normalizeFormula`
+## Details techniques
 
-Le `x` doit etre remplace par `*` uniquement dans un contexte multiplicatif :
-- `3x150` -> `3*150`
-- `2x$var` -> `2*$var`
-- `$max_height` -> reste intact
+### Fichier modifie : `src/components/QuantityFormulaInput.tsx`
 
-Approche : remplacer `x` seulement quand il est precede d'un chiffre ou `)` et suivi d'un chiffre, `(` ou `$`.
+#### 1. Fonction utilitaire : extraire le token variable sous le curseur
+
+```text
+getCurrentVariableToken(inputValue, cursorPosition):
+  - Chercher en arriere depuis le curseur le dernier "$"
+  - Verifier qu'entre ce "$" et le curseur il n'y a que des caracteres valides [a-zA-Z0-9_]
+  - Si oui, retourner { token: "$nb", startIndex: 5, endIndex: 8 }
+  - Sinon retourner null
+```
+
+#### 2. Modifier `handleInputChange`
+
+Ouvrir le dropdown uniquement quand un token variable est en cours de frappe (detecte via `getCurrentVariableToken`). Fermer le dropdown des qu'un operateur est tape apres une variable complete.
+
+#### 3. Modifier `getFilteredVariables`
+
+Filtrer les variables en fonction du token variable courant (pas du texte entier). Si le token est `$nb`, filtrer sur "nb".
+
+#### 4. Modifier `handleSelect`
+
+Au lieu de remplacer tout l'input par le nom de la variable :
+- Remplacer uniquement le token en cours (de `startIndex` a `endIndex`) par le nom complet de la variable
+- Garder le reste de la formule intact
+- Ne PAS faire blur, ne PAS sauvegarder immediatement (l'utilisateur peut vouloir continuer a taper)
+- Fermer le dropdown
+
+Exemple : input = `3*$nb`, curseur a la fin, selection de `$nb_eol` -> input devient `3*$nb_eol`, curseur apres `l`.
+
+#### 5. Ne plus faire onUpdate + blur dans handleSelect
+
+Actuellement `handleSelect` appelle `onUpdate` et fait `blur()`. Dans le nouveau comportement, la selection d'une variable insere juste le texte. La sauvegarde se fait uniquement au `blur` (quand l'utilisateur quitte la cellule), comme pour les formules.
+

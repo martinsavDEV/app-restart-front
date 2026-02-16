@@ -178,37 +178,18 @@ export const PricingView = ({ projectId: initialProjectId, projectName: initialP
   };
 
   const handleLineUpdate = (lineId: string, updates: Partial<any>) => {
-    // Trouver la ligne actuelle pour récupérer sa section
-    let currentLine: any = null;
-    for (const lot of lots) {
-      const found = lot.lines.find((l: any) => l.id === lineId);
-      if (found) {
-        currentLine = found;
-        break;
-      }
-    }
+    const dbUpdates: Record<string, any> = {};
 
-    // Extraire le préfixe de section existant du comment actuel
-    const sectionMatch = currentLine?.comment?.match(/^\[([^\]]+)\]/);
-    const sectionPrefix = sectionMatch ? sectionMatch[0] : "";
+    if (updates.designation !== undefined) dbUpdates.designation = updates.designation;
+    if (updates.quantity !== undefined) dbUpdates.quantity = updates.quantity;
+    if (updates.unit !== undefined) dbUpdates.unit = updates.unit;
+    if (updates.unitPrice !== undefined) dbUpdates.unit_price = updates.unitPrice;
+    if (updates.comment !== undefined) dbUpdates.comment = updates.comment;
+    if (updates.priceSource !== undefined) dbUpdates.price_source = updates.priceSource;
+    if (updates.linkedVariable !== undefined) dbUpdates.linked_variable = updates.linkedVariable;
+    if (updates.quantity_formula !== undefined) dbUpdates.quantity_formula = updates.quantity_formula;
 
-    // Construire le nouveau comment en préservant la section
-    let newComment = updates.priceSource || "";
-    if (sectionPrefix && !newComment.startsWith("[")) {
-      newComment = `${sectionPrefix} ${newComment}`.trim();
-    }
-
-    updateLine({
-      lineId,
-      updates: {
-        designation: updates.designation,
-        quantity: updates.quantity,
-        unit: updates.unit,
-        unit_price: updates.unitPrice,
-        comment: newComment,
-        linked_variable: updates.linkedVariable,
-      },
-    });
+    updateLine({ lineId, updates: dbUpdates });
   };
 
   const handleLineDelete = (lineId: string) => {
@@ -312,8 +293,10 @@ export const PricingView = ({ projectId: initialProjectId, projectName: initialP
         quantity: line.quantity || 0,
         unit: line.unit,
         unitPrice: line.unit_price || 0,
-        priceSource: line.comment || "",
+        priceSource: line.price_source || "",
+        comment: line.comment || "",
         linkedVariable: line.linked_variable,
+        quantity_formula: line.quantity_formula,
         section_id: line.section_id,
         lot_id: line.lot_id,
       };

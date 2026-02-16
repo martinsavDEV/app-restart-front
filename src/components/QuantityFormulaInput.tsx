@@ -7,7 +7,7 @@ import { CalculatorVariable } from "@/types/bpu";
 import { Lock, Calculator } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { isFormula, evaluateFormula } from "@/lib/formulaUtils";
+import { isFormula, evaluateFormula, hasVariables, evaluateFormulaWithVariables } from "@/lib/formulaUtils";
 
 interface QuantityFormulaInputProps {
   value: number;
@@ -41,8 +41,8 @@ export const QuantityFormulaInput = ({
   const [isEditing, setIsEditing] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const isLinkedVariable = !!linkedVariable && linkedVariable.startsWith("$");
-  const hasFormula = !!formula && isFormula(formula);
+  const isLinkedVariable = !!linkedVariable && linkedVariable.startsWith("$") && !isFormula(linkedVariable);
+  const hasFormulaStored = !!formula && formula.length > 0;
   
   // Find the linked variable for display
   const linkedVar = isLinkedVariable 
@@ -71,10 +71,10 @@ export const QuantityFormulaInput = ({
 
   const handleFocus = () => {
     setIsEditing(true);
-    // When focusing, show the raw value for editing
+    // When focusing, show the raw formula/variable for editing
     if (isLinkedVariable && linkedVariable) {
       setInputValue(linkedVariable);
-    } else if (hasFormula && formula) {
+    } else if (hasFormulaStored && formula) {
       setInputValue(formula);
     } else {
       setInputValue(String(value));
@@ -104,8 +104,8 @@ export const QuantityFormulaInput = ({
         return;
       }
 
-      // Handle variable reference
-      if (trimmedValue.startsWith("$")) {
+      // Handle pure variable reference (just "$var_name" with no operators)
+      if (trimmedValue.startsWith("$") && !isFormula(trimmedValue)) {
         const matchingVar = variables.find(v => v.name === trimmedValue);
         if (matchingVar) {
           onUpdate({
@@ -121,9 +121,14 @@ export const QuantityFormulaInput = ({
         return;
       }
 
-      // Handle formula
+      // Handle formula (may contain $variables)
       if (isFormula(trimmedValue)) {
-        const result = evaluateFormula(trimmedValue);
+        let result: number | null;
+        if (hasVariables(trimmedValue)) {
+          result = evaluateFormulaWithVariables(trimmedValue, variables);
+        } else {
+          result = evaluateFormula(trimmedValue);
+        }
         if (result !== null) {
           onUpdate({
             quantity: result,
@@ -213,7 +218,7 @@ export const QuantityFormulaInput = ({
     if (isLinkedVariable) {
       return `Variable: ${linkedVariable} = ${formatDisplayNumber(displayValue)}`;
     }
-    if (hasFormula) {
+    if (hasFormulaStored) {
       return `Formule: ${formula} = ${formatDisplayNumber(displayValue)}`;
     }
     return null;
@@ -224,8 +229,8 @@ export const QuantityFormulaInput = ({
   const inputClasses = cn(
     "h-9 px-2 text-sm border rounded-md text-right tabular-nums",
     isLinkedVariable && "bg-muted text-orange-500 font-medium",
-    hasFormula && !isLinkedVariable && "bg-blue-50 text-blue-600 font-medium dark:bg-blue-950 dark:text-blue-400",
-    !isLinkedVariable && !hasFormula && "bg-background",
+    hasFormulaStored && !isLinkedVariable && "bg-blue-50 text-blue-600 font-medium dark:bg-blue-950 dark:text-blue-400",
+    !isLinkedVariable && !hasFormulaStored && "bg-background",
     disabled && "opacity-50 cursor-not-allowed",
     className
   );
@@ -313,7 +318,7 @@ export const QuantityFormulaInput = ({
       {isLinkedVariable && (
         <Lock className="h-3 w-3 text-orange-500 flex-shrink-0" />
       )}
-      {hasFormula && !isLinkedVariable && (
+      {hasFormulaStored && !isLinkedVariable && (
         <Calculator className="h-3 w-3 text-blue-500 flex-shrink-0" />
       )}
     </div>

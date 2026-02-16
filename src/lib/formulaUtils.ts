@@ -47,7 +47,10 @@ export const normalizeFormula = (formula: string): string => {
  */
 export const isFormula = (value: string): boolean => {
   if (!value || typeof value !== 'string') return false;
-  return (/[+\-*/x×]/.test(value) || /\$[a-zA-Z_]/.test(value)) && FORMULA_REGEX.test(value);
+  // A pure variable reference ($var_name) is NOT a formula
+  // A formula must contain at least one arithmetic operator
+  const hasOperator = /[+\-*/×]/.test(value) || /(?<=[\d)])\s*x\s*(?=[\d($])/i.test(value);
+  return hasOperator && FORMULA_REGEX.test(value);
 };
 
 /**

@@ -41,7 +41,7 @@ export const QuantityFormulaInput = ({
   const [isEditing, setIsEditing] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const isLinkedVariable = !!linkedVariable && linkedVariable.startsWith("$") && !isFormula(linkedVariable);
+  const isLinkedVariable = !!linkedVariable && /^\$[a-zA-Z_][a-zA-Z0-9_]*$/.test(linkedVariable);
   const hasFormulaStored = !!formula && formula.length > 0;
   const formulaHasVariables = hasFormulaStored && formula ? hasVariables(formula) : false;
   

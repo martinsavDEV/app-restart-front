@@ -1,63 +1,55 @@
 
+# Reparation : formules, variables et affichage
 
-# Corrections commentaires + formules avec variables
+## Problemes identifies
 
-## Probleme 1 : Commentaires ecrases
+### 1. `math.evaluate` est desactive (bug critique)
+Dans `formulaUtils.ts`, la ligne 16 remplace `math.evaluate` par une fonction qui lance une erreur. Ensuite, la ligne 77 appelle `math.evaluate(normalized)` qui echoue systematiquement. La reference `limitedEvaluate` (ligne 11) qui sauvegardait l'original n'est jamais utilisee.
 
-Dans `PricingView.tsx` ligne 196, `handleLineUpdate` ecrase systematiquement le champ `comment` avec `updates.priceSource` a chaque mise a jour de ligne. La base de donnees a bien deux colonnes separees (`comment` et `price_source`), mais le code melange les deux.
+Resultat : **aucune formule ne peut etre evaluee** (ni `1+1`, ni `3*150`, rien).
 
-**Correction** : Modifier `handleLineUpdate` pour :
-- Sauvegarder `comment` uniquement quand `updates.comment` est fourni
-- Sauvegarder `price_source` uniquement quand `updates.priceSource` est fourni
-- Ne plus ecraser l'un avec l'autre
+### 2. `normalizeFormula` corrompt les noms de variables
+Le remplacement `/[x×]/gi` transforme toutes les lettres `x` en `*`, y compris celles dans les noms de variables (`$max_val` devient `$ma*_val`).
 
-## Probleme 2 : Formules non memorisees + formules avec variables
+### 3. `hasVariables` alterne vrai/faux
+Le regex `VARIABLE_REGEX` est defini avec le flag `/g` (global). Quand on appelle `.test()` sur un regex global, le `lastIndex` est mis a jour et le prochain appel recommence depuis cette position. Cela cause un comportement aleatoire.
 
-Actuellement `quantity_formula` est stocke pour les formules simples, mais `handleLineUpdate` dans PricingView ne transmet pas `quantity_formula` a la mutation. De plus, les formules contenant des `$variables` (ex: `3*$sum_surf_PF`) ne sont pas supportees.
+### 4. Les formules avec variables ne s'affichent pas en orange
+Le composant `QuantityFormulaInput` affiche en orange uniquement quand `isLinkedVariable` est vrai (variable pure sans operateur). Une formule comme `3*$var` n'est pas coloree en orange.
 
-**Corrections** :
+## Corrections prevues
 
-### a) Transmettre `quantity_formula` dans la sauvegarde
+### Fichier `src/lib/formulaUtils.ts`
 
-`handleLineUpdate` doit passer `quantity_formula` au mutation `updateLine`.
+| Correction | Detail |
+|------------|--------|
+| Utiliser `limitedEvaluate` | Remplacer `math.evaluate(normalized)` par `limitedEvaluate(normalized)` dans `evaluateFormula` |
+| Corriger `normalizeFormula` | Remplacer le regex `/[x×]/gi` par un pattern qui ne remplace `x` que quand il est entre deux nombres ou apres un `)`, pas dans les identifiants. Exemple : `/(?<=[\d\)])[\s]*[x×][\s]*(?=[\d\($])/gi` |
+| Corriger `hasVariables` | Utiliser un nouveau regex sans flag `/g` pour `.test()`, ou recreer le regex a chaque appel |
 
-### b) Support des formules mixtes (nombres + variables)
+### Fichier `src/components/QuantityFormulaInput.tsx`
 
-Modifier `formulaUtils.ts` pour accepter les `$identifiants` dans les formules et ajouter une fonction `evaluateFormulaWithVariables(formula, variables)` qui remplace chaque `$variable` par sa valeur avant evaluation.
+| Correction | Detail |
+|------------|--------|
+| Affichage orange pour formules avec variables | Ajouter une condition : si `formula` contient des `$variables`, afficher le resultat en orange (meme logique que `isLinkedVariable`) |
+| Icone adaptee | Formule avec variable = icone Lock orange. Formule pure = icone Calculator bleue |
 
-### c) Adapter QuantityFormulaInput
-
-Modifier le `handleBlur` pour detecter les formules mixtes et les evaluer correctement. Stocker la formule brute dans `quantity_formula`.
-
-## Details techniques
-
-### Fichiers modifies
-
-| Fichier | Modification |
-|---------|-------------|
-| `src/components/PricingView.tsx` | Corriger `handleLineUpdate` : separer `comment` et `price_source`, transmettre `quantity_formula` et `linked_variable` |
-| `src/lib/formulaUtils.ts` | Etendre `FORMULA_REGEX` pour `$`, ajouter `evaluateFormulaWithVariables(formula, variables[])` |
-| `src/components/QuantityFormulaInput.tsx` | Adapter `handleBlur` pour formules mixtes, stocker formule brute dans `quantity_formula` |
-| `src/hooks/useQuotePricing.ts` | S'assurer que `updateLineMutation` transmet `quantity_formula` et `price_source` |
-
-### Logique des formules avec variables
-
-Exemples supportes :
-- `3*$sum_surf_PF` : remplace la variable par sa valeur, evalue le produit
-- `$surf_PF_E01 + $surf_PF_E02` : somme de deux variables
-- `2*($nb_eol + 1)` : formule mixte
-
-La formule brute est toujours conservee dans `quantity_formula`. Au clic sur la cellule, on affiche la formule. Au repos, on affiche le resultat calcule.
-
-### Correction commentaire - detail
+### Logique d'affichage resumee
 
 ```text
-Avant (ligne 196) :
-  let newComment = updates.priceSource || "";
-  -> ecrase le commentaire a chaque update
-
-Apres :
-  - Si updates.comment !== undefined -> comment = updates.comment
-  - Si updates.priceSource !== undefined -> price_source = updates.priceSource
-  - Sinon, ne pas toucher ces champs
+Etat                           | Couleur  | Icone      | Au clic: affiche
+-------------------------------|----------|------------|------------------
+Valeur simple (ex: 450)        | Normal   | Aucune     | "450"
+Variable pure ($nb_eol)        | Orange   | Lock       | "$nb_eol"
+Formule pure (3*150)           | Bleu     | Calculator | "3*150"
+Formule + variable (3*$nb_eol) | Orange   | Calculator | "3*$nb_eol"
 ```
+
+### Detail technique de la correction `normalizeFormula`
+
+Le `x` doit etre remplace par `*` uniquement dans un contexte multiplicatif :
+- `3x150` -> `3*150`
+- `2x$var` -> `2*$var`
+- `$max_height` -> reste intact
+
+Approche : remplacer `x` seulement quand il est precede d'un chiffre ou `)` et suivi d'un chiffre, `(` ou `$`.

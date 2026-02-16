@@ -25,6 +25,22 @@ interface QuantityFormulaInputProps {
   disabled?: boolean;
 }
 
+// Extract the $variable token under the cursor
+const getCurrentVariableToken = (input: string, cursorPos: number): { token: string; startIndex: number; endIndex: number } | null => {
+  // Search backwards from cursor for a '$'
+  let start = -1;
+  for (let i = cursorPos - 1; i >= 0; i--) {
+    const ch = input[i];
+    if (ch === '$') { start = i; break; }
+    if (!/[a-zA-Z0-9_]/.test(ch)) break;
+  }
+  if (start === -1) return null;
+  // Everything from '$' to cursor must be valid variable chars
+  const token = input.substring(start, cursorPos);
+  if (!/^\$[a-zA-Z0-9_]*$/.test(token)) return null;
+  return { token, startIndex: start, endIndex: cursorPos };
+};
+
 export const QuantityFormulaInput = ({
   value,
   formula,
@@ -39,6 +55,7 @@ export const QuantityFormulaInput = ({
   const [open, setOpen] = useState(false);
   const [inputValue, setInputValue] = useState("");
   const [isEditing, setIsEditing] = useState(false);
+  const [activeToken, setActiveToken] = useState<{ token: string; startIndex: number; endIndex: number } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const isLinkedVariable = !!linkedVariable && /^\$[a-zA-Z_][a-zA-Z0-9_]*$/.test(linkedVariable);
@@ -159,9 +176,12 @@ export const QuantityFormulaInput = ({
   const handleInputChange = (newValue: string) => {
     setInputValue(newValue);
 
-    // Open dropdown when user types $ OR when typing text that could be variable search
-    // (starts with letter or underscore)
-    if (newValue.includes("$") || /^[a-zA-Z_]/.test(newValue.trim())) {
+    // Detect variable token at cursor position
+    const cursorPos = inputRef.current?.selectionStart ?? newValue.length;
+    const token = getCurrentVariableToken(newValue, cursorPos);
+    setActiveToken(token);
+
+    if (token) {
       setOpen(true);
     } else {
       setOpen(false);
@@ -169,40 +189,42 @@ export const QuantityFormulaInput = ({
   };
 
   const handleSelect = (variable: CalculatorVariable) => {
-    setInputValue(variable.name);
-    onUpdate({
-      quantity: variable.value,
-      quantity_formula: null,
-      linkedVariable: variable.name,
-    });
-    setOpen(false);
-    setIsEditing(false);
-    if (inputRef.current) {
-      inputRef.current.blur();
+    if (activeToken) {
+      // Replace only the active token in the input
+      const before = inputValue.substring(0, activeToken.startIndex);
+      const after = inputValue.substring(activeToken.endIndex);
+      const newValue = before + variable.name + after;
+      setInputValue(newValue);
+      
+      // Place cursor right after the inserted variable name
+      const newCursorPos = before.length + variable.name.length;
+      setTimeout(() => {
+        if (inputRef.current) {
+          inputRef.current.focus();
+          inputRef.current.setSelectionRange(newCursorPos, newCursorPos);
+        }
+      }, 0);
+    } else {
+      setInputValue(variable.name);
     }
+    setActiveToken(null);
+    setOpen(false);
+    // Do NOT blur or call onUpdate - user may continue typing
   };
 
-  // Filter variables based on search - now works with or without $
+  // Filter variables based on the active token under cursor
   const getFilteredVariables = () => {
-    const trimmed = inputValue.trim();
+    if (!activeToken) return variables;
     
-    // Show all variables when typing just $
-    if (trimmed === "$") return variables;
+    const query = activeToken.token.replace(/^\$/, "").toLowerCase();
+    if (query.length === 0) return variables;
     
-    // If input contains $ or is text that could be a variable search
-    if (trimmed.startsWith("$") || /^[a-zA-Z_]/.test(trimmed)) {
-      const query = trimmed.replace(/^\$/, "").toLowerCase();
-      if (query.length === 0) return variables;
-      
-      return variables.filter(
-        (v) =>
-          v.name.toLowerCase().includes(query) ||
-          v.name.toLowerCase().includes(`$${query}`) ||
-          v.label.toLowerCase().includes(query)
-      );
-    }
-    
-    return variables;
+    return variables.filter(
+      (v) =>
+        v.name.toLowerCase().includes(query) ||
+        v.name.toLowerCase().includes(`$${query}`) ||
+        v.label.toLowerCase().includes(query)
+    );
   };
   
   const filteredVariables = getFilteredVariables();

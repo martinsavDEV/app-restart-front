@@ -7,8 +7,10 @@ import { create, all } from "mathjs";
 
 const math = create(all, {});
 
+// Save reference to evaluate BEFORE disabling it
+const limitedEvaluate = math.evaluate.bind(math);
+
 // Disable dangerous functions
-const limitedEvaluate = math.evaluate;
 math.import!(
   {
     import: function () { throw new Error("Function import is disabled"); },
@@ -24,18 +26,17 @@ math.import!(
 // Allowed characters: digits, operators, spaces, commas/dots, parentheses, $identifiers
 const FORMULA_REGEX = /^[\d\s+\-*/x×(),.\[\]$a-zA-Z_]+$/i;
 
-// Match $variable_name tokens
-const VARIABLE_REGEX = /\$([a-zA-Z_][a-zA-Z0-9_]*)/g;
-
 /**
  * Normalize a formula for evaluation:
- * - Replace x/× with *
+ * - Replace x/× with * ONLY when used as multiplication operator
+ *   (preceded by digit or ) and followed by digit, ( or $)
  * - Replace commas with dots
  * - Replace brackets with parentheses
  */
 export const normalizeFormula = (formula: string): string => {
   return formula
-    .replace(/[x×]/gi, '*')
+    .replace(/(?<=[\d)])[\s]*[x×][\s]*(?=[\d($])/gi, '*')
+    .replace(/×/g, '*')
     .replace(/,/g, '.')
     .replace(/\[/g, '(')
     .replace(/\]/g, ')');
@@ -46,15 +47,15 @@ export const normalizeFormula = (formula: string): string => {
  */
 export const isFormula = (value: string): boolean => {
   if (!value || typeof value !== 'string') return false;
-  // Contains at least one math operator or a $variable reference
   return (/[+\-*/x×]/.test(value) || /\$[a-zA-Z_]/.test(value)) && FORMULA_REGEX.test(value);
 };
 
 /**
  * Check if a formula contains $variable references
+ * Uses a fresh regex each time to avoid lastIndex issues
  */
 export const hasVariables = (formula: string): boolean => {
-  return VARIABLE_REGEX.test(formula);
+  return /\$[a-zA-Z_][a-zA-Z0-9_]*/.test(formula);
 };
 
 /**
@@ -67,16 +68,16 @@ export const extractVariableNames = (formula: string): string[] => {
 
 /**
  * Safely evaluate a formula string (without variables)
- * Returns null if invalid or result is not a valid positive number
+ * Returns null if invalid or result is not a valid number
  */
 export const evaluateFormula = (formula: string): number | null => {
   if (!formula || !FORMULA_REGEX.test(formula)) return null;
   
   try {
     const normalized = normalizeFormula(formula);
-    const result = math.evaluate(normalized);
+    const result = limitedEvaluate(normalized);
     
-    if (typeof result !== 'number' || !isFinite(result) || result < 0) {
+    if (typeof result !== 'number' || !isFinite(result)) {
       return null;
     }
     return Math.round(result * 1000) / 1000;
@@ -87,7 +88,6 @@ export const evaluateFormula = (formula: string): number | null => {
 
 /**
  * Evaluate a formula that may contain $variable references
- * Replaces each $variable with its numeric value before evaluation
  */
 export const evaluateFormulaWithVariables = (
   formula: string,
@@ -96,18 +96,15 @@ export const evaluateFormulaWithVariables = (
   if (!formula || !FORMULA_REGEX.test(formula)) return null;
 
   try {
-    // Replace each $variable with its value
     let resolved = formula;
     const varNames = extractVariableNames(formula);
     
     for (const varName of varNames) {
-      const fullName = `$${varName}`;
-      const variable = variables.find(v => v.name === fullName);
-      if (!variable) return null; // Unknown variable
+      const variable = variables.find(v => v.name === `$${varName}`);
+      if (!variable) return null;
       resolved = resolved.replace(new RegExp(`\\$${varName}`, 'g'), String(variable.value));
     }
 
-    // Now evaluate the purely numeric formula
     return evaluateFormula(resolved);
   } catch {
     return null;

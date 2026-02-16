@@ -43,6 +43,7 @@ export const QuantityFormulaInput = ({
 
   const isLinkedVariable = !!linkedVariable && linkedVariable.startsWith("$") && !isFormula(linkedVariable);
   const hasFormulaStored = !!formula && formula.length > 0;
+  const formulaHasVariables = hasFormulaStored && formula ? hasVariables(formula) : false;
   
   // Find the linked variable for display
   const linkedVar = isLinkedVariable 
@@ -228,9 +229,9 @@ export const QuantityFormulaInput = ({
 
   const inputClasses = cn(
     "h-9 px-2 text-sm border rounded-md text-right tabular-nums",
-    isLinkedVariable && "bg-muted text-orange-500 font-medium",
-    hasFormulaStored && !isLinkedVariable && "bg-blue-50 text-blue-600 font-medium dark:bg-blue-950 dark:text-blue-400",
-    !isLinkedVariable && !hasFormulaStored && "bg-background",
+    (isLinkedVariable || formulaHasVariables) && "bg-muted text-orange-500 font-medium",
+    hasFormulaStored && !isLinkedVariable && !formulaHasVariables && "bg-blue-50 text-blue-600 font-medium dark:bg-blue-950 dark:text-blue-400",
+    !isLinkedVariable && !hasFormulaStored && !formulaHasVariables && "bg-background",
     disabled && "opacity-50 cursor-not-allowed",
     className
   );
@@ -319,7 +320,7 @@ export const QuantityFormulaInput = ({
         <Lock className="h-3 w-3 text-orange-500 flex-shrink-0" />
       )}
       {hasFormulaStored && !isLinkedVariable && (
-        <Calculator className="h-3 w-3 text-blue-500 flex-shrink-0" />
+        <Calculator className="h-3 w-3 flex-shrink-0" style={{ color: formulaHasVariables ? 'rgb(249, 115, 22)' : 'rgb(59, 130, 246)' }} />
       )}
     </div>
   );

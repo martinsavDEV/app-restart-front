@@ -1,5 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { computeCalculatorVariables } from "@/hooks/useCalculatorVariables";
+import { evaluateFormulaWithVariables } from "@/lib/formulaUtils";
+import { CalculatorData } from "@/types/bpu";
 
 export interface SummaryData {
   project: {
@@ -96,48 +99,76 @@ export const useSummaryData = (
         .from("lots")
         .select(
           `
-          id,
-          label,
-          code,
-          order_index,
-          header_comment,
-          quote_sections (
-            id,
-            name,
-            multiplier,
-            is_multiple,
-            order_index,
-            quote_lines (
-              id,
-              designation,
-              quantity,
-              unit,
-              unit_price,
-              total_price,
-              comment,
-              order_index
-            )
-          )
-        `
-        )
-        .eq("quote_version_id", versionId)
-        .eq("is_enabled", true)
-        .order("order_index");
+           id,
+           label,
+           code,
+           order_index,
+           header_comment,
+           quote_sections (
+             id,
+             name,
+             multiplier,
+             is_multiple,
+             order_index,
+             quote_lines (
+               id,
+               designation,
+               quantity,
+               unit,
+               unit_price,
+               total_price,
+               comment,
+               order_index,
+               linked_variable,
+               quantity_formula
+             )
+           )
+         `
+         )
+         .eq("quote_version_id", versionId)
+         .eq("is_enabled", true)
+         .order("order_index");
+
+      // Compute calculator variables for resolving linked_variable / quantity_formula
+      const calcVars = computeCalculatorVariables(
+        (quoteSettings?.calculator_data as unknown as CalculatorData) ?? null
+      );
 
       // Transform and calculate totals
       const transformedLots = (lots || []).map((lot: any) => {
         const sections = (lot.quote_sections || []).map((section: any) => {
           const lines = (section.quote_lines || [])
             .sort((a: any, b: any) => a.order_index - b.order_index)
-            .map((line: any) => ({
-              id: line.id,
-              designation: line.designation,
-              quantity: line.quantity,
-              unit: line.unit,
-              unit_price: line.unit_price,
-              total_price: line.total_price || line.quantity * line.unit_price,
-              comment: line.comment,
-            }));
+            .map((line: any) => {
+              let resolvedQty = line.quantity;
+
+              // Resolve linked variable
+              if (line.linked_variable) {
+                const variable = calcVars.find((v) => v.name === line.linked_variable);
+                if (variable != null) {
+                  resolvedQty = variable.value;
+                }
+              }
+              // Resolve formula with variables
+              else if (line.quantity_formula && /\$/.test(line.quantity_formula)) {
+                const evaluated = evaluateFormulaWithVariables(line.quantity_formula, calcVars);
+                if (evaluated != null) {
+                  resolvedQty = evaluated;
+                }
+              }
+
+              const totalPrice = resolvedQty * line.unit_price;
+
+              return {
+                id: line.id,
+                designation: line.designation,
+                quantity: resolvedQty,
+                unit: line.unit,
+                unit_price: line.unit_price,
+                total_price: totalPrice,
+                comment: line.comment,
+              };
+            });
 
           const subtotal = lines.reduce(
             (sum, line) => sum + line.total_price,

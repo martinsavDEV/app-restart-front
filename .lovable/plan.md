@@ -1,38 +1,34 @@
 
-# Fix: Resolve variables and formulas in export data
+# Fix: Total en-tete du lot different du total en bas
 
-## Problem
+## Cause
 
-The summary/export (`useSummaryData`) reads `quantity` directly from the database. But many lines have a `linked_variable` (e.g. `$nb_eol`) or a `quantity_formula` (e.g. `$nb_eol*2`) whose resolved value is only computed client-side in PricingView. The database often stores `quantity: 0` for these lines because the variable was linked after creation and the quantity was never persisted back.
+Deux calculs de total differents sont utilises :
 
-Result: CSV and PDF exports show `qty = 0` for variable-linked lines, and totals are wrong.
+| Endroit | Fichier | Calcul | Resultat |
+|---------|---------|--------|----------|
+| En-tete du lot | `PricingView.tsx` ligne 119 | `line.quantity * line.unit_price` (valeur brute DB) | Faux (qty = 0 pour les variables) |
+| Bas du lot | `BPUTableWithSections.tsx` ligne 152-157 | `resolveQuantity(line.quantity, line.linkedVariable)` | Correct |
 
-## Solution
+La fonction `calculateLotTotal` dans `PricingView.tsx` ne resout ni les variables liees (`linked_variable`) ni les formules (`quantity_formula`). Elle prend `line.quantity` tel quel depuis la base de donnees, qui vaut souvent 0 pour les lignes liees a une variable.
 
-Add variable/formula resolution inside `useSummaryData` after fetching the data. The `calculator_data` is already fetched via `quote_settings`, so we can compute the same variables that `useCalculatorVariables` produces, then resolve each line's quantity.
+## Correction
 
-## Changes
+### Fichier `src/components/PricingView.tsx`
 
-### File: `src/hooks/useSummaryData.ts`
+Modifier `calculateLotTotal` pour resoudre les variables et formules avant de calculer le total :
 
-1. Import `evaluateFormulaWithVariables` from `formulaUtils` and the calculator variable generation logic
-2. After fetching `quote_settings`, compute the variables from `calculator_data` (extract the pure computation logic from `useCalculatorVariables` into a standalone function)
-3. When transforming lines, for each line:
-   - If `linked_variable` is set and matches a known variable, use that variable's value as `quantity`
-   - Else if `quantity_formula` is set and contains `$variables`, evaluate it with `evaluateFormulaWithVariables`
-   - Otherwise keep the DB `quantity` as-is
-4. Recalculate `total_price = resolved_quantity * unit_price` for affected lines
+1. Acceder aux `calculatorVariables` (deja disponibles via le hook `useCalculatorVariables` ou via `computeCalculatorVariables`)
+2. Pour chaque ligne :
+   - Si `linked_variable` est defini, utiliser `getVariableValue(linked_variable)`
+   - Sinon si `quantity_formula` contient des `$variables`, evaluer avec `evaluateFormulaWithVariables`
+   - Sinon utiliser `line.quantity` tel quel
+3. Multiplier la quantite resolue par `unit_price`
 
-### File: `src/hooks/useCalculatorVariables.ts`
+Le calcul des multiplicateurs de section reste inchange (il fonctionne deja correctement).
 
-Extract the variable computation into a standalone pure function `computeCalculatorVariables(calculatorData)` that can be used outside of React hooks (both by the existing hook and by `useSummaryData`).
+### Impact
 
-### File: `src/lib/formulaUtils.ts`
-
-No changes needed -- `evaluateFormulaWithVariables` already exists and handles resolution.
-
-## Resulting behavior
-
-- Export CSV/PDF will show the same quantities as displayed in PricingView
-- Totals per section, per lot, and CAPEX total will all be correct
-- No database schema changes required
+- Le total dans l'en-tete du lot correspondra au total en bas du lot
+- Aucun changement sur le total en bas (deja correct)
+- Le CAPEXSummaryCard sera aussi corrige car il utilise la meme fonction `calculateLotTotal`

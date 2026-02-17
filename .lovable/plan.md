@@ -1,66 +1,38 @@
 
+# Fix: Resolve variables and formulas in export data
 
-# Refonte de l'autocompletion des variables dans les formules
+## Problem
 
-## Probleme actuel
+The summary/export (`useSummaryData`) reads `quantity` directly from the database. But many lines have a `linked_variable` (e.g. `$nb_eol`) or a `quantity_formula` (e.g. `$nb_eol*2`) whose resolved value is only computed client-side in PricingView. The database often stores `quantity: 0` for these lines because the variable was linked after creation and the quantity was never persisted back.
 
-Quand on tape `$nb_eol` puis un operateur comme `*3`, le systeme pense que `$nb_eol*3` est un seul nom de variable. L'autocompletion et le filtrage se basent sur l'ensemble du texte saisi, pas sur le "token" variable en cours de frappe.
-
-De meme, quand on selectionne une variable dans le dropdown, tout le contenu de l'input est remplace par le nom de la variable, ce qui empeche de construire une formule avec plusieurs variables.
+Result: CSV and PDF exports show `qty = 0` for variable-linked lines, and totals are wrong.
 
 ## Solution
 
-Rendre l'autocompletion "contextuelle" : elle doit detecter le token variable en cours de saisie (le `$mot` sous le curseur), et inserer la variable selectionnee a cet emplacement sans effacer le reste de la formule.
+Add variable/formula resolution inside `useSummaryData` after fetching the data. The `calculator_data` is already fetched via `quote_settings`, so we can compute the same variables that `useCalculatorVariables` produces, then resolve each line's quantity.
 
-## Comportement cible
+## Changes
 
-```text
-Frappe utilisateur          | Dropdown | Filtre sur
-----------------------------|----------|------------
-"3*"                        | ferme    | -
-"3*$"                       | ouvert   | toutes les variables
-"3*$nb"                     | ouvert   | variables contenant "nb"
-"3*$nb_eol"                 | ouvert   | variables contenant "nb_eol"
-[clic sur $nb_eol]          | ferme    | - (input = "3*$nb_eol")
-"3*$nb_eol+"                | ferme    | -
-"3*$nb_eol+$"               | ouvert   | toutes les variables
-"3*$nb_eol+$su"             | ouvert   | variables contenant "su"
-[clic sur $surf_PF]         | ferme    | - (input = "3*$nb_eol+$surf_PF")
-```
+### File: `src/hooks/useSummaryData.ts`
 
-## Details techniques
+1. Import `evaluateFormulaWithVariables` from `formulaUtils` and the calculator variable generation logic
+2. After fetching `quote_settings`, compute the variables from `calculator_data` (extract the pure computation logic from `useCalculatorVariables` into a standalone function)
+3. When transforming lines, for each line:
+   - If `linked_variable` is set and matches a known variable, use that variable's value as `quantity`
+   - Else if `quantity_formula` is set and contains `$variables`, evaluate it with `evaluateFormulaWithVariables`
+   - Otherwise keep the DB `quantity` as-is
+4. Recalculate `total_price = resolved_quantity * unit_price` for affected lines
 
-### Fichier modifie : `src/components/QuantityFormulaInput.tsx`
+### File: `src/hooks/useCalculatorVariables.ts`
 
-#### 1. Fonction utilitaire : extraire le token variable sous le curseur
+Extract the variable computation into a standalone pure function `computeCalculatorVariables(calculatorData)` that can be used outside of React hooks (both by the existing hook and by `useSummaryData`).
 
-```text
-getCurrentVariableToken(inputValue, cursorPosition):
-  - Chercher en arriere depuis le curseur le dernier "$"
-  - Verifier qu'entre ce "$" et le curseur il n'y a que des caracteres valides [a-zA-Z0-9_]
-  - Si oui, retourner { token: "$nb", startIndex: 5, endIndex: 8 }
-  - Sinon retourner null
-```
+### File: `src/lib/formulaUtils.ts`
 
-#### 2. Modifier `handleInputChange`
+No changes needed -- `evaluateFormulaWithVariables` already exists and handles resolution.
 
-Ouvrir le dropdown uniquement quand un token variable est en cours de frappe (detecte via `getCurrentVariableToken`). Fermer le dropdown des qu'un operateur est tape apres une variable complete.
+## Resulting behavior
 
-#### 3. Modifier `getFilteredVariables`
-
-Filtrer les variables en fonction du token variable courant (pas du texte entier). Si le token est `$nb`, filtrer sur "nb".
-
-#### 4. Modifier `handleSelect`
-
-Au lieu de remplacer tout l'input par le nom de la variable :
-- Remplacer uniquement le token en cours (de `startIndex` a `endIndex`) par le nom complet de la variable
-- Garder le reste de la formule intact
-- Ne PAS faire blur, ne PAS sauvegarder immediatement (l'utilisateur peut vouloir continuer a taper)
-- Fermer le dropdown
-
-Exemple : input = `3*$nb`, curseur a la fin, selection de `$nb_eol` -> input devient `3*$nb_eol`, curseur apres `l`.
-
-#### 5. Ne plus faire onUpdate + blur dans handleSelect
-
-Actuellement `handleSelect` appelle `onUpdate` et fait `blur()`. Dans le nouveau comportement, la selection d'une variable insere juste le texte. La sauvegarde se fait uniquement au `blur` (quand l'utilisateur quitte la cellule), comme pour les formules.
-
+- Export CSV/PDF will show the same quantities as displayed in PricingView
+- Totals per section, per lot, and CAPEX total will all be correct
+- No database schema changes required

@@ -18,6 +18,7 @@ import { useCalculatorVariables } from "@/hooks/useCalculatorVariables";
 import { getLotColors } from "@/lib/lotColors";
 import { cn } from "@/lib/utils";
 import { Calculator, PanelRightClose, PanelRightOpen } from "lucide-react";
+import { evaluateFormulaWithVariables } from "@/lib/formulaUtils";
 
 interface PricingViewProps {
   projectId?: string | null;
@@ -103,6 +104,18 @@ export const PricingView = ({ projectId: initialProjectId, projectName: initialP
     }).format(value);
   };
 
+  const resolveLineQuantity = (line: any): number => {
+    if (line.linked_variable) {
+      const variable = variables.find((v) => v.name === line.linked_variable);
+      if (variable != null) return variable.value;
+    }
+    if (line.quantity_formula && /\$/.test(line.quantity_formula)) {
+      const evaluated = evaluateFormulaWithVariables(line.quantity_formula, variables);
+      if (evaluated != null) return evaluated;
+    }
+    return line.quantity || 0;
+  };
+
   const calculateLotTotal = (lines: any[], sections: any[] = []): number => {
     // Group lines by section_id
     const linesBySection = lines.reduce((acc, line) => {
@@ -117,7 +130,7 @@ export const PricingView = ({ projectId: initialProjectId, projectName: initialP
     sections.forEach(section => {
       const sectionLines = linesBySection[section.id] || [];
       const sectionTotal = sectionLines.reduce((sum, line) => 
-        sum + (line.quantity || 0) * (line.unit_price || 0), 0
+        sum + resolveLineQuantity(line) * (line.unit_price || 0), 0
       );
       const multiplier = section.is_multiple ? section.multiplier : 1;
       total += sectionTotal * multiplier;
@@ -126,7 +139,7 @@ export const PricingView = ({ projectId: initialProjectId, projectName: initialP
     // Add lines without section
     const noSectionLines = linesBySection["no-section"] || [];
     total += noSectionLines.reduce((sum, line) => 
-      sum + (line.quantity || 0) * (line.unit_price || 0), 0
+      sum + resolveLineQuantity(line) * (line.unit_price || 0), 0
     );
 
     return total;

@@ -67,125 +67,144 @@ export const useSummaryData = (
         throw new Error("Project ID and Version ID are required");
       }
 
-      // Fetch project
-      const { data: project } = await supabase
-        .from("projects")
-        .select("name, department, n_wtg")
-        .eq("id", projectId)
-        .single();
+      // Fetch project, quote version, quote settings, and reference documents in parallel
+      const [
+        { data: project },
+        { data: quoteVersion },
+        { data: quoteSettings },
+        { data: referenceDocuments },
+        { data: lotsRaw },
+      ] = await Promise.all([
+        supabase
+          .from("projects")
+          .select("name, department, n_wtg")
+          .eq("id", projectId)
+          .single(),
+        supabase
+          .from("quote_versions")
+          .select("version_label, date_creation, last_update, comment")
+          .eq("id", versionId)
+          .single(),
+        supabase
+          .from("quote_settings")
+          .select("n_wtg, turbine_model, turbine_power, hub_height, n_foundations, calculator_data")
+          .eq("quote_version_id", versionId)
+          .single(),
+        supabase
+          .from("reference_documents")
+          .select("id, label, reference, comment")
+          .eq("version_id", versionId),
+        // Requête A : lots + sections (sans les lignes)
+        supabase
+          .from("lots")
+          .select(
+            `id, label, code, order_index, header_comment,
+             quote_sections (id, name, multiplier, is_multiple, order_index)`
+          )
+          .eq("quote_version_id", versionId)
+          .eq("is_enabled", true)
+          .order("order_index"),
+      ]);
 
-      // Fetch quote version
-      const { data: quoteVersion } = await supabase
-        .from("quote_versions")
-        .select("version_label, date_creation, last_update, comment")
-        .eq("id", versionId)
-        .single();
+      const lots = lotsRaw || [];
+      const lotIds = lots.map((l: any) => l.id);
 
-      // Fetch quote settings
-      const { data: quoteSettings } = await supabase
-        .from("quote_settings")
-        .select("n_wtg, turbine_model, turbine_power, hub_height, n_foundations, calculator_data")
-        .eq("quote_version_id", versionId)
-        .single();
-
-      // Fetch reference documents
-      const { data: referenceDocuments } = await supabase
-        .from("reference_documents")
-        .select("id, label, reference, comment")
-        .eq("version_id", versionId);
-
-      // Fetch lots with sections and lines
-      const { data: lots } = await supabase
-        .from("lots")
-        .select(
-          `
-           id,
-           label,
-           code,
-           order_index,
-           header_comment,
-           quote_sections (
-             id,
-             name,
-             multiplier,
-             is_multiple,
-             order_index,
-             quote_lines (
-               id,
-               designation,
-               quantity,
-               unit,
-               unit_price,
-               total_price,
-               comment,
-               order_index,
-               linked_variable,
-               quantity_formula
-             )
-           )
-         `
-         )
-         .eq("quote_version_id", versionId)
-         .eq("is_enabled", true)
-         .order("order_index");
+      // Requête B : toutes les lignes du devis (y compris section_id = NULL)
+      let allLines: any[] = [];
+      if (lotIds.length > 0) {
+        const { data: linesData } = await supabase
+          .from("quote_lines")
+          .select(
+            "id, lot_id, section_id, designation, quantity, unit, unit_price, total_price, comment, order_index, linked_variable, quantity_formula"
+          )
+          .in("lot_id", lotIds)
+          .order("order_index");
+        allLines = linesData || [];
+      }
 
       // Compute calculator variables for resolving linked_variable / quantity_formula
       const calcVars = computeCalculatorVariables(
         (quoteSettings?.calculator_data as unknown as CalculatorData) ?? null
       );
 
-      // Transform and calculate totals
-      const transformedLots = (lots || []).map((lot: any) => {
-        const sections = (lot.quote_sections || []).map((section: any) => {
-          const lines = (section.quote_lines || [])
-            .sort((a: any, b: any) => a.order_index - b.order_index)
-            .map((line: any) => {
-              let resolvedQty = line.quantity;
+      // Helper: resolve quantity for a line
+      const resolveQuantity = (line: any): number => {
+        if (line.linked_variable) {
+          const variable = calcVars.find((v) => v.name === line.linked_variable);
+          if (variable != null) return variable.value;
+        }
+        if (line.quantity_formula && /\$/.test(line.quantity_formula)) {
+          const evaluated = evaluateFormulaWithVariables(line.quantity_formula, calcVars);
+          if (evaluated != null) return evaluated;
+        }
+        return line.quantity ?? 0;
+      };
 
-              // Resolve linked variable
-              if (line.linked_variable) {
-                const variable = calcVars.find((v) => v.name === line.linked_variable);
-                if (variable != null) {
-                  resolvedQty = variable.value;
-                }
-              }
-              // Resolve formula with variables
-              else if (line.quantity_formula && /\$/.test(line.quantity_formula)) {
-                const evaluated = evaluateFormulaWithVariables(line.quantity_formula, calcVars);
-                if (evaluated != null) {
-                  resolvedQty = evaluated;
-                }
-              }
+      // Helper: transform a raw line into the output shape
+      const transformLine = (line: any) => {
+        const resolvedQty = resolveQuantity(line);
+        const totalPrice = resolvedQty * line.unit_price;
+        return {
+          id: line.id,
+          designation: line.designation,
+          quantity: resolvedQty,
+          unit: line.unit,
+          unit_price: line.unit_price,
+          total_price: totalPrice,
+          comment: line.comment,
+        };
+      };
 
-              const totalPrice = resolvedQty * line.unit_price;
+      // Assemble: group lines by lot then by section
+      const linesByLot = new Map<string, any[]>();
+      for (const line of allLines) {
+        if (!linesByLot.has(line.lot_id)) linesByLot.set(line.lot_id, []);
+        linesByLot.get(line.lot_id)!.push(line);
+      }
 
-              return {
-                id: line.id,
-                designation: line.designation,
-                quantity: resolvedQty,
-                unit: line.unit,
-                unit_price: line.unit_price,
-                total_price: totalPrice,
-                comment: line.comment,
-              };
-            });
+      const transformedLots = lots.map((lot: any) => {
+        const lotLines = linesByLot.get(lot.id) || [];
+        const sections = (lot.quote_sections || [])
+          .slice()
+          .sort((a: any, b: any) => a.order_index - b.order_index)
+          .map((section: any) => {
+            const sectionLines = lotLines
+              .filter((l: any) => l.section_id === section.id)
+              .sort((a: any, b: any) => a.order_index - b.order_index)
+              .map(transformLine);
 
-          const subtotal = lines.reduce(
-            (sum, line) => sum + line.total_price,
-            0
-          );
+            const rawSubtotal = sectionLines.reduce((sum, l) => sum + l.total_price, 0);
+            const subtotal = section.is_multiple ? rawSubtotal * section.multiplier : rawSubtotal;
 
-          return {
-            id: section.id,
-            name: section.name,
-            multiplier: section.multiplier,
-            is_multiple: section.is_multiple,
-            subtotal: section.is_multiple ? subtotal * section.multiplier : subtotal,
-            lines,
-          };
-        }).sort((a: any, b: any) => a.order_index - b.order_index);
+            return {
+              id: section.id,
+              name: section.name,
+              multiplier: section.multiplier,
+              is_multiple: section.is_multiple,
+              subtotal,
+              lines: sectionLines,
+            };
+          });
 
-        const total = sections.reduce((sum, section) => sum + section.subtotal, 0);
+        // Lignes orphelines (section_id = NULL) → section virtuelle
+        const orphanLines = lotLines
+          .filter((l: any) => l.section_id === null || l.section_id === undefined)
+          .sort((a: any, b: any) => a.order_index - b.order_index)
+          .map(transformLine);
+
+        if (orphanLines.length > 0) {
+          const orphanSubtotal = orphanLines.reduce((sum, l) => sum + l.total_price, 0);
+          sections.push({
+            id: `__orphan__${lot.id}`,
+            name: "(Sans section)",
+            multiplier: 1,
+            is_multiple: false,
+            subtotal: orphanSubtotal,
+            lines: orphanLines,
+          });
+        }
+
+        const total = sections.reduce((sum, s) => sum + s.subtotal, 0);
 
         return {
           id: lot.id,

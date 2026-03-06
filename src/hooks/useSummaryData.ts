@@ -98,8 +98,8 @@ export const useSummaryData = (
         supabase
           .from("lots")
           .select(
-            `id, label, code, order_index, header_comment,
-             quote_sections (id, name, multiplier, is_multiple, order_index)`
+           `id, label, code, order_index, header_comment,
+             quote_sections (id, name, multiplier, is_multiple, order_index, linked_field)`
           )
           .eq("quote_version_id", versionId)
           .eq("is_enabled", true)
@@ -174,7 +174,19 @@ export const useSummaryData = (
               .map(transformLine);
 
             const rawSubtotal = sectionLines.reduce((sum, l) => sum + l.total_price, 0);
-            const subtotal = section.is_multiple ? rawSubtotal * section.multiplier : rawSubtotal;
+            // Resolve linked_field multiplier
+            let resolvedMultiplier = section.multiplier;
+            if (section.is_multiple && section.linked_field) {
+              if (section.linked_field.startsWith("$")) {
+                const varName = section.linked_field.substring(1);
+                const variable = calcVars.find((v) => v.name === varName);
+                if (variable != null) resolvedMultiplier = variable.value;
+              } else if (quoteSettings && section.linked_field in quoteSettings) {
+                const val = Number((quoteSettings as any)[section.linked_field]);
+                if (!isNaN(val)) resolvedMultiplier = val;
+              }
+            }
+            const subtotal = section.is_multiple ? rawSubtotal * resolvedMultiplier : rawSubtotal;
 
             return {
               id: section.id,

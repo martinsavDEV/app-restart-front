@@ -63,18 +63,45 @@ export const useQuotePricing = (quoteVersionId?: string | null) => {
     return line.quantity || 0;
   };
 
+  const resolveMultiplier = (
+    section: { is_multiple: boolean; multiplier: number; linked_field?: string | null },
+    calcVars: CalculatorVariable[],
+    settings: any
+  ): number => {
+    if (!section.is_multiple) return 1;
+    if (section.linked_field) {
+      if (section.linked_field.startsWith("$")) {
+        const varName = section.linked_field.substring(1);
+        const variable = calcVars.find((v) => v.name === varName);
+        if (variable != null) return variable.value;
+      }
+      // Check if linked_field points to a quote_settings field
+      if (settings && section.linked_field in settings) {
+        const val = Number(settings[section.linked_field]);
+        if (!isNaN(val)) return val;
+      }
+    }
+    return section.multiplier;
+  };
+
   const updateQuoteVersionTotal = async () => {
     if (!quoteVersionId) return;
 
-    // Fetch lots, lines, sections, and calculator data in parallel
+    // Fetch only enabled lots
     const { data: lotsData, error: lotsError } = await supabase
       .from("lots")
       .select("id")
-      .eq("quote_version_id", quoteVersionId);
+      .eq("quote_version_id", quoteVersionId)
+      .eq("is_enabled", true);
 
     if (lotsError || !lotsData) return;
 
     const lotIds = lotsData.map(lot => lot.id);
+    if (lotIds.length === 0) {
+      await supabase.from("quote_versions").update({ total_amount: 0 }).eq("id", quoteVersionId);
+      queryClient.invalidateQueries({ queryKey: ["quote-versions"] });
+      return;
+    }
 
     const [linesResult, sectionsResult, settingsResult] = await Promise.all([
       supabase
@@ -83,11 +110,11 @@ export const useQuotePricing = (quoteVersionId?: string | null) => {
         .in("lot_id", lotIds),
       supabase
         .from("quote_sections")
-        .select("id, is_multiple, multiplier")
+        .select("id, is_multiple, multiplier, linked_field")
         .in("lot_id", lotIds),
       supabase
         .from("quote_settings")
-        .select("calculator_data")
+        .select("*")
         .eq("quote_version_id", quoteVersionId)
         .maybeSingle(),
     ]);
@@ -100,10 +127,10 @@ export const useQuotePricing = (quoteVersionId?: string | null) => {
       (settingsResult.data?.calculator_data as unknown as CalculatorData) ?? null
     );
 
-    // Create a map of section_id -> multiplier
+    // Create a map of section_id -> resolved multiplier
     const sectionMultipliers = new Map<string, number>();
     sectionsResult.data?.forEach(section => {
-      sectionMultipliers.set(section.id, section.is_multiple ? section.multiplier : 1);
+      sectionMultipliers.set(section.id, resolveMultiplier(section, calcVars, settingsResult.data));
     });
 
     // Calculate total with resolved quantities and section multipliers
@@ -370,6 +397,7 @@ export const useQuotePricing = (quoteVersionId?: string | null) => {
     loadTemplate: loadTemplateMutation.mutate,
     updateLinesOrder: updateLinesOrderMutation.mutate,
     updateLineSection: updateLineSectionMutation.mutate,
+    updateQuoteVersionTotal,
     isUpdating: updateLineMutation.isPending,
     isAdding: addLineMutation.isPending,
     isDeleting: deleteLineMutation.isPending,

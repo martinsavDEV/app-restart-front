@@ -84,7 +84,7 @@ export const PricingView = ({ projectId: initialProjectId, projectName: initialP
   const { variables } = useCalculatorVariables(calculatorData);
 
   // Use the quote pricing hook
-  const { lots, isLoading, updateLine, addLine, deleteLine, loadTemplate, updateLinesOrder, updateLineSection } = useQuotePricing(selectedVersionId);
+  const { lots, isLoading, updateLine, addLine, deleteLine, loadTemplate, updateLinesOrder, updateLineSection, updateQuoteVersionTotal } = useQuotePricing(selectedVersionId);
 
   // Initialize active tab when lots are loaded
   useEffect(() => {
@@ -92,6 +92,13 @@ export const PricingView = ({ projectId: initialProjectId, projectName: initialP
       setActiveTab(lots[0].id);
     }
   }, [lots, activeTab]);
+
+  // Proactively recalculate total_amount when pricing view loads
+  useEffect(() => {
+    if (lots.length > 0 && variables.length > 0 && selectedVersionId) {
+      updateQuoteVersionTotal();
+    }
+  }, [lots.length, variables.length, selectedVersionId]);
 
   const selectedProject = projects?.find((p) => p.id === selectedProjectId);
   const projectName = initialProjectName || selectedProject?.name;
@@ -116,6 +123,22 @@ export const PricingView = ({ projectId: initialProjectId, projectName: initialP
     return line.quantity || 0;
   };
 
+  const resolveMultiplier = (section: any): number => {
+    if (!section.is_multiple) return 1;
+    if (section.linked_field) {
+      if (section.linked_field.startsWith("$")) {
+        const varName = section.linked_field.substring(1);
+        const variable = variables.find((v) => v.name === varName);
+        if (variable != null) return variable.value;
+      }
+      if (quoteSettings && section.linked_field in quoteSettings) {
+        const val = Number((quoteSettings as any)[section.linked_field]);
+        if (!isNaN(val)) return val;
+      }
+    }
+    return section.multiplier;
+  };
+
   const calculateLotTotal = (lines: any[], sections: any[] = []): number => {
     // Group lines by section_id
     const linesBySection = lines.reduce((acc, line) => {
@@ -125,15 +148,14 @@ export const PricingView = ({ projectId: initialProjectId, projectName: initialP
       return acc;
     }, {} as Record<string, any[]>);
 
-    // Calculate total with multipliers
+    // Calculate total with resolved multipliers
     let total = 0;
     sections.forEach(section => {
       const sectionLines = linesBySection[section.id] || [];
       const sectionTotal = sectionLines.reduce((sum, line) => 
         sum + resolveLineQuantity(line) * (line.unit_price || 0), 0
       );
-      const multiplier = section.is_multiple ? section.multiplier : 1;
-      total += sectionTotal * multiplier;
+      total += sectionTotal * resolveMultiplier(section);
     });
 
     // Add lines without section

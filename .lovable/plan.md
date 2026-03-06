@@ -1,58 +1,50 @@
 
-# Fix : Lots et lignes manquants dans les exports CAPEX
 
-## Causes identifiées (2 bugs distincts)
+# Export XLSX — Intégration du script CAPEXExporter
 
-### Bug 1 — Lignes sans section ignorées dans l'export
+## Approche
 
-Dans `useSummaryData`, les lignes sont récupérées via une requête Supabase imbriquée :
+Convertir le script `capex_to_xlsx.js` en module TypeScript, l'alimenter directement depuis l'objet `SummaryData` (sans passer par le CSV), et ajouter un bouton "Export XLSX" dans la page Résumé.
 
-```
-lots → quote_sections → quote_lines
-```
+## Plan technique
 
-Cette structure **ne peut pas retourner** les lignes qui ont `section_id = NULL` (lignes directement attachées au lot, sans section). En base, il existe **33 lignes** dans cet état, réparties dans plusieurs lots dont "Renforcement de sol".
+### 1. Installer `xlsx-js-style`
+- Ajouter la dépendance npm `xlsx-js-style` (fork de SheetJS avec support des styles)
 
-Ces lignes sont visibles dans la vue Pricing (qui utilise `useQuotePricing` avec une requête plate), mais **complètement absentes** des exports PDF et CSV.
+### 2. Créer `src/lib/xlsxExport.ts`
+- Reprendre la logique du script uploadé (styles, couleurs, `buildSummarySheet`, `buildDetailSheet`)
+- Convertir en TypeScript avec `import XLSX from "xlsx-js-style"`
+- Ajouter une fonction `convertSummaryDataToExportFormat(data: SummaryData)` qui transforme le `SummaryData` existant vers le format attendu par le script (`project`, `summary`, `lots` avec `sections[].items[]`)
+- Exposer `exportCapexToXLSX(data: SummaryData)` qui fait la conversion puis appelle `buildSummarySheet` + `buildDetailSheet` + `XLSX.writeFile`
 
-### Bug 2 — Lots vides (0 lignes, 0 sections) absents du PDF
+### 3. Modifier `src/components/SummaryView.tsx`
+- Ajouter un troisième bouton "Export XLSX" entre CSV et PDF
+- Icone `FileSpreadsheet` de lucide-react
+- Appeler `exportCapexToXLSX(data)` au clic
 
-Un lot comme "Renforcement de sol" dans le projet "51 - Francheville" a `line_count = 0` et `section_count = 0` : il est `is_enabled: true`, il est bien dans `useSummaryData`, mais comme il n'a ni section ni ligne, son total est 0 et il n'a rien à afficher dans la partie "Détail par lot" du PDF. Il **apparaît bien** dans le résumé des lots (tableau du haut), mais génère une page quasi-vide dans le détail.
-
-La vraie question est : ces lots avec 0 lignes ont-ils du contenu en réalité stocké **sans section** ? La réponse de la DB sur Francheville : non, ce lot est genuinement vide. Mais d'autres versions comme "16 - FE de la Besse" ou "86 - Plaisance" ont bien des lignes dans `renforcement_sol` — et certaines sans `section_id`.
-
-## Solution
-
-### Fichier : `src/hooks/useSummaryData.ts`
-
-**Remplacer la requête imbriquée par deux requêtes séparées** :
-
-1. **Requête 1** : Récupérer les lots + sections (sans les lignes)
-2. **Requête 2** : Récupérer toutes les lignes du devis en une fois (`WHERE lot_id IN (...)`)
-3. **Assemblage côté client** : Grouper les lignes par section, et créer une "section virtuelle" sans nom pour les lignes orphelines (`section_id = NULL`)
-
-Cela garantit qu'**aucune ligne n'est perdue**, quelle que soit sa structure.
+### Mapping `SummaryData` → format script
 
 ```text
-Avant (requête imbriquée, perd les lignes sans section) :
-  lots → quote_sections → quote_lines  (lignes section_id=NULL ignorées)
-
-Après (deux requêtes plates) :
-  Requête A : lots + quote_sections
-  Requête B : toutes quote_lines WHERE lot_id IN [...]
-  → Assemblage : lignes avec section_id → dans leur section
-                 lignes sans section_id → dans une section virtuelle "Sans section"
+SummaryData                    →  Script format
+─────────────────────────────────────────────
+project.name                   →  project.name
+quoteSettings.calculator_data  →  project.turbines (nb_eol)
+  .global.nb_eol
+quoteVersion.version_label     →  project.version
+quoteVersion.last_update       →  project.lastModified
+referenceDocuments[]           →  references { label: reference }
+lots[] (label, total)          →  summary[] (lot, amount)
+totalCapex                     →  totalCapex
+lots[].sections[].lines[]      →  lots[].sections[].items[]
+  (designation, quantity,          (designation, qty, unit,
+   unit, unit_price, total_price)   unitPrice, total)
 ```
 
-### Comportement des lignes sans section dans l'export
+## Fichiers
 
-- **PDF** : affichées dans une section intitulée "(Sans section)" ou directement sous l'en-tête du lot
-- **CSV** : idem, avec une ligne de section virtuelle
+| Fichier | Action |
+|---------|--------|
+| `src/lib/xlsxExport.ts` | Créer — logique d'export XLSX complète |
+| `src/components/SummaryView.tsx` | Ajouter bouton Export XLSX |
+| `package.json` | Ajouter `xlsx-js-style` |
 
-### Résumé des changements
-
-| Fichier | Changement |
-|---------|------------|
-| `src/hooks/useSummaryData.ts` | Remplacer la requête imbriquée par 2 requêtes plates + assemblage côté client |
-
-Aucun autre fichier n'est modifié : `pdfExport.ts` et `csvUtils.ts` consomment déjà les `sections` correctement — il suffit que les données arrivent complètes.

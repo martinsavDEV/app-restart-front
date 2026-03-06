@@ -356,7 +356,7 @@ export const PricingView = ({ projectId: initialProjectId, projectName: initialP
             <QuoteSummaryCard 
               versionId={selectedVersionId} 
               projectName={projectName} 
-              nWtg={selectedProject?.n_wtg}
+              nWtg={(calculatorData?.global?.nb_eol) ?? quoteSettings?.n_wtg ?? selectedProject?.n_wtg}
               onSettingsUpdate={() => {
                 // Refresh quote settings and lots when foundations count changes
               }}

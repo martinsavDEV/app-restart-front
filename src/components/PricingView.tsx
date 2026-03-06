@@ -84,7 +84,7 @@ export const PricingView = ({ projectId: initialProjectId, projectName: initialP
   const { variables } = useCalculatorVariables(calculatorData);
 
   // Use the quote pricing hook
-  const { lots, isLoading, updateLine, addLine, deleteLine, loadTemplate, updateLinesOrder, updateLineSection } = useQuotePricing(selectedVersionId);
+  const { lots, isLoading, updateLine, addLine, deleteLine, loadTemplate, updateLinesOrder, updateLineSection, updateQuoteVersionTotal } = useQuotePricing(selectedVersionId);
 
   // Initialize active tab when lots are loaded
   useEffect(() => {
@@ -92,6 +92,13 @@ export const PricingView = ({ projectId: initialProjectId, projectName: initialP
       setActiveTab(lots[0].id);
     }
   }, [lots, activeTab]);
+
+  // Proactively recalculate total_amount when pricing view loads
+  useEffect(() => {
+    if (lots.length > 0 && variables.length > 0 && selectedVersionId) {
+      updateQuoteVersionTotal();
+    }
+  }, [lots.length, variables.length, selectedVersionId]);
 
   const selectedProject = projects?.find((p) => p.id === selectedProjectId);
   const projectName = initialProjectName || selectedProject?.name;

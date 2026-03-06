@@ -397,6 +397,7 @@ export const useQuotePricing = (quoteVersionId?: string | null) => {
     loadTemplate: loadTemplateMutation.mutate,
     updateLinesOrder: updateLinesOrderMutation.mutate,
     updateLineSection: updateLineSectionMutation.mutate,
+    updateQuoteVersionTotal,
     isUpdating: updateLineMutation.isPending,
     isAdding: addLineMutation.isPending,
     isDeleting: deleteLineMutation.isPending,

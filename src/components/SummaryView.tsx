@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Download, FileText, Loader2, MessageSquare } from "lucide-react";
+import { Download, FileText, FileSpreadsheet, Loader2, MessageSquare } from "lucide-react";
 import { useSummaryData } from "@/hooks/useSummaryData";
 import { SummaryHeader } from "./SummaryHeader";
 import { SummaryLotTable } from "./SummaryLotTable";
@@ -8,6 +8,7 @@ import { SummaryLotDetail } from "./SummaryLotDetail";
 import { QuoteComments } from "./QuoteComments";
 import { exportCapexToCSV } from "@/lib/csvUtils";
 import { exportCapexToPDF } from "@/lib/pdfExport";
+import { exportCapexToXLSX } from "@/lib/xlsxExport";
 import { toast } from "sonner";
 
 interface SummaryViewProps {
@@ -38,6 +39,17 @@ export const SummaryView = ({ projectId, versionId }: SummaryViewProps) => {
     } catch (error) {
       console.error("Error exporting PDF:", error);
       toast.error("Erreur lors de l'export PDF");
+    }
+  };
+
+  const handleExportXLSX = () => {
+    if (!data) return;
+    try {
+      exportCapexToXLSX(data);
+      toast.success("Export XLSX réussi");
+    } catch (error) {
+      console.error("Error exporting XLSX:", error);
+      toast.error("Erreur lors de l'export XLSX");
     }
   };
 
@@ -89,6 +101,10 @@ export const SummaryView = ({ projectId, versionId }: SummaryViewProps) => {
             <Button onClick={handleExportCSV} variant="outline">
               <Download className="mr-2 h-4 w-4" />
               Export CSV
+            </Button>
+            <Button onClick={handleExportXLSX} variant="outline">
+              <FileSpreadsheet className="mr-2 h-4 w-4" />
+              Export XLSX
             </Button>
             <Button onClick={handleExportPDF}>
               <FileText className="mr-2 h-4 w-4" />

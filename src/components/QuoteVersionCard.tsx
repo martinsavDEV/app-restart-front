@@ -28,7 +28,6 @@ interface QuoteVersion {
 
 interface QuoteVersionCardProps {
   version: QuoteVersion;
-  isActive: boolean;
   isSelected?: boolean;
   onSelect?: () => void;
   onOpen: () => void;
@@ -40,7 +39,6 @@ interface QuoteVersionCardProps {
 
 export const QuoteVersionCard = ({
   version,
-  isActive,
   isSelected = false,
   onSelect,
   onOpen,
@@ -74,27 +72,19 @@ export const QuoteVersionCard = ({
     onSelect?.();
   };
 
-  // Build technical specs line
-  const specs: string[] = [];
-  if (version.turbine_model) specs.push(version.turbine_model);
-  if (version.n_wtg) specs.push(`${version.n_wtg} WTG`);
-  if (version.turbine_power) specs.push(`${version.turbine_power} MW`);
-
   return (
     <div
       onClick={handleCardClick}
       className={cn(
         "p-4 rounded-lg border transition-all duration-200 cursor-pointer group",
-        isSelected && "ring-2 ring-accent",
-        isActive
-          ? "bg-muted border-accent"
+        isSelected
+          ? "bg-muted border-accent ring-2 ring-accent"
           : "bg-card/50 border-border hover:border-muted-foreground/30"
       )}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            {/* Star button */}
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -110,18 +100,13 @@ export const QuoteVersionCard = ({
               <Star className={cn("w-4 h-4", version.is_starred && "fill-current")} />
             </button>
 
-            <span className={cn("font-medium truncate", isActive ? "text-accent" : "text-foreground")}>
+            <span className={cn("font-medium truncate", isSelected ? "text-accent" : "text-foreground")}>
               {version.version_label}
             </span>
-            {isActive && (
-              <Badge variant="outline" className="bg-accent/10 text-accent border-accent/30 text-[10px] shrink-0">
-                Active
-              </Badge>
-            )}
           </div>
 
           {/* Technical specs */}
-          {specs.length > 0 && (
+          {(version.n_wtg || version.turbine_power || version.turbine_model) && (
             <div className="flex items-center gap-2 mt-1.5 ml-6 text-xs text-muted-foreground">
               {version.n_wtg && (
                 <span className="flex items-center gap-1">
@@ -156,7 +141,6 @@ export const QuoteVersionCard = ({
         </div>
 
         <div className="flex items-start gap-1">
-          {/* Actions dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
@@ -189,40 +173,24 @@ export const QuoteVersionCard = ({
           </DropdownMenu>
 
           <div className="text-right">
-            {isActive ? (
-              <>
-                <div className="font-mono text-lg font-semibold text-foreground">
-                  {formatAmount(version.total_amount)}
-                </div>
-                <Button
-                  size="sm"
-                  className="mt-2 bg-accent text-accent-foreground hover:bg-accent/90"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onOpen();
-                  }}
-                >
-                  Ouvrir
-                  <ChevronRight className="w-4 h-4 ml-1" />
-                </Button>
-              </>
-            ) : (
-              <>
-                <div className="font-mono text-sm text-muted-foreground">
-                  {formatAmount(version.total_amount)}
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="mt-2 text-xs text-muted-foreground hover:text-foreground"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onOpen();
-                  }}
-                >
-                  Consulter
-                </Button>
-              </>
+            <div className={cn(
+              "font-mono font-semibold",
+              isSelected ? "text-lg text-foreground" : "text-sm text-muted-foreground"
+            )}>
+              {formatAmount(version.total_amount)}
+            </div>
+            {isSelected && (
+              <Button
+                size="sm"
+                className="mt-2 bg-accent text-accent-foreground hover:bg-accent/90"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onOpen();
+                }}
+              >
+                Ouvrir
+                <ChevronRight className="w-4 h-4 ml-1" />
+              </Button>
             )}
           </div>
         </div>

@@ -17,13 +17,14 @@ interface SummaryHeaderProps {
 export const SummaryHeader = ({ data, versionId, onUpdate }: SummaryHeaderProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [versionLabel, setVersionLabel] = useState(data.quoteVersion?.version_label || "");
-  const [nWtg, setNWtg] = useState(data.quoteSettings?.n_wtg || data.project?.n_wtg || 0);
+  const getNbEol = () => (data.quoteSettings?.calculator_data as any)?.global?.nb_eol ?? data.quoteSettings?.n_wtg ?? data.project?.n_wtg ?? 0;
+  const [nWtg, setNWtg] = useState(getNbEol());
   
   const { updateVersion, updateSettings } = useQuoteVersionUpdate();
 
   const handleStartEdit = () => {
     setVersionLabel(data.quoteVersion?.version_label || "");
-    setNWtg(data.quoteSettings?.n_wtg || data.project?.n_wtg || 0);
+    setNWtg(getNbEol());
     setIsEditing(true);
   };
 
@@ -137,7 +138,7 @@ export const SummaryHeader = ({ data, versionId, onUpdate }: SummaryHeaderProps)
               <div>
                 <span className="font-medium">Nombre d'éoliennes:</span>{" "}
                 <span className="text-muted-foreground">
-                  {data.quoteSettings?.n_wtg || data.project?.n_wtg || 0}
+                  {getNbEol()}
                 </span>
               </div>
               {(data.quoteSettings as any)?.calculator_data?.global?.tension_hta && (

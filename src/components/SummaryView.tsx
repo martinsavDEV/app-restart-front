@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Download, FileText, Loader2, MessageSquare } from "lucide-react";
+import { Download, FileText, FileSpreadsheet, Loader2, MessageSquare } from "lucide-react";
 import { useSummaryData } from "@/hooks/useSummaryData";
 import { SummaryHeader } from "./SummaryHeader";
 import { SummaryLotTable } from "./SummaryLotTable";
@@ -8,6 +8,7 @@ import { SummaryLotDetail } from "./SummaryLotDetail";
 import { QuoteComments } from "./QuoteComments";
 import { exportCapexToCSV } from "@/lib/csvUtils";
 import { exportCapexToPDF } from "@/lib/pdfExport";
+import { exportCapexToXLSX } from "@/lib/xlsxExport";
 import { toast } from "sonner";
 
 interface SummaryViewProps {

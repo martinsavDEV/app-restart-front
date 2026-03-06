@@ -1,6 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { computeCalculatorVariables } from "@/hooks/useCalculatorVariables";
+import { evaluateFormulaWithVariables } from "@/lib/formulaUtils";
+import { CalculatorData, CalculatorVariable } from "@/types/bpu";
 
 interface QuoteLine {
   id: string;
@@ -45,10 +48,25 @@ export const useQuotePricing = (quoteVersionId?: string | null) => {
   const queryClient = useQueryClient();
 
   // Update quote version total amount
+  const resolveLineQuantity = (
+    line: { quantity: number; linked_variable?: string | null; quantity_formula?: string | null },
+    variables: CalculatorVariable[]
+  ): number => {
+    if (line.linked_variable) {
+      const variable = variables.find((v) => v.name === line.linked_variable);
+      if (variable != null) return variable.value;
+    }
+    if (line.quantity_formula && /\$/.test(line.quantity_formula)) {
+      const evaluated = evaluateFormulaWithVariables(line.quantity_formula, variables);
+      if (evaluated != null) return evaluated;
+    }
+    return line.quantity || 0;
+  };
+
   const updateQuoteVersionTotal = async () => {
     if (!quoteVersionId) return;
 
-    // Fetch all lots for this quote version
+    // Fetch lots, lines, sections, and calculator data in parallel
     const { data: lotsData, error: lotsError } = await supabase
       .from("lots")
       .select("id")
@@ -56,32 +74,42 @@ export const useQuotePricing = (quoteVersionId?: string | null) => {
 
     if (lotsError || !lotsData) return;
 
-    // Fetch all lines with their sections for these lots
     const lotIds = lotsData.map(lot => lot.id);
-    const { data: linesData, error: linesError } = await supabase
-      .from("quote_lines")
-      .select("quantity, unit_price, section_id")
-      .in("lot_id", lotIds);
 
-    if (linesError || !linesData) return;
+    const [linesResult, sectionsResult, settingsResult] = await Promise.all([
+      supabase
+        .from("quote_lines")
+        .select("quantity, unit_price, section_id, linked_variable, quantity_formula")
+        .in("lot_id", lotIds),
+      supabase
+        .from("quote_sections")
+        .select("id, is_multiple, multiplier")
+        .in("lot_id", lotIds),
+      supabase
+        .from("quote_settings")
+        .select("calculator_data")
+        .eq("quote_version_id", quoteVersionId)
+        .maybeSingle(),
+    ]);
 
-    // Fetch all sections with their multipliers
-    const { data: sectionsData, error: sectionsError } = await supabase
-      .from("quote_sections")
-      .select("id, is_multiple, multiplier")
-      .in("lot_id", lotIds);
+    if (linesResult.error || !linesResult.data) return;
+    if (sectionsResult.error) return;
 
-    if (sectionsError) return;
+    // Compute calculator variables for resolving linked quantities
+    const calcVars = computeCalculatorVariables(
+      (settingsResult.data?.calculator_data as unknown as CalculatorData) ?? null
+    );
 
     // Create a map of section_id -> multiplier
     const sectionMultipliers = new Map<string, number>();
-    sectionsData?.forEach(section => {
+    sectionsResult.data?.forEach(section => {
       sectionMultipliers.set(section.id, section.is_multiple ? section.multiplier : 1);
     });
 
-    // Calculate total with section multipliers
-    const total = linesData.reduce((sum, line) => {
-      const lineTotal = (line.quantity || 0) * (line.unit_price || 0);
+    // Calculate total with resolved quantities and section multipliers
+    const total = linesResult.data.reduce((sum, line) => {
+      const qty = resolveLineQuantity(line, calcVars);
+      const lineTotal = qty * (line.unit_price || 0);
       const multiplier = line.section_id ? (sectionMultipliers.get(line.section_id) || 1) : 1;
       return sum + (lineTotal * multiplier);
     }, 0);

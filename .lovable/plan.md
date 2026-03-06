@@ -1,58 +1,54 @@
 
-# Fix : Lots et lignes manquants dans les exports CAPEX
 
-## Causes identifiées (2 bugs distincts)
+# Refonte UI/UX — Portefeuille Projets
 
-### Bug 1 — Lignes sans section ignorées dans l'export
+## Changements demandes
 
-Dans `useSummaryData`, les lignes sont récupérées via une requête Supabase imbriquée :
+1. **Supprimer la "Recherche intelligente"** dans la Topbar (lignes 96-103 de `Topbar.tsx`) — le champ de recherche non fonctionnel
+2. **Retirer n_wtg et puissance du niveau Projet** — ces donnees appartiennent aux versions de chiffrage, pas au projet
+3. **Reequilibrer les colonnes** — liste projets plus etroite (~350px), panneau detail plus large (flex-1)
+4. **Enrichir les QuoteVersionCard** avec n_wtg, turbine_power, turbine_model depuis `quote_settings`
+5. **Simplifier le ProjectDetailPanel** — retirer les KPIs Puissance/Eoliennes, garder uniquement le compteur de versions
+6. **Afficher le dernier editeur et la date de MAJ** sur chaque version card
 
-```
-lots → quote_sections → quote_lines
-```
+## Plan technique
 
-Cette structure **ne peut pas retourner** les lignes qui ont `section_id = NULL` (lignes directement attachées au lot, sans section). En base, il existe **33 lignes** dans cet état, réparties dans plusieurs lots dont "Renforcement de sol".
+### 1. `src/components/Topbar.tsx`
+- Supprimer le bloc "Search" (lignes 96-103) — le `div` contenant l'input "Recherche intelligente"
 
-Ces lignes sont visibles dans la vue Pricing (qui utilise `useQuotePricing` avec une requête plate), mais **complètement absentes** des exports PDF et CSV.
+### 2. `src/components/ProjectCard.tsx`
+- Retirer l'affichage `n_wtg` / icone Wind de la carte projet
+- Garder : nom, departement, nombre de versions, date derniere MAJ
 
-### Bug 2 — Lots vides (0 lignes, 0 sections) absents du PDF
+### 3. `src/components/ProjectsView.tsx`
+- Inverser les proportions : colonne liste = `w-[350px] shrink-0`, panneau detail = `flex-1`
 
-Un lot comme "Renforcement de sol" dans le projet "51 - Francheville" a `line_count = 0` et `section_count = 0` : il est `is_enabled: true`, il est bien dans `useSummaryData`, mais comme il n'a ni section ni ligne, son total est 0 et il n'a rien à afficher dans la partie "Détail par lot" du PDF. Il **apparaît bien** dans le résumé des lots (tableau du haut), mais génère une page quasi-vide dans le détail.
+### 4. `src/hooks/useProjects.ts` — `useQuoteVersions`
+- Modifier la requete pour joindre `quote_settings` : `select("*, quote_settings(n_wtg, turbine_power, turbine_model)")`
+- Ajouter les champs `n_wtg`, `turbine_power`, `turbine_model` au type `QuoteVersion` retourne (extraits de la jointure)
 
-La vraie question est : ces lots avec 0 lignes ont-ils du contenu en réalité stocké **sans section** ? La réponse de la DB sur Francheville : non, ce lot est genuinement vide. Mais d'autres versions comme "16 - FE de la Besse" ou "86 - Plaisance" ont bien des lignes dans `renforcement_sol` — et certaines sans `section_id`.
+### 5. `src/components/ProjectDetailPanel.tsx`
+- Supprimer la grille KPIs (Puissance, Eoliennes, Versions) — lignes 94-124
+- Garder juste le header avec nom + departement + description + badge Actif
+- Le compteur de versions peut etre affiche dans le titre de la section "Versions de chiffrage"
 
-## Solution
+### 6. `src/components/QuoteVersionCard.tsx`
+- Ajouter l'affichage de `n_wtg` eoliennes, `turbine_power` MW, `turbine_model` sous le label de version
+- Afficher la date de derniere MAJ et, si disponible, le nom de l'editeur (via `last_update`)
+- Enrichir l'interface `QuoteVersion` avec `n_wtg?`, `turbine_power?`, `turbine_model?`
 
-### Fichier : `src/hooks/useSummaryData.ts`
+### 7. `src/components/ProjectDialog.tsx`
+- Verifier si le champ `n_wtg` est present dans le formulaire de creation de projet et le retirer (cette info est au niveau version/quote_settings)
 
-**Remplacer la requête imbriquée par deux requêtes séparées** :
+## Fichiers modifies
 
-1. **Requête 1** : Récupérer les lots + sections (sans les lignes)
-2. **Requête 2** : Récupérer toutes les lignes du devis en une fois (`WHERE lot_id IN (...)`)
-3. **Assemblage côté client** : Grouper les lignes par section, et créer une "section virtuelle" sans nom pour les lignes orphelines (`section_id = NULL`)
+| Fichier | Modification |
+|---------|-------------|
+| `src/components/Topbar.tsx` | Supprimer recherche intelligente |
+| `src/components/ProjectCard.tsx` | Retirer n_wtg/Wind |
+| `src/components/ProjectsView.tsx` | Inverser proportions colonnes |
+| `src/hooks/useProjects.ts` | Joindre quote_settings dans useQuoteVersions |
+| `src/components/ProjectDetailPanel.tsx` | Supprimer KPIs, simplifier header |
+| `src/components/QuoteVersionCard.tsx` | Ajouter infos techniques par version |
+| `src/components/ProjectDialog.tsx` | Retirer champ n_wtg si present |
 
-Cela garantit qu'**aucune ligne n'est perdue**, quelle que soit sa structure.
-
-```text
-Avant (requête imbriquée, perd les lignes sans section) :
-  lots → quote_sections → quote_lines  (lignes section_id=NULL ignorées)
-
-Après (deux requêtes plates) :
-  Requête A : lots + quote_sections
-  Requête B : toutes quote_lines WHERE lot_id IN [...]
-  → Assemblage : lignes avec section_id → dans leur section
-                 lignes sans section_id → dans une section virtuelle "Sans section"
-```
-
-### Comportement des lignes sans section dans l'export
-
-- **PDF** : affichées dans une section intitulée "(Sans section)" ou directement sous l'en-tête du lot
-- **CSV** : idem, avec une ligne de section virtuelle
-
-### Résumé des changements
-
-| Fichier | Changement |
-|---------|------------|
-| `src/hooks/useSummaryData.ts` | Remplacer la requête imbriquée par 2 requêtes plates + assemblage côté client |
-
-Aucun autre fichier n'est modifié : `pdfExport.ts` et `csvUtils.ts` consomment déjà les `sections` correctement — il suffit que les données arrivent complètes.

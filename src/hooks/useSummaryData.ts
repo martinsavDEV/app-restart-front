@@ -98,8 +98,8 @@ export const useSummaryData = (
         supabase
           .from("lots")
           .select(
-            `id, label, code, order_index, header_comment,
-             quote_sections (id, name, multiplier, is_multiple, order_index)`
+           `id, label, code, order_index, header_comment,
+             quote_sections (id, name, multiplier, is_multiple, order_index, linked_field)`
           )
           .eq("quote_version_id", versionId)
           .eq("is_enabled", true)

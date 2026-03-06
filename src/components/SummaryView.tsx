@@ -42,6 +42,17 @@ export const SummaryView = ({ projectId, versionId }: SummaryViewProps) => {
     }
   };
 
+  const handleExportXLSX = () => {
+    if (!data) return;
+    try {
+      exportCapexToXLSX(data);
+      toast.success("Export XLSX réussi");
+    } catch (error) {
+      console.error("Error exporting XLSX:", error);
+      toast.error("Erreur lors de l'export XLSX");
+    }
+  };
+
   if (!projectId || !versionId) {
     return (
       <div className="flex items-center justify-center h-full">

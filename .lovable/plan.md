@@ -1,58 +1,55 @@
 
-# Fix : Lots et lignes manquants dans les exports CAPEX
 
-## Causes identifiées (2 bugs distincts)
+# Fix: Total de la carte de version ne correspond pas au CAPEX
 
-### Bug 1 — Lignes sans section ignorées dans l'export
+## Diagnostic
 
-Dans `useSummaryData`, les lignes sont récupérées via une requête Supabase imbriquée :
+Le `total_amount` stocke dans `quote_versions` vaut **4 731 097 €** alors que le CAPEX dynamique calcule **5 891 102,90 €**. Deux causes :
 
-```
-lots → quote_sections → quote_lines
-```
+### Cause 1 — Total stocke jamais recalcule proactivement
 
-Cette structure **ne peut pas retourner** les lignes qui ont `section_id = NULL` (lignes directement attachées au lot, sans section). En base, il existe **33 lignes** dans cet état, réparties dans plusieurs lots dont "Renforcement de sol".
+`updateQuoteVersionTotal` ne s'execute qu'apres une mutation de ligne (ajout/modif/suppression). Le `total_amount` en base est donc **celui calcule par l'ancien code** (avant la correction des variables), ou les lignes liees a des variables avaient `quantity = 0`.
 
-Ces lignes sont visibles dans la vue Pricing (qui utilise `useQuotePricing` avec une requête plate), mais **complètement absentes** des exports PDF et CSV.
+### Cause 2 — Multiplicateurs de section lies a des variables non resolus
 
-### Bug 2 — Lots vides (0 lignes, 0 sections) absents du PDF
+Trois endroits utilisent `section.multiplier` brut au lieu de resoudre `linked_field` (ex: `$nb_fondations`) :
+- `updateQuoteVersionTotal` dans `useQuotePricing.ts`
+- `calculateLotTotal` dans `PricingView.tsx`
+- le calcul de subtotal dans `useSummaryData.ts`
 
-Un lot comme "Renforcement de sol" dans le projet "51 - Francheville" a `line_count = 0` et `section_count = 0` : il est `is_enabled: true`, il est bien dans `useSummaryData`, mais comme il n'a ni section ni ligne, son total est 0 et il n'a rien à afficher dans la partie "Détail par lot" du PDF. Il **apparaît bien** dans le résumé des lots (tableau du haut), mais génère une page quasi-vide dans le détail.
+Seul `BPUTableWithSections.tsx` resout correctement `linked_field`.
 
-La vraie question est : ces lots avec 0 lignes ont-ils du contenu en réalité stocké **sans section** ? La réponse de la DB sur Francheville : non, ce lot est genuinement vide. Mais d'autres versions comme "16 - FE de la Besse" ou "86 - Plaisance" ont bien des lignes dans `renforcement_sol` — et certaines sans `section_id`.
+### Cause 3 — `updateQuoteVersionTotal` n'exclut pas les lots desactives
 
-## Solution
+Il inclut tous les lots (y compris `is_enabled = false`), contrairement a `useSummaryData` qui filtre `is_enabled = true`.
 
-### Fichier : `src/hooks/useSummaryData.ts`
+## Plan de correction
 
-**Remplacer la requête imbriquée par deux requêtes séparées** :
+### 1. `src/hooks/useQuotePricing.ts` — `updateQuoteVersionTotal`
 
-1. **Requête 1** : Récupérer les lots + sections (sans les lignes)
-2. **Requête 2** : Récupérer toutes les lignes du devis en une fois (`WHERE lot_id IN (...)`)
-3. **Assemblage côté client** : Grouper les lignes par section, et créer une "section virtuelle" sans nom pour les lignes orphelines (`section_id = NULL`)
+- Ajouter `.eq("is_enabled", true)` sur la requete des lots
+- Fetcher `linked_field` en plus de `id, is_multiple, multiplier` pour les sections
+- Resoudre le multiplicateur : si `linked_field` commence par `$`, chercher la valeur dans `calcVars`; sinon si `linked_field` existe et pointe vers un champ de `quote_settings`, le lire depuis `settingsResult`; sinon utiliser `section.multiplier`
 
-Cela garantit qu'**aucune ligne n'est perdue**, quelle que soit sa structure.
+### 2. `src/components/PricingView.tsx` — `calculateLotTotal`
 
-```text
-Avant (requête imbriquée, perd les lignes sans section) :
-  lots → quote_sections → quote_lines  (lignes section_id=NULL ignorées)
+- Dans la boucle `sections.forEach`, resoudre `section.linked_field` de la meme facon (via `variables` deja disponible et `quoteSettings`)
+- Remplacer `section.is_multiple ? section.multiplier : 1` par la resolution complete
 
-Après (deux requêtes plates) :
-  Requête A : lots + quote_sections
-  Requête B : toutes quote_lines WHERE lot_id IN [...]
-  → Assemblage : lignes avec section_id → dans leur section
-                 lignes sans section_id → dans une section virtuelle "Sans section"
-```
+### 3. `src/hooks/useSummaryData.ts`
 
-### Comportement des lignes sans section dans l'export
+- Ajouter `linked_field` dans la requete sections : `quote_sections (id, name, multiplier, is_multiple, order_index, linked_field)`
+- Lors du calcul du subtotal (ligne 177), resoudre `linked_field` via `calcVars` et `quoteSettings`
 
-- **PDF** : affichées dans une section intitulée "(Sans section)" ou directement sous l'en-tête du lot
-- **CSV** : idem, avec une ligne de section virtuelle
+### 4. Recalcul proactif au chargement
 
-### Résumé des changements
+- Dans `PricingView`, ajouter un `useEffect` qui appelle `updateQuoteVersionTotal` quand `lots` et `variables` sont charges, pour synchroniser le `total_amount` stocke avec le total calcule dynamiquement
 
-| Fichier | Changement |
-|---------|------------|
-| `src/hooks/useSummaryData.ts` | Remplacer la requête imbriquée par 2 requêtes plates + assemblage côté client |
+## Fichiers modifies
 
-Aucun autre fichier n'est modifié : `pdfExport.ts` et `csvUtils.ts` consomment déjà les `sections` correctement — il suffit que les données arrivent complètes.
+| Fichier | Modification |
+|---------|-------------|
+| `src/hooks/useQuotePricing.ts` | Filtrer `is_enabled`, resoudre `linked_field`, exposer `updateQuoteVersionTotal` |
+| `src/components/PricingView.tsx` | Resoudre `linked_field` dans `calculateLotTotal`, appeler recalcul au chargement |
+| `src/hooks/useSummaryData.ts` | Fetcher et resoudre `linked_field` pour les multiplicateurs de section |
+

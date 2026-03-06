@@ -1,5 +1,4 @@
-import { Search, Moon, Sun, Settings, LogOut, ChevronDown } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { Moon, Sun, Settings, LogOut, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "next-themes";
 import { useAuth } from "@/contexts/AuthContext";
@@ -93,14 +92,8 @@ export const Topbar = ({
         )}
       </div>
 
-      {/* Search */}
-      <div className="w-96 relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/50" />
-        <Input
-          placeholder="Recherche intelligente (Ex: Projets Aveyron > 3MW)"
-          className="pl-9 bg-card border-border text-sm placeholder:text-muted-foreground/50"
-        />
-      </div>
+      {/* Spacer */}
+      <div className="flex-1" />
 
       {/* Actions */}
       <div className="flex items-center gap-2">

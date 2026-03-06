@@ -190,7 +190,7 @@ export function ProjectsView({ onOpenPricing }: ProjectsViewProps) {
   return (
     <div className="flex-1 flex overflow-hidden h-full">
       {/* Left column: Project list */}
-      <section className="flex-1 flex flex-col overflow-hidden border-r border-border">
+      <section className="w-[350px] shrink-0 flex flex-col overflow-hidden border-r border-border">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-border shrink-0">
           <h1 className="text-base font-semibold text-foreground">Portefeuille Projets</h1>
@@ -249,7 +249,7 @@ export function ProjectsView({ onOpenPricing }: ProjectsViewProps) {
       </section>
 
       {/* Right column: Project detail panel */}
-      <section className="w-[420px] bg-card flex flex-col shrink-0 overflow-y-auto">
+      <section className="flex-1 bg-card flex flex-col overflow-y-auto">
         {selectedProject ? (
           <ProjectDetailPanel
             project={selectedProject}

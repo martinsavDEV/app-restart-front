@@ -24,6 +24,9 @@ export interface QuoteVersion {
   total_amount: number;
   comment: string | null;
   is_starred: boolean;
+  n_wtg?: number | null;
+  turbine_power?: number | null;
+  turbine_model?: string | null;
 }
 
 export function useProjects() {
@@ -168,12 +171,21 @@ export function useQuoteVersions(projectId: string | null) {
 
       const { data, error } = await supabase
         .from("quote_versions")
-        .select("*")
+        .select("*, quote_settings(n_wtg, turbine_power, turbine_model)")
         .eq("project_id", projectId)
         .order("date_creation", { ascending: false });
 
       if (error) throw error;
-      return data as QuoteVersion[];
+      return (data as any[]).map((v) => {
+        const settings = v.quote_settings;
+        const { quote_settings, ...rest } = v;
+        return {
+          ...rest,
+          n_wtg: settings?.n_wtg ?? null,
+          turbine_power: settings?.turbine_power ?? null,
+          turbine_model: settings?.turbine_model ?? null,
+        } as QuoteVersion;
+      });
     },
     enabled: !!projectId,
   });

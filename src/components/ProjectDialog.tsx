@@ -32,7 +32,6 @@ export function ProjectDialog({
   const [formData, setFormData] = useState({
     name: "",
     department: "",
-    n_wtg: 1,
     description: "",
   });
 
@@ -41,14 +40,12 @@ export function ProjectDialog({
       setFormData({
         name: project.name,
         department: project.department || "",
-        n_wtg: project.n_wtg,
         description: project.description || "",
       });
     } else {
       setFormData({
         name: "",
         department: "",
-        n_wtg: 1,
         description: "",
       });
     }
@@ -105,19 +102,6 @@ export function ProjectDialog({
                   setFormData({ ...formData, department: e.target.value })
                 }
                 placeholder="Ex: Centre-Val de Loire"
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="n_wtg">Nombre d'éoliennes *</Label>
-              <Input
-                id="n_wtg"
-                type="text"
-                inputMode="numeric"
-                value={formData.n_wtg}
-                onChange={(e) =>
-                  setFormData({ ...formData, n_wtg: parseInt(e.target.value) || 1 })
-                }
-                required
               />
             </div>
             <div className="grid gap-2">

@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { QuoteVersionCard } from "@/components/QuoteVersionCard";
 import { QuoteComments } from "@/components/QuoteComments";
-import { Plus, FileDown, FileText, Wind, MapPin, Zap, MessageSquare } from "lucide-react";
+import { Plus, FileDown, FileText, MapPin, MessageSquare } from "lucide-react";
 
 interface QuoteVersion {
   id: string;
@@ -14,13 +14,15 @@ interface QuoteVersion {
   comment?: string | null;
   type?: string | null;
   is_starred?: boolean;
+  n_wtg?: number | null;
+  turbine_power?: number | null;
+  turbine_model?: string | null;
 }
 
 interface Project {
   id: string;
   name: string;
   department?: string | null;
-  n_wtg?: number | null;
   description?: string | null;
 }
 
@@ -49,16 +51,9 @@ export const ProjectDetailPanel = ({
   onToggleStarVersion,
   isLoadingVersions,
 }: ProjectDetailPanelProps) => {
-  // Calculate estimated power
-  const estimatedPower = project.n_wtg ? project.n_wtg * 3 : null; // Assuming 3MW per turbine
-
-  // Get active version
   const activeVersion = versions.find((v) => v.id === activeVersionId) || versions[0];
-
-  // Selected version for viewing comments (separate from active version)
   const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null);
 
-  // Auto-select first version when versions load
   useEffect(() => {
     if (versions.length > 0 && !selectedVersionId) {
       setSelectedVersionId(activeVersion?.id || versions[0].id);
@@ -85,50 +80,19 @@ export const ProjectDetailPanel = ({
             Actif
           </Badge>
         </div>
-
-        {/* Description */}
         {project.description && (
           <p className="text-sm text-muted-foreground mt-3">{project.description}</p>
         )}
-
-        {/* KPIs */}
-        <div className="grid grid-cols-3 gap-4 mt-6">
-          <div className="text-center p-3 rounded-lg bg-muted/50">
-            <div className="flex items-center justify-center gap-1 text-muted-foreground mb-1">
-              <Zap className="w-3.5 h-3.5" />
-              <span className="text-[10px] uppercase tracking-wide">Puissance</span>
-            </div>
-            <div className="font-mono text-lg font-semibold text-foreground">
-              {estimatedPower ? `${estimatedPower} MW` : "-"}
-            </div>
-          </div>
-
-          <div className="text-center p-3 rounded-lg bg-muted/50">
-            <div className="flex items-center justify-center gap-1 text-muted-foreground mb-1">
-              <Wind className="w-3.5 h-3.5" />
-              <span className="text-[10px] uppercase tracking-wide">Éoliennes</span>
-            </div>
-            <div className="font-mono text-lg font-semibold text-foreground">
-              {project.n_wtg || "-"}
-            </div>
-          </div>
-
-          <div className="text-center p-3 rounded-lg bg-muted/50">
-            <div className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">
-              Versions
-            </div>
-            <div className="font-mono text-lg font-semibold text-foreground">
-              {versions.length}
-            </div>
-          </div>
-        </div>
       </div>
 
       {/* Versions list */}
       <div className="flex-1 overflow-y-auto">
         <div className="p-6 border-b border-border">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-medium text-foreground">Versions de chiffrage</h3>
+            <h3 className="text-sm font-medium text-foreground">
+              Versions de chiffrage
+              <span className="ml-1.5 text-muted-foreground font-normal">({versions.length})</span>
+            </h3>
             <Button
               size="sm"
               variant="outline"
@@ -168,7 +132,7 @@ export const ProjectDetailPanel = ({
           )}
         </div>
 
-        {/* Comments section for selected version */}
+        {/* Comments section */}
         <div className="p-6">
           <div className="flex items-center gap-2 mb-4">
             <MessageSquare className="w-4 h-4 text-muted-foreground" />

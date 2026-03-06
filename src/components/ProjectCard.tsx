@@ -7,7 +7,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MoreVertical, Pencil, Trash2, Wind } from "lucide-react";
+import { MoreVertical, Pencil, Trash2 } from "lucide-react";
 
 interface Project {
   id: string;
@@ -95,12 +95,6 @@ export const ProjectCard = ({
         </div>
         <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
           {project.department && <span>{project.department}</span>}
-          {project.n_wtg && (
-            <span className="flex items-center gap-1">
-              <Wind className="w-3 h-3" />
-              {project.n_wtg} éoliennes
-            </span>
-          )}
         </div>
       </div>
 

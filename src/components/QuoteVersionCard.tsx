@@ -8,7 +8,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ChevronRight, Calendar, Star, MoreHorizontal, Copy, Pencil, Trash2 } from "lucide-react";
+import { ChevronRight, Calendar, Star, MoreHorizontal, Copy, Pencil, Trash2, Wind, Zap } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
@@ -21,6 +21,9 @@ interface QuoteVersion {
   comment?: string | null;
   type?: string | null;
   is_starred?: boolean;
+  n_wtg?: number | null;
+  turbine_power?: number | null;
+  turbine_model?: string | null;
 }
 
 interface QuoteVersionCardProps {
@@ -71,6 +74,12 @@ export const QuoteVersionCard = ({
     onSelect?.();
   };
 
+  // Build technical specs line
+  const specs: string[] = [];
+  if (version.turbine_model) specs.push(version.turbine_model);
+  if (version.n_wtg) specs.push(`${version.n_wtg} WTG`);
+  if (version.turbine_power) specs.push(`${version.turbine_power} MW`);
+
   return (
     <div
       onClick={handleCardClick}
@@ -110,6 +119,29 @@ export const QuoteVersionCard = ({
               </Badge>
             )}
           </div>
+
+          {/* Technical specs */}
+          {specs.length > 0 && (
+            <div className="flex items-center gap-2 mt-1.5 ml-6 text-xs text-muted-foreground">
+              {version.n_wtg && (
+                <span className="flex items-center gap-1">
+                  <Wind className="w-3 h-3" />
+                  {version.n_wtg}
+                </span>
+              )}
+              {version.turbine_power && (
+                <span className="flex items-center gap-1">
+                  <Zap className="w-3 h-3" />
+                  {version.turbine_power} MW
+                </span>
+              )}
+              {version.turbine_model && (
+                <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 font-normal">
+                  {version.turbine_model}
+                </Badge>
+              )}
+            </div>
+          )}
 
           {version.comment && (
             <p className="text-xs text-muted-foreground mt-1 line-clamp-1 ml-6">

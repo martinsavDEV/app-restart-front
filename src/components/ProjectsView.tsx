@@ -190,7 +190,7 @@ export function ProjectsView({ onOpenPricing }: ProjectsViewProps) {
   return (
     <div className="flex-1 flex overflow-hidden h-full">
       {/* Left column: Project list */}
-      <section className="w-[350px] shrink-0 flex flex-col overflow-hidden border-r border-border">
+      <section className="w-1/2 shrink-0 flex flex-col overflow-hidden border-r border-border">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-border shrink-0">
           <h1 className="text-base font-semibold text-foreground">Portefeuille Projets</h1>
@@ -254,7 +254,7 @@ export function ProjectsView({ onOpenPricing }: ProjectsViewProps) {
           <ProjectDetailPanel
             project={selectedProject}
             versions={quoteVersions}
-            activeVersionId={quoteVersions[0]?.id}
+            
             onOpenPricing={handleOpenPricing}
             onCreateVersion={handleCreateQuote}
             onDuplicateVersion={handleDuplicateVersion}

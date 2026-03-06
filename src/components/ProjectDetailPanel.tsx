@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { QuoteVersionCard } from "@/components/QuoteVersionCard";
 import { QuoteComments } from "@/components/QuoteComments";
-import { Plus, FileDown, FileText, MapPin, MessageSquare } from "lucide-react";
+import { Plus, FileDown, FileText, MapPin, MessageSquare, ChevronDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface QuoteVersion {
   id: string;
@@ -29,7 +31,6 @@ interface Project {
 interface ProjectDetailPanelProps {
   project: Project;
   versions: QuoteVersion[];
-  activeVersionId?: string | null;
   onOpenPricing: (versionId: string) => void;
   onCreateVersion: () => void;
   onDuplicateVersion?: (versionId: string, label: string) => void;
@@ -42,7 +43,6 @@ interface ProjectDetailPanelProps {
 export const ProjectDetailPanel = ({
   project,
   versions,
-  activeVersionId,
   onOpenPricing,
   onCreateVersion,
   onDuplicateVersion,
@@ -51,14 +51,13 @@ export const ProjectDetailPanel = ({
   onToggleStarVersion,
   isLoadingVersions,
 }: ProjectDetailPanelProps) => {
-  const activeVersion = versions.find((v) => v.id === activeVersionId) || versions[0];
   const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null);
 
   useEffect(() => {
     if (versions.length > 0 && !selectedVersionId) {
-      setSelectedVersionId(activeVersion?.id || versions[0].id);
+      setSelectedVersionId(versions[0].id);
     }
-  }, [versions, selectedVersionId, activeVersion]);
+  }, [versions, selectedVersionId]);
 
   const selectedVersion = versions.find(v => v.id === selectedVersionId);
 
@@ -118,7 +117,6 @@ export const ProjectDetailPanel = ({
                 <QuoteVersionCard
                   key={version.id}
                   version={version}
-                  isActive={version.id === activeVersion?.id}
                   isSelected={version.id === selectedVersionId}
                   onSelect={() => setSelectedVersionId(version.id)}
                   onOpen={() => onOpenPricing(version.id)}
@@ -132,20 +130,28 @@ export const ProjectDetailPanel = ({
           )}
         </div>
 
-        {/* Comments section */}
+        {/* Collapsible comments section */}
         <div className="p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <MessageSquare className="w-4 h-4 text-muted-foreground" />
-            <h3 className="text-sm font-medium text-foreground">
-              Commentaires
-              {selectedVersion && (
-                <span className="text-muted-foreground font-normal ml-1">
-                  - {selectedVersion.version_label}
-                </span>
-              )}
-            </h3>
-          </div>
-          <QuoteComments quoteVersionId={selectedVersionId} compact />
+          <Collapsible open={!!selectedVersionId}>
+            <CollapsibleTrigger className="flex items-center gap-2 w-full text-left mb-3">
+              <MessageSquare className="w-4 h-4 text-muted-foreground" />
+              <h3 className="text-sm font-medium text-foreground flex-1">
+                Commentaires
+                {selectedVersion && (
+                  <span className="text-muted-foreground font-normal ml-1">
+                    — {selectedVersion.version_label}
+                  </span>
+                )}
+              </h3>
+              <ChevronDown className={cn(
+                "w-4 h-4 text-muted-foreground transition-transform",
+                selectedVersionId && "rotate-180"
+              )} />
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <QuoteComments quoteVersionId={selectedVersionId} compact />
+            </CollapsibleContent>
+          </Collapsible>
         </div>
       </div>
 

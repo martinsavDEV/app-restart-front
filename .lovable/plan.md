@@ -1,58 +1,26 @@
 
-# Fix : Lots et lignes manquants dans les exports CAPEX
 
-## Causes identifiées (2 bugs distincts)
+# Fix: Nombre d'éoliennes incohérent dans le résumé
 
-### Bug 1 — Lignes sans section ignorées dans l'export
+## Diagnostic
 
-Dans `useSummaryData`, les lignes sont récupérées via une requête Supabase imbriquée :
+Le "Nombre d'éoliennes" affiché dans `SummaryHeader.tsx` (ligne 140) lit `quote_settings.n_wtg` (valeur 8), alors que le Calculator utilise `calculator_data.global.nb_eol` (valeur 10). Ce sont deux champs distincts — le `n_wtg` dans la table `quote_settings` est un ancien champ qui n'est plus synchronisé avec le Calculator.
 
-```
-lots → quote_sections → quote_lines
-```
+La variable `$nb_eol` (qui vaut 10) est la source de vérité.
 
-Cette structure **ne peut pas retourner** les lignes qui ont `section_id = NULL` (lignes directement attachées au lot, sans section). En base, il existe **33 lignes** dans cet état, réparties dans plusieurs lots dont "Renforcement de sol".
+## Correction
 
-Ces lignes sont visibles dans la vue Pricing (qui utilise `useQuotePricing` avec une requête plate), mais **complètement absentes** des exports PDF et CSV.
+### `src/components/SummaryHeader.tsx`
 
-### Bug 2 — Lots vides (0 lignes, 0 sections) absents du PDF
+- Remplacer la lecture de `data.quoteSettings?.n_wtg` par `data.quoteSettings?.calculator_data?.global?.nb_eol` comme source principale pour le nombre d'éoliennes (affichage et édition)
+- Fallback sur `n_wtg` si `calculator_data` n'existe pas encore
+- Appliquer la même logique dans `handleStartEdit` (ligne 26) et `handleSave` (ligne 42)
 
-Un lot comme "Renforcement de sol" dans le projet "51 - Francheville" a `line_count = 0` et `section_count = 0` : il est `is_enabled: true`, il est bien dans `useSummaryData`, mais comme il n'a ni section ni ligne, son total est 0 et il n'a rien à afficher dans la partie "Détail par lot" du PDF. Il **apparaît bien** dans le résumé des lots (tableau du haut), mais génère une page quasi-vide dans le détail.
+### `src/hooks/useSummaryData.ts`
 
-La vraie question est : ces lots avec 0 lignes ont-ils du contenu en réalité stocké **sans section** ? La réponse de la DB sur Francheville : non, ce lot est genuinement vide. Mais d'autres versions comme "16 - FE de la Besse" ou "86 - Plaisance" ont bien des lignes dans `renforcement_sol` — et certaines sans `section_id`.
+- Aucun changement nécessaire — `calculator_data` est déjà fetché dans `quoteSettings`
 
-## Solution
+| Fichier | Modification |
+|---------|-------------|
+| `src/components/SummaryHeader.tsx` | Lire `nb_eol` depuis `calculator_data.global` au lieu de `n_wtg` |
 
-### Fichier : `src/hooks/useSummaryData.ts`
-
-**Remplacer la requête imbriquée par deux requêtes séparées** :
-
-1. **Requête 1** : Récupérer les lots + sections (sans les lignes)
-2. **Requête 2** : Récupérer toutes les lignes du devis en une fois (`WHERE lot_id IN (...)`)
-3. **Assemblage côté client** : Grouper les lignes par section, et créer une "section virtuelle" sans nom pour les lignes orphelines (`section_id = NULL`)
-
-Cela garantit qu'**aucune ligne n'est perdue**, quelle que soit sa structure.
-
-```text
-Avant (requête imbriquée, perd les lignes sans section) :
-  lots → quote_sections → quote_lines  (lignes section_id=NULL ignorées)
-
-Après (deux requêtes plates) :
-  Requête A : lots + quote_sections
-  Requête B : toutes quote_lines WHERE lot_id IN [...]
-  → Assemblage : lignes avec section_id → dans leur section
-                 lignes sans section_id → dans une section virtuelle "Sans section"
-```
-
-### Comportement des lignes sans section dans l'export
-
-- **PDF** : affichées dans une section intitulée "(Sans section)" ou directement sous l'en-tête du lot
-- **CSV** : idem, avec une ligne de section virtuelle
-
-### Résumé des changements
-
-| Fichier | Changement |
-|---------|------------|
-| `src/hooks/useSummaryData.ts` | Remplacer la requête imbriquée par 2 requêtes plates + assemblage côté client |
-
-Aucun autre fichier n'est modifié : `pdfExport.ts` et `csvUtils.ts` consomment déjà les `sections` correctement — il suffit que les données arrivent complètes.

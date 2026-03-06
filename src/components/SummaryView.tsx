@@ -102,6 +102,10 @@ export const SummaryView = ({ projectId, versionId }: SummaryViewProps) => {
               <Download className="mr-2 h-4 w-4" />
               Export CSV
             </Button>
+            <Button onClick={handleExportXLSX} variant="outline">
+              <FileSpreadsheet className="mr-2 h-4 w-4" />
+              Export XLSX
+            </Button>
             <Button onClick={handleExportPDF}>
               <FileText className="mr-2 h-4 w-4" />
               Export PDF

@@ -5,7 +5,7 @@ import { Sidebar } from "@/components/Sidebar";
 import { Topbar } from "@/components/Topbar";
 import { ProjectsView } from "@/components/ProjectsView";
 import { QuotesView } from "@/components/QuotesView";
-import { PricingView } from "@/components/PricingView";
+import { TurbineCatalogView } from "@/components/TurbineCatalogView";
 import { PriceDBView } from "@/components/PriceDBView";
 import { TemplatesView } from "@/components/TemplatesView";
 import { DataAdminView } from "@/components/DataAdminView";

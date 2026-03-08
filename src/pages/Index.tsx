@@ -48,7 +48,7 @@ const Index = () => {
   }
 
   const handleViewChange = (view: string) => {
-    if (view === "quotes" && !quotesEnabled) return;
+    // Prevent non-admins from accessing admin view
     // Prevent non-admins from accessing admin view
     if (view === "data-admin" && !isAdmin) return;
     setActiveView(view);

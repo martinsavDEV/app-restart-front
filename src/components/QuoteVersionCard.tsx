@@ -35,6 +35,7 @@ interface QuoteVersionCardProps {
   onRename?: () => void;
   onDelete?: () => void;
   onToggleStar?: () => void;
+  commentCount?: number;
 }
 
 export const QuoteVersionCard = ({

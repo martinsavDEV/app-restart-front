@@ -22,6 +22,7 @@ import { ProjectDetailPanel } from "./ProjectDetailPanel";
 
 interface ProjectsViewProps {
   onOpenPricing?: (projectId: string, projectName: string, versionId: string, versionLabel?: string) => void;
+  onProjectSelect?: (projectId: string, projectName: string) => void;
 }
 
 export function ProjectsView({ onOpenPricing }: ProjectsViewProps) {

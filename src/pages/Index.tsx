@@ -73,7 +73,15 @@ const Index = () => {
   const renderView = () => {
     switch (activeView) {
       case "projects":
-        return <ProjectsView onOpenPricing={handleOpenPricing} />;
+        return (
+          <ProjectsView
+            onOpenPricing={handleOpenPricing}
+            onProjectSelect={(id, name) => {
+              setSelectedProjectId(id);
+              setSelectedProjectName(name);
+            }}
+          />
+        );
       case "quotes":
         return (
           <QuotesView

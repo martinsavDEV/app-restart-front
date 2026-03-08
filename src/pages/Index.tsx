@@ -5,6 +5,7 @@ import { Sidebar } from "@/components/Sidebar";
 import { Topbar } from "@/components/Topbar";
 import { ProjectsView } from "@/components/ProjectsView";
 import { QuotesView } from "@/components/QuotesView";
+import { TurbineCatalogView } from "@/components/TurbineCatalogView";
 import { PricingView } from "@/components/PricingView";
 import { PriceDBView } from "@/components/PriceDBView";
 import { TemplatesView } from "@/components/TemplatesView";
@@ -17,7 +18,7 @@ const Index = () => {
   const { user, isLoading, isAdmin, isPendingApproval } = useAuth();
   const navigate = useNavigate();
   const [activeView, setActiveView] = useState("projects");
-  const [quotesEnabled, setQuotesEnabled] = useState(false);
+  
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [selectedProjectName, setSelectedProjectName] = useState<string | null>(null);
   const [selectedQuoteVersion, setSelectedQuoteVersion] = useState<string | null>(null);
@@ -47,7 +48,7 @@ const Index = () => {
   }
 
   const handleViewChange = (view: string) => {
-    if (view === "quotes" && !quotesEnabled) return;
+    // Prevent non-admins from accessing admin view
     // Prevent non-admins from accessing admin view
     if (view === "data-admin" && !isAdmin) return;
     setActiveView(view);
@@ -83,15 +84,8 @@ const Index = () => {
             }}
           />
         );
-      case "quotes":
-        return (
-          <QuotesView
-            projectId={selectedProjectId || undefined}
-            projectName={selectedProjectName || undefined}
-            initialSelectedVersionId={selectedQuoteVersion || undefined}
-            onVersionChange={setSelectedQuoteVersion}
-          />
-        );
+      case "turbine-catalog":
+        return <TurbineCatalogView />;
       case "pricing":
         return (
           <PricingView
@@ -124,7 +118,6 @@ const Index = () => {
       <Sidebar
         activeView={activeView}
         onViewChange={handleViewChange}
-        quotesEnabled={quotesEnabled}
       />
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <Topbar

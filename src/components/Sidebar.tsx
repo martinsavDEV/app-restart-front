@@ -9,14 +9,13 @@ import {
 } from "@/components/ui/tooltip";
 import {
   Database,
-  FileStack,
+  Wind,
   Calculator,
   FileSpreadsheet,
   Coins,
   Layout,
   Settings,
   LogOut,
-  Wind,
 } from "lucide-react";
 
 interface NavItem {
@@ -28,7 +27,7 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { id: "projects", label: "Projets", icon: Database },
-  { id: "quotes", label: "Versions de chiffrage", icon: FileStack },
+  { id: "turbine-catalog", label: "Catalogue éoliennes", icon: Wind },
   { id: "pricing", label: "Chiffrage projet", icon: Calculator },
   { id: "summary", label: "Export CAPEX", icon: FileSpreadsheet },
   { id: "price-db", label: "Base de prix", icon: Coins },
@@ -39,10 +38,9 @@ const navItems: NavItem[] = [
 interface SidebarProps {
   activeView: string;
   onViewChange: (view: string) => void;
-  quotesEnabled?: boolean;
 }
 
-export const Sidebar = ({ activeView, onViewChange, quotesEnabled = false }: SidebarProps) => {
+export const Sidebar = ({ activeView, onViewChange }: SidebarProps) => {
   const { signOut, isAdmin } = useAuth();
 
   // Filter nav items based on admin status
@@ -60,7 +58,7 @@ export const Sidebar = ({ activeView, onViewChange, quotesEnabled = false }: Sid
         <nav className="flex-1 flex flex-col gap-1 w-full px-2">
           {visibleNavItems.map((item) => {
             const isActive = activeView === item.id;
-            const isDisabled = item.id === "quotes" && !quotesEnabled;
+            const isDisabled = false;
             const Icon = item.icon;
 
             return (

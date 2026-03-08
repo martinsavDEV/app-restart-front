@@ -59,6 +59,53 @@ export type Database = {
           },
         ]
       }
+      foundation_history: {
+        Row: {
+          created_at: string
+          diametre_fondation: number | null
+          hauteur_cage: number | null
+          hub_height: number | null
+          id: string
+          marge_securite: number | null
+          notes: string | null
+          pente_talus: string | null
+          project_name: string | null
+          turbine_id: string
+        }
+        Insert: {
+          created_at?: string
+          diametre_fondation?: number | null
+          hauteur_cage?: number | null
+          hub_height?: number | null
+          id?: string
+          marge_securite?: number | null
+          notes?: string | null
+          pente_talus?: string | null
+          project_name?: string | null
+          turbine_id: string
+        }
+        Update: {
+          created_at?: string
+          diametre_fondation?: number | null
+          hauteur_cage?: number | null
+          hub_height?: number | null
+          id?: string
+          marge_securite?: number | null
+          notes?: string | null
+          pente_talus?: string | null
+          project_name?: string | null
+          turbine_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "foundation_history_turbine_id_fkey"
+            columns: ["turbine_id"]
+            isOneToOne: false
+            referencedRelation: "turbine_catalog"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lot_templates: {
         Row: {
           code: string
@@ -549,6 +596,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      turbine_catalog: {
+        Row: {
+          created_at: string
+          id: string
+          manufacturer: string
+          model: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          manufacturer: string
+          model: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          manufacturer?: string
+          model?: string
+        }
+        Relationships: []
       }
       user_invitations: {
         Row: {

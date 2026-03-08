@@ -338,12 +338,34 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                           type="number"
                           value={calculatorData.global.nb_eol}
                           className="w-20 font-semibold"
-                          onChange={(e) =>
+                          onChange={(e) => {
+                            const newCount = parseInt(e.target.value) || 0;
+                            const currentTurbines = [...calculatorData.turbines];
+                            let newTurbines = currentTurbines;
+                            if (newCount > currentTurbines.length) {
+                              // Add empty turbines
+                              for (let i = currentTurbines.length; i < newCount; i++) {
+                                newTurbines.push({
+                                  name: `E${String(i + 1).padStart(2, "0")}`,
+                                  surf_PF: 0,
+                                  acces_PF: 0,
+                                  m3_bouger: 0,
+                                  bypass: 0,
+                                  fondation_type: "sans eau",
+                                  g2avp: "",
+                                  substitution: 0,
+                                  commentaire: "",
+                                });
+                              }
+                            } else if (newCount < currentTurbines.length) {
+                              newTurbines = currentTurbines.slice(0, newCount);
+                            }
                             setCalculatorData({
                               ...calculatorData,
-                              global: { ...calculatorData.global, nb_eol: parseInt(e.target.value) || 0 },
-                            })
-                          }
+                              global: { ...calculatorData.global, nb_eol: newCount },
+                              turbines: newTurbines,
+                            });
+                          }}
                         />
                         <span className="text-xs text-muted-foreground font-mono">nb_eol</span>
                       </div>

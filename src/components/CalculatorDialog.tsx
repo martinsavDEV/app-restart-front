@@ -533,10 +533,10 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                           </tr>
                           {foundationMetrics && (
                             <tr className="bg-emerald-50 dark:bg-emerald-900/10">
-                              <td className="border p-2 text-xs font-semibold text-emerald-700 dark:text-emerald-400 sticky left-0 z-10 bg-emerald-50 dark:bg-emerald-900/10">
+                              <td className="border p-2 text-xs font-semibold text-emerald-700 dark:text-emerald-400 sticky left-0 z-20 bg-emerald-50 dark:bg-emerald-900/10">
                                 Vol. substitution
                               </td>
-                              <td className="border p-2 text-xs text-muted-foreground sticky left-[180px] z-10 bg-emerald-50 dark:bg-emerald-900/10">m³</td>
+                              <td className="border p-2 text-xs text-muted-foreground sticky left-[180px] z-20 bg-emerald-50 dark:bg-emerald-900/10">m³</td>
                               {calculatorData.turbines.map((turbine, idx) => {
                                 const volSub = calculateSubstitutionVolume(foundationMetrics.surfaceFondFouille, turbine.substitution);
                                 return (

@@ -1,42 +1,58 @@
 
+# Fix : Lots et lignes manquants dans les exports CAPEX
 
-# Bug : la source de prix ne persiste pas lors du chargement de template
+## Causes identifiées (2 bugs distincts)
 
-## Cause identifiée
+### Bug 1 — Lignes sans section ignorées dans l'export
 
-Dans `PricingView.tsx` ligne 268, lors de la **création d'une nouvelle ligne** (ajout depuis template ou manuellement), le `priceSource` est écrit dans le champ `comment` au lieu de `price_source` :
+Dans `useSummaryData`, les lignes sont récupérées via une requête Supabase imbriquée :
 
-```typescript
-// ACTUEL (bug) — ligne 268
-const newLine: any = {
-  designation: line.designation,
-  quantity: line.quantity,
-  unit: line.unit,
-  unit_price: line.unitPrice,
-  comment: line.priceSource || "",  // ← priceSource écrit dans comment !
-  order_index: nextOrderIndex,
-};
+```
+lots → quote_sections → quote_lines
 ```
 
-Le champ `price_source` n'est jamais renseigné à la création. Du coup, quand on recharge le chiffrage, `price_source` est `null` en base et la source n'apparaît pas.
+Cette structure **ne peut pas retourner** les lignes qui ont `section_id = NULL` (lignes directement attachées au lot, sans section). En base, il existe **33 lignes** dans cet état, réparties dans plusieurs lots dont "Renforcement de sol".
 
-## Correction
+Ces lignes sont visibles dans la vue Pricing (qui utilise `useQuotePricing` avec une requête plate), mais **complètement absentes** des exports PDF et CSV.
 
-**Fichier** : `src/components/PricingView.tsx`
+### Bug 2 — Lots vides (0 lignes, 0 sections) absents du PDF
 
-Ajouter `price_source` et corriger `comment` :
+Un lot comme "Renforcement de sol" dans le projet "51 - Francheville" a `line_count = 0` et `section_count = 0` : il est `is_enabled: true`, il est bien dans `useSummaryData`, mais comme il n'a ni section ni ligne, son total est 0 et il n'a rien à afficher dans la partie "Détail par lot" du PDF. Il **apparaît bien** dans le résumé des lots (tableau du haut), mais génère une page quasi-vide dans le détail.
 
-```typescript
-const newLine: any = {
-  designation: line.designation,
-  quantity: line.quantity,
-  unit: line.unit,
-  unit_price: line.unitPrice,
-  comment: line.comment || "",          // ← le vrai commentaire
-  price_source: line.priceSource || "", // ← la source de prix
-  order_index: nextOrderIndex,
-};
+La vraie question est : ces lots avec 0 lignes ont-ils du contenu en réalité stocké **sans section** ? La réponse de la DB sur Francheville : non, ce lot est genuinement vide. Mais d'autres versions comme "16 - FE de la Besse" ou "86 - Plaisance" ont bien des lignes dans `renforcement_sol` — et certaines sans `section_id`.
+
+## Solution
+
+### Fichier : `src/hooks/useSummaryData.ts`
+
+**Remplacer la requête imbriquée par deux requêtes séparées** :
+
+1. **Requête 1** : Récupérer les lots + sections (sans les lignes)
+2. **Requête 2** : Récupérer toutes les lignes du devis en une fois (`WHERE lot_id IN (...)`)
+3. **Assemblage côté client** : Grouper les lignes par section, et créer une "section virtuelle" sans nom pour les lignes orphelines (`section_id = NULL`)
+
+Cela garantit qu'**aucune ligne n'est perdue**, quelle que soit sa structure.
+
+```text
+Avant (requête imbriquée, perd les lignes sans section) :
+  lots → quote_sections → quote_lines  (lignes section_id=NULL ignorées)
+
+Après (deux requêtes plates) :
+  Requête A : lots + quote_sections
+  Requête B : toutes quote_lines WHERE lot_id IN [...]
+  → Assemblage : lignes avec section_id → dans leur section
+                 lignes sans section_id → dans une section virtuelle "Sans section"
 ```
 
-C'est un fix d'une seule ligne. Après ça, toute ligne créée (template ou manuelle) avec une source de prix la conservera en base et l'affichera au rechargement.
+### Comportement des lignes sans section dans l'export
 
+- **PDF** : affichées dans une section intitulée "(Sans section)" ou directement sous l'en-tête du lot
+- **CSV** : idem, avec une ligne de section virtuelle
+
+### Résumé des changements
+
+| Fichier | Changement |
+|---------|------------|
+| `src/hooks/useSummaryData.ts` | Remplacer la requête imbriquée par 2 requêtes plates + assemblage côté client |
+
+Aucun autre fichier n'est modifié : `pdfExport.ts` et `csvUtils.ts` consomment déjà les `sections` correctement — il suffit que les données arrivent complètes.

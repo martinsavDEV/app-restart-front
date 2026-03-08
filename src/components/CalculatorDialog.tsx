@@ -57,6 +57,10 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
   const [customMargin, setCustomMargin] = useState(false);
   const [customSlope, setCustomSlope] = useState(false);
 
+  // Electricity material filter
+  const [showAlu, setShowAlu] = useState(true);
+  const [showCu, setShowCu] = useState(true);
+
   // Fetch quote settings
   const { data: settings, isLoading } = useQuery({
     queryKey: ["quote-settings", versionId],

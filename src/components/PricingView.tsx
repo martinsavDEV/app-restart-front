@@ -265,7 +265,8 @@ export const PricingView = ({ projectId: initialProjectId, projectName: initialP
       quantity: line.quantity,
       unit: line.unit,
       unit_price: line.unitPrice,
-      comment: line.priceSource || "",
+      comment: line.comment || "",
+      price_source: line.priceSource || "",
       order_index: nextOrderIndex,
     };
 

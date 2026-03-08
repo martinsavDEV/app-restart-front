@@ -8,7 +8,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ChevronRight, Calendar, Star, MoreHorizontal, Copy, Pencil, Trash2, Wind, Zap } from "lucide-react";
+import { ChevronRight, Calendar, Star, MoreHorizontal, Copy, Pencil, Trash2, Wind, Zap, MessageSquare } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 

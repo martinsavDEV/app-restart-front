@@ -1,10 +1,9 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { QuoteVersionCard } from "@/components/QuoteVersionCard";
 import { QuoteComments } from "@/components/QuoteComments";
-import { Plus, FileDown, FileText, MapPin, MessageSquare, ChevronDown } from "lucide-react";
+import { Plus, FileDown, FileText, MapPin, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface QuoteVersion {
@@ -114,45 +113,32 @@ export const ProjectDetailPanel = ({
           ) : (
             <div className="space-y-3">
               {versions.map((version) => (
-                <QuoteVersionCard
-                  key={version.id}
-                  version={version}
-                  isSelected={version.id === selectedVersionId}
-                  onSelect={() => setSelectedVersionId(version.id)}
-                  onOpen={() => onOpenPricing(version.id)}
-                  onDuplicate={() => onDuplicateVersion?.(version.id, version.version_label)}
-                  onRename={() => onRenameVersion?.(version.id, version.version_label)}
-                  onDelete={() => onDeleteVersion?.(version.id)}
-                  onToggleStar={() => onToggleStarVersion?.(version.id, !version.is_starred)}
-                />
+                <div key={version.id}>
+                  <QuoteVersionCard
+                    version={version}
+                    isSelected={version.id === selectedVersionId}
+                    onSelect={() => setSelectedVersionId(version.id)}
+                    onOpen={() => onOpenPricing(version.id)}
+                    onDuplicate={() => onDuplicateVersion?.(version.id, version.version_label)}
+                    onRename={() => onRenameVersion?.(version.id, version.version_label)}
+                    onDelete={() => onDeleteVersion?.(version.id)}
+                    onToggleStar={() => onToggleStarVersion?.(version.id, !version.is_starred)}
+                  />
+                  {version.id === selectedVersionId && (
+                    <div className="mt-2 ml-2 border-l-2 border-primary/30 pl-3 pb-1">
+                      <div className="flex items-center gap-1.5 mb-2">
+                        <MessageSquare className="w-3.5 h-3.5 text-muted-foreground" />
+                        <span className="text-xs font-medium text-muted-foreground">Commentaires</span>
+                      </div>
+                      <QuoteComments quoteVersionId={version.id} compact />
+                    </div>
+                  )}
+                </div>
               ))}
             </div>
           )}
         </div>
 
-        {/* Collapsible comments section */}
-        <div className="p-6">
-          <Collapsible open={!!selectedVersionId}>
-            <CollapsibleTrigger className="flex items-center gap-2 w-full text-left mb-3">
-              <MessageSquare className="w-4 h-4 text-muted-foreground" />
-              <h3 className="text-sm font-medium text-foreground flex-1">
-                Commentaires
-                {selectedVersion && (
-                  <span className="text-muted-foreground font-normal ml-1">
-                    — {selectedVersion.version_label}
-                  </span>
-                )}
-              </h3>
-              <ChevronDown className={cn(
-                "w-4 h-4 text-muted-foreground transition-transform",
-                selectedVersionId && "rotate-180"
-              )} />
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <QuoteComments quoteVersionId={selectedVersionId} compact />
-            </CollapsibleContent>
-          </Collapsible>
-        </div>
       </div>
 
       {/* Actions footer */}

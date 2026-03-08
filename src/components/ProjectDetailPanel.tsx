@@ -139,29 +139,6 @@ export const ProjectDetailPanel = ({
           )}
         </div>
 
-        {/* Collapsible comments section */}
-        <div className="p-6">
-          <Collapsible open={!!selectedVersionId}>
-            <CollapsibleTrigger className="flex items-center gap-2 w-full text-left mb-3">
-              <MessageSquare className="w-4 h-4 text-muted-foreground" />
-              <h3 className="text-sm font-medium text-foreground flex-1">
-                Commentaires
-                {selectedVersion && (
-                  <span className="text-muted-foreground font-normal ml-1">
-                    — {selectedVersion.version_label}
-                  </span>
-                )}
-              </h3>
-              <ChevronDown className={cn(
-                "w-4 h-4 text-muted-foreground transition-transform",
-                selectedVersionId && "rotate-180"
-              )} />
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <QuoteComments quoteVersionId={selectedVersionId} compact />
-            </CollapsibleContent>
-          </Collapsible>
-        </div>
       </div>
 
       {/* Actions footer */}

@@ -25,7 +25,7 @@ interface ProjectsViewProps {
   onProjectSelect?: (projectId: string, projectName: string) => void;
 }
 
-export function ProjectsView({ onOpenPricing }: ProjectsViewProps) {
+export function ProjectsView({ onOpenPricing, onProjectSelect }: ProjectsViewProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);

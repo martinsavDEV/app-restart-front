@@ -320,7 +320,7 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] max-h-[90vh]">
+      <DialogContent className="max-w-[95vw] max-h-[90vh] overflow-hidden">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Calculator className="h-5 w-5" />
@@ -331,10 +331,10 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
         {isLoading ? (
           <div className="py-8 text-center text-sm text-muted-foreground">Chargement...</div>
         ) : (
-          <div className="flex gap-4 h-full">
+          <div className="flex gap-4 h-full min-w-0 overflow-hidden">
             {/* Main content - Vertical table layout */}
-            <div className="flex-1">
-              <div className="h-[70vh] overflow-y-auto pr-4">
+            <div className="flex-1 min-w-0 overflow-hidden">
+              <div className="h-[70vh] overflow-y-auto overflow-x-hidden pr-4">
                 <div className="space-y-6">
                   {/* Global Section */}
                   <div className="space-y-2">

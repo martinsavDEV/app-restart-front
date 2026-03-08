@@ -331,7 +331,7 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
         {isLoading ? (
           <div className="py-8 text-center text-sm text-muted-foreground">Chargement...</div>
         ) : (
-          <div className="flex gap-4 h-full">
+          <div className="flex gap-4 h-full min-w-0 overflow-hidden">
             {/* Main content - Vertical table layout */}
             <div className="flex-1">
               <div className="h-[70vh] overflow-y-auto pr-4">

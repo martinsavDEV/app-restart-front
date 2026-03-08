@@ -431,219 +431,8 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                       <table className="w-full border-collapse text-sm">
                         <thead>
                           <tr className="bg-primary/10">
-                            <th className="border p-2 text-left text-xs font-bold min-w-[180px] sticky left-0 z-10 bg-primary/10">Paramètre</th>
+                            <th className="border p-2 text-left text-xs font-bold min-w-[180px] sticky left-0 z-10 bg-primary/10">Tronçon</th>
                             <th className="border p-2 text-left text-xs font-bold min-w-[50px] sticky left-[180px] z-10 bg-primary/10">Unité</th>
-                            {calculatorData.turbines.map((turbine, idx) => (
-                              <th key={idx} className="border p-2 text-center min-w-[100px]">
-                                <div className="flex items-center justify-between gap-1">
-                                  <Input
-                                    value={turbine.name}
-                                    onChange={(e) => updateTurbine(idx, "name", e.target.value)}
-                                    className="h-7 text-xs font-semibold text-center border-0 bg-transparent p-0"
-                                  />
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => removeTurbine(idx)}
-                                    className="h-6 w-6 p-0"
-                                  >
-                                    <X className="h-3 w-3" />
-                                  </Button>
-                                </div>
-                              </th>
-                            ))}
-                            <th className="border p-2 text-center text-xs font-bold bg-primary/20">Total</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          <tr>
-                            <td className="border p-2 text-xs sticky left-0 z-10 bg-background">Plateforme + pan coupé</td>
-                            <td className="border p-2 text-xs text-muted-foreground sticky left-[180px] z-10 bg-background">m²</td>
-                            {calculatorData.turbines.map((turbine, idx) => (
-                              <td key={idx} className="border p-1">
-                                <NumericInput
-                                  value={turbine.surf_PF}
-                                  onValueChange={(val) => updateTurbine(idx, "surf_PF", val)}
-                                  className="h-7 text-xs text-center"
-                                  title={`Variable: $surf_PF_${turbine.name}`}
-                                />
-                              </td>
-                            ))}
-                            <td className="border p-2 text-xs text-center font-semibold bg-primary/5" title="Variable: $sum_surf_PF">
-                              {turbineTotals.surf_PF}
-                            </td>
-                          </tr>
-                          <tr>
-                            <td className="border p-2 text-xs sticky left-0 z-10 bg-background">Accès PF</td>
-                            <td className="border p-2 text-xs text-muted-foreground sticky left-[180px] z-10 bg-background">m²</td>
-                            {calculatorData.turbines.map((turbine, idx) => (
-                              <td key={idx} className="border p-1">
-                                <NumericInput
-                                  value={turbine.acces_PF}
-                                  onValueChange={(val) => updateTurbine(idx, "acces_PF", val)}
-                                  className="h-7 text-xs text-center"
-                                  title={`Variable: $acces_PF_${turbine.name}`}
-                                />
-                              </td>
-                            ))}
-                            <td className="border p-2 text-xs text-center font-semibold bg-primary/5" title="Variable: $sum_acces_PF">
-                              {turbineTotals.acces_PF}
-                            </td>
-                          </tr>
-                          <tr>
-                            <td className="border p-2 text-xs sticky left-0 z-10 bg-background">m³ à bouger</td>
-                            <td className="border p-2 text-xs text-muted-foreground sticky left-[180px] z-10 bg-background">m³</td>
-                            {calculatorData.turbines.map((turbine, idx) => (
-                              <td key={idx} className="border p-1">
-                                <NumericInput
-                                  value={turbine.m3_bouger}
-                                  onValueChange={(val) => updateTurbine(idx, "m3_bouger", val)}
-                                  className="h-7 text-xs text-center"
-                                  title={`Variable: $m3_bouger_${turbine.name}`}
-                                />
-                              </td>
-                            ))}
-                            <td className="border p-2 text-xs text-center font-semibold bg-primary/5" title="Variable: $sum_m3_bouger">
-                              {turbineTotals.m3_bouger}
-                            </td>
-                          </tr>
-                          <tr>
-                            <td className="border p-2 text-xs sticky left-0 z-10 bg-background">Bypass</td>
-                            <td className="border p-2 text-xs text-muted-foreground sticky left-[180px] z-10 bg-background">m²</td>
-                            {calculatorData.turbines.map((turbine, idx) => (
-                              <td key={idx} className="border p-1">
-                                <NumericInput
-                                  value={turbine.bypass}
-                                  onValueChange={(val) => updateTurbine(idx, "bypass", val)}
-                                  className="h-7 text-xs text-center"
-                                  title={`Variable: $bypass_${turbine.name}`}
-                                />
-                              </td>
-                            ))}
-                            <td className="border p-2 text-xs text-center font-semibold bg-primary/5" title="Variable: $sum_bypass">
-                              {turbineTotals.bypass}
-                            </td>
-                          </tr>
-                          <tr>
-                            <td className="border p-2 text-xs sticky left-0 z-10 bg-background">Fondation</td>
-                            <td className="border p-2 text-xs text-muted-foreground sticky left-[180px] z-10 bg-background"></td>
-                            {calculatorData.turbines.map((turbine, idx) => (
-                              <td key={idx} className="border p-1">
-                                <Select
-                                  value={turbine.fondation_type}
-                                  onValueChange={(value) => updateTurbine(idx, "fondation_type", value)}
-                                >
-                                  <SelectTrigger className="h-7 text-xs">
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="en eau">En eau</SelectItem>
-                                    <SelectItem value="sans eau">Sans eau</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              </td>
-                            ))}
-                            <td className="border p-2 text-xs text-center bg-primary/5"></td>
-                          </tr>
-                          <tr>
-                            <td className="border p-2 text-xs sticky left-0 z-10 bg-background">G2AVP</td>
-                            <td className="border p-2 text-xs text-muted-foreground sticky left-[180px] z-10 bg-background"></td>
-                            {calculatorData.turbines.map((turbine, idx) => (
-                              <td key={idx} className="border p-1">
-                                <Input
-                                  value={turbine.g2avp}
-                                  onChange={(e) => updateTurbine(idx, "g2avp", e.target.value)}
-                                  className="h-7 text-xs text-center"
-                                />
-                              </td>
-                            ))}
-                            <td className="border p-2 text-xs text-center bg-primary/5"></td>
-                          </tr>
-                          <tr>
-                            <td className="border p-2 text-xs sticky left-0 z-10 bg-background">Substitution</td>
-                            <td className="border p-2 text-xs text-muted-foreground sticky left-[180px] z-10 bg-background">m</td>
-                            {calculatorData.turbines.map((turbine, idx) => (
-                              <td key={idx} className="border p-1">
-                                <NumericInput
-                                  value={turbine.substitution}
-                                  onValueChange={(val) => updateTurbine(idx, "substitution", val)}
-                                  className="h-7 text-xs text-center"
-                                  title={`Variable: $vol_sub_${turbine.name} (volume calculé)`}
-                                />
-                              </td>
-                            ))}
-                            <td className="border p-2 text-xs text-center bg-primary/5"></td>
-                          </tr>
-                          {/* Volume substitution - calculated row */}
-                          {foundationMetrics && (
-                            <tr className="bg-emerald-50 dark:bg-emerald-900/10">
-                              <td className="border p-2 text-xs font-semibold text-emerald-700 dark:text-emerald-400 sticky left-0 z-10 bg-emerald-50 dark:bg-emerald-900/10">
-                                Vol. substitution
-                              </td>
-                              <td className="border p-2 text-xs text-muted-foreground sticky left-[180px] z-10 bg-emerald-50 dark:bg-emerald-900/10">m³</td>
-                              {calculatorData.turbines.map((turbine, idx) => {
-                                const volSub = calculateSubstitutionVolume(
-                                  foundationMetrics.surfaceFondFouille,
-                                  turbine.substitution
-                                );
-                                return (
-                                  <td
-                                    key={idx}
-                                    className="border p-2 text-xs text-center font-mono text-emerald-700 dark:text-emerald-400"
-                                  >
-                                    {turbine.substitution > 0 ? formatNumber(volSub, 0) : "-"}
-                                  </td>
-                                );
-                              })}
-                              <td className="border p-2 text-xs text-center font-bold bg-emerald-100 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400" title="Variable: $sum_vol_substitution">
-                                {formatNumber(
-                                  calculatorData.turbines.reduce(
-                                    (sum, t) =>
-                                      sum + calculateSubstitutionVolume(foundationMetrics.surfaceFondFouille, t.substitution),
-                                    0
-                                  ),
-                                  0
-                                )}
-                              </td>
-                            </tr>
-                          )}
-                          <tr>
-                            <td className="border p-2 text-xs sticky left-0 z-10 bg-background">Commentaire</td>
-                            <td className="border p-2 text-xs text-muted-foreground sticky left-[180px] z-10 bg-background"></td>
-                            {calculatorData.turbines.map((turbine, idx) => (
-                              <td key={idx} className="border p-1">
-                                <Input
-                                  value={turbine.commentaire}
-                                  onChange={(e) => updateTurbine(idx, "commentaire", e.target.value)}
-                                  className="h-7 text-xs"
-                                />
-                              </td>
-                            ))}
-                            <td className="border p-2 text-xs text-center bg-primary/5"></td>
-                          </tr>
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-
-                  <Separator />
-
-                  {/* Access Segments Section */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-sm font-bold text-primary">Accès</h3>
-                      <Button onClick={addAccessSegment} size="sm" variant="outline" className="font-semibold">
-                        <Plus className="h-4 w-4 mr-1" />
-                        Ajouter tronçon
-                      </Button>
-                    </div>
-
-                    <div className="overflow-x-auto">
-                      <table className="w-full border-collapse text-sm">
-                        <thead>
-                          <tr className="bg-primary/10">
-                            <th className="border p-2 text-left text-xs font-bold min-w-[180px]">Tronçon</th>
-                            <th className="border p-2 text-left text-xs font-bold">Unité</th>
                             {calculatorData.access_segments.map((segment, idx) => (
                               <th key={idx} className="border p-2 text-center min-w-[120px]">
                                 <div className="flex items-center justify-between gap-1">
@@ -668,8 +457,8 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                         </thead>
                         <tbody>
                           <tr>
-                            <td className="border p-2 text-xs">Surface chemin</td>
-                            <td className="border p-2 text-xs text-muted-foreground">m²</td>
+                            <td className="border p-2 text-xs sticky left-0 z-10 bg-background">Surface chemin</td>
+                            <td className="border p-2 text-xs text-muted-foreground sticky left-[180px] z-10 bg-background">m²</td>
                             {calculatorData.access_segments.map((segment, idx) => (
                               <td key={idx} className="border p-1">
                                 <NumericInput
@@ -685,8 +474,8 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                             </td>
                           </tr>
                           <tr>
-                            <td className="border p-2 text-xs">GNT</td>
-                            <td className="border p-2 text-xs text-muted-foreground">m²</td>
+                            <td className="border p-2 text-xs sticky left-0 z-10 bg-background">GNT</td>
+                            <td className="border p-2 text-xs text-muted-foreground sticky left-[180px] z-10 bg-background">m²</td>
                             {calculatorData.access_segments.map((segment, idx) => (
                               <td key={idx} className="border p-1">
                                 <div className="flex items-center gap-1 justify-center">
@@ -709,8 +498,8 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                             </td>
                           </tr>
                           <tr>
-                            <td className="border p-2 text-xs">Bicouche</td>
-                            <td className="border p-2 text-xs text-muted-foreground">m²</td>
+                            <td className="border p-2 text-xs sticky left-0 z-10 bg-background">Bicouche</td>
+                            <td className="border p-2 text-xs text-muted-foreground sticky left-[180px] z-10 bg-background">m²</td>
                             {calculatorData.access_segments.map((segment, idx) => (
                               <td key={idx} className="border p-1">
                                 <NumericInput
@@ -725,8 +514,8 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                             </td>
                           </tr>
                           <tr>
-                            <td className="border p-2 text-xs">Enrobé</td>
-                            <td className="border p-2 text-xs text-muted-foreground">m²</td>
+                            <td className="border p-2 text-xs sticky left-0 z-10 bg-background">Enrobé</td>
+                            <td className="border p-2 text-xs text-muted-foreground sticky left-[180px] z-10 bg-background">m²</td>
                             {calculatorData.access_segments.map((segment, idx) => (
                               <td key={idx} className="border p-1">
                                 <NumericInput
@@ -741,8 +530,8 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                             </td>
                           </tr>
                           <tr>
-                            <td className="border p-2 text-xs">Renforcement</td>
-                            <td className="border p-2 text-xs text-muted-foreground"></td>
+                            <td className="border p-2 text-xs sticky left-0 z-10 bg-background">Renforcement</td>
+                            <td className="border p-2 text-xs text-muted-foreground sticky left-[180px] z-10 bg-background"></td>
                             {calculatorData.access_segments.map((segment, idx) => (
                               <td key={idx} className="border p-1">
                                 <Select
@@ -764,6 +553,7 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                         </tbody>
                       </table>
                     </div>
+                  </div>
                   </div>
 
                   <Separator />

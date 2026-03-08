@@ -58,7 +58,7 @@ export const Sidebar = ({ activeView, onViewChange }: SidebarProps) => {
         <nav className="flex-1 flex flex-col gap-1 w-full px-2">
           {visibleNavItems.map((item) => {
             const isActive = activeView === item.id;
-            const isDisabled = item.id === "quotes" && !quotesEnabled;
+            const isDisabled = false;
             const Icon = item.icon;
 
             return (

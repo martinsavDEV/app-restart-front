@@ -125,11 +125,7 @@ export const ProjectDetailPanel = ({
                     onToggleStar={() => onToggleStarVersion?.(version.id, !version.is_starred)}
                   />
                   {version.id === selectedVersionId && (
-                    <div className="mt-2 ml-2 border-l-2 border-primary/30 pl-3 pb-1">
-                      <div className="flex items-center gap-1.5 mb-2">
-                        <MessageSquare className="w-3.5 h-3.5 text-muted-foreground" />
-                        <span className="text-xs font-medium text-muted-foreground">Commentaires</span>
-                      </div>
+                    <div className="mt-0 rounded-b-lg border border-t-0 border-primary/30 bg-muted/30 px-3 py-2">
                       <QuoteComments quoteVersionId={version.id} compact />
                     </div>
                   )}

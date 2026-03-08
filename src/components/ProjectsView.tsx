@@ -234,7 +234,10 @@ export function ProjectsView({ onOpenPricing, onProjectSelect }: ProjectsViewPro
                   key={project.id}
                   project={project}
                   isActive={selectedProjectId === project.id}
-                  onClick={() => setSelectedProjectId(project.id)}
+                  onClick={() => {
+                    setSelectedProjectId(project.id);
+                    onProjectSelect?.(project.id, project.name);
+                  }}
                   onEdit={() => {
                     setEditingProject(project);
                     setDialogOpen(true);

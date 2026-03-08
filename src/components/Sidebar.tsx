@@ -27,7 +27,7 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { id: "projects", label: "Projets", icon: Database },
-  { id: "quotes", label: "Versions de chiffrage", icon: FileStack },
+  { id: "turbine-catalog", label: "Catalogue éoliennes", icon: Wind },
   { id: "pricing", label: "Chiffrage projet", icon: Calculator },
   { id: "summary", label: "Export CAPEX", icon: FileSpreadsheet },
   { id: "price-db", label: "Base de prix", icon: Coins },

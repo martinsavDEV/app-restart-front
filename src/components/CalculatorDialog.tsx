@@ -334,7 +334,7 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
           <div className="flex gap-4 h-full">
             {/* Main content - Vertical table layout */}
             <div className="flex-1">
-              <ScrollArea className="h-[70vh] [&>div[data-radix-scroll-area-viewport]]:!overflow-x-hidden">
+              <div className="h-[70vh] overflow-y-auto pr-4">
                 <div className="space-y-6">
                   {/* Global Section */}
                   <div className="space-y-2">

@@ -503,8 +503,8 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                             <td className="border p-2 text-xs text-center bg-primary/5"></td>
                           </tr>
                           <tr>
-                            <td className="border p-2 text-xs sticky left-0 z-10 bg-background">G2AVP</td>
-                            <td className="border p-2 text-xs text-muted-foreground sticky left-[180px] z-10 bg-background"></td>
+                            <td className="border p-2 text-xs sticky left-0 z-20 bg-background">G2AVP</td>
+                            <td className="border p-2 text-xs text-muted-foreground sticky left-[180px] z-20 bg-background"></td>
                             {calculatorData.turbines.map((turbine, idx) => (
                               <td key={idx} className="border p-1">
                                 <Input

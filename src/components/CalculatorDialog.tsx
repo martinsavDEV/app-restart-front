@@ -432,8 +432,8 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                       <table className="border-collapse text-sm">
                         <thead>
                           <tr className="bg-primary/10">
-                            <th className="border p-2 text-left text-xs font-bold min-w-[180px] sticky left-0 z-20 bg-primary/10">Paramètre</th>
-                            <th className="border p-2 text-left text-xs font-bold min-w-[50px] sticky left-[180px] z-20 bg-primary/10">Unité</th>
+                             <th className="border p-2 text-left text-xs font-bold min-w-[180px] sticky-col-header left-0">Paramètre</th>
+                             <th className="border p-2 text-left text-xs font-bold min-w-[50px] sticky-col-header left-[180px] sticky-col-edge">Unité</th>
                             {calculatorData.turbines.map((turbine, idx) => (
                               <th key={idx} className="border p-2 text-center min-w-[100px]">
                                 <div className="flex items-center justify-between gap-1">
@@ -464,8 +464,8 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                             { label: "Bypass", unit: "m²", field: "bypass" as const, totalKey: "bypass" as const, varPrefix: "bypass" },
                           ].map((row) => (
                             <tr key={row.field}>
-                              <td className="border p-2 text-xs sticky left-0 z-20 bg-background">{row.label}</td>
-                              <td className="border p-2 text-xs text-muted-foreground sticky left-[180px] z-20 bg-background">{row.unit}</td>
+                               <td className="border p-2 text-xs sticky-col left-0">{row.label}</td>
+                               <td className="border p-2 text-xs text-muted-foreground sticky-col left-[180px] sticky-col-edge">{row.unit}</td>
                               {calculatorData.turbines.map((turbine, idx) => (
                                 <td key={idx} className="border p-1">
                                   <NumericInput
@@ -482,8 +482,8 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                             </tr>
                           ))}
                           <tr>
-                            <td className="border p-2 text-xs sticky left-0 z-20 bg-background">Fondation</td>
-                            <td className="border p-2 text-xs text-muted-foreground sticky left-[180px] z-20 bg-background"></td>
+                             <td className="border p-2 text-xs sticky-col left-0">Fondation</td>
+                             <td className="border p-2 text-xs text-muted-foreground sticky-col left-[180px] sticky-col-edge"></td>
                             {calculatorData.turbines.map((turbine, idx) => (
                               <td key={idx} className="border p-1">
                                 <Select
@@ -503,8 +503,8 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                             <td className="border p-2 text-xs text-center bg-primary/5"></td>
                           </tr>
                           <tr>
-                            <td className="border p-2 text-xs sticky left-0 z-20 bg-background">G2AVP</td>
-                            <td className="border p-2 text-xs text-muted-foreground sticky left-[180px] z-20 bg-background"></td>
+                             <td className="border p-2 text-xs sticky-col left-0">G2AVP</td>
+                             <td className="border p-2 text-xs text-muted-foreground sticky-col left-[180px] sticky-col-edge"></td>
                             {calculatorData.turbines.map((turbine, idx) => (
                               <td key={idx} className="border p-1">
                                 <Input
@@ -517,8 +517,8 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                             <td className="border p-2 text-xs text-center bg-primary/5"></td>
                           </tr>
                           <tr>
-                            <td className="border p-2 text-xs sticky left-0 z-20 bg-background">Substitution</td>
-                            <td className="border p-2 text-xs text-muted-foreground sticky left-[180px] z-20 bg-background">m</td>
+                             <td className="border p-2 text-xs sticky-col left-0">Substitution</td>
+                             <td className="border p-2 text-xs text-muted-foreground sticky-col left-[180px] sticky-col-edge">m</td>
                             {calculatorData.turbines.map((turbine, idx) => (
                               <td key={idx} className="border p-1">
                                 <NumericInput
@@ -533,10 +533,10 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                           </tr>
                           {foundationMetrics && (
                             <tr className="bg-emerald-50 dark:bg-emerald-900/10">
-                              <td className="border p-2 text-xs font-semibold text-emerald-700 dark:text-emerald-400 sticky left-0 z-20 bg-emerald-50 dark:bg-emerald-900/10">
-                                Vol. substitution
-                              </td>
-                              <td className="border p-2 text-xs text-muted-foreground sticky left-[180px] z-20 bg-emerald-50 dark:bg-emerald-900/10">m³</td>
+                               <td className="border p-2 text-xs font-semibold text-emerald-700 dark:text-emerald-400 sticky-col-accent left-0">
+                                 Vol. substitution
+                               </td>
+                               <td className="border p-2 text-xs text-muted-foreground sticky-col-accent left-[180px] sticky-col-edge">m³</td>
                               {calculatorData.turbines.map((turbine, idx) => {
                                 const volSub = calculateSubstitutionVolume(foundationMetrics.surfaceFondFouille, turbine.substitution);
                                 return (
@@ -551,8 +551,8 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                             </tr>
                           )}
                           <tr>
-                            <td className="border p-2 text-xs sticky left-0 z-20 bg-background">Commentaire</td>
-                            <td className="border p-2 text-xs text-muted-foreground sticky left-[180px] z-20 bg-background"></td>
+                             <td className="border p-2 text-xs sticky-col left-0">Commentaire</td>
+                             <td className="border p-2 text-xs text-muted-foreground sticky-col left-[180px] sticky-col-edge"></td>
                             {calculatorData.turbines.map((turbine, idx) => (
                               <td key={idx} className="border p-1">
                                 <Input
@@ -585,8 +585,8 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                       <table className="w-full border-collapse text-sm">
                         <thead>
                           <tr className="bg-primary/10">
-                            <th className="border p-2 text-left text-xs font-bold min-w-[180px] sticky left-0 z-20 bg-primary/10">Tronçon</th>
-                            <th className="border p-2 text-left text-xs font-bold min-w-[50px] sticky left-[180px] z-20 bg-primary/10">Unité</th>
+                             <th className="border p-2 text-left text-xs font-bold min-w-[180px] sticky-col-header left-0">Tronçon</th>
+                             <th className="border p-2 text-left text-xs font-bold min-w-[50px] sticky-col-header left-[180px] sticky-col-edge">Unité</th>
                             {calculatorData.access_segments.map((segment, idx) => (
                               <th key={idx} className="border p-2 text-center min-w-[120px]">
                                 <div className="flex items-center justify-between gap-1">
@@ -611,8 +611,8 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                         </thead>
                         <tbody>
                           <tr>
-                            <td className="border p-2 text-xs sticky left-0 z-20 bg-background">Surface chemin</td>
-                            <td className="border p-2 text-xs text-muted-foreground sticky left-[180px] z-20 bg-background">m²</td>
+                             <td className="border p-2 text-xs sticky-col left-0">Surface chemin</td>
+                             <td className="border p-2 text-xs text-muted-foreground sticky-col left-[180px] sticky-col-edge">m²</td>
                             {calculatorData.access_segments.map((segment, idx) => (
                               <td key={idx} className="border p-1">
                                 <NumericInput
@@ -628,8 +628,8 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                             </td>
                           </tr>
                           <tr>
-                            <td className="border p-2 text-xs sticky left-0 z-20 bg-background">GNT</td>
-                            <td className="border p-2 text-xs text-muted-foreground sticky left-[180px] z-20 bg-background">m²</td>
+                             <td className="border p-2 text-xs sticky-col left-0">GNT</td>
+                             <td className="border p-2 text-xs text-muted-foreground sticky-col left-[180px] sticky-col-edge">m²</td>
                             {calculatorData.access_segments.map((segment, idx) => (
                               <td key={idx} className="border p-1">
                                 <div className="flex items-center gap-1 justify-center">
@@ -652,8 +652,8 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                             </td>
                           </tr>
                           <tr>
-                            <td className="border p-2 text-xs sticky left-0 z-20 bg-background">Bicouche</td>
-                            <td className="border p-2 text-xs text-muted-foreground sticky left-[180px] z-20 bg-background">m²</td>
+                             <td className="border p-2 text-xs sticky-col left-0">Bicouche</td>
+                             <td className="border p-2 text-xs text-muted-foreground sticky-col left-[180px] sticky-col-edge">m²</td>
                             {calculatorData.access_segments.map((segment, idx) => (
                               <td key={idx} className="border p-1">
                                 <NumericInput
@@ -668,8 +668,8 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                             </td>
                           </tr>
                           <tr>
-                            <td className="border p-2 text-xs sticky left-0 z-20 bg-background">Enrobé</td>
-                            <td className="border p-2 text-xs text-muted-foreground sticky left-[180px] z-20 bg-background">m²</td>
+                             <td className="border p-2 text-xs sticky-col left-0">Enrobé</td>
+                             <td className="border p-2 text-xs text-muted-foreground sticky-col left-[180px] sticky-col-edge">m²</td>
                             {calculatorData.access_segments.map((segment, idx) => (
                               <td key={idx} className="border p-1">
                                 <NumericInput
@@ -684,8 +684,8 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                             </td>
                           </tr>
                           <tr>
-                            <td className="border p-2 text-xs sticky left-0 z-20 bg-background">Renforcement</td>
-                            <td className="border p-2 text-xs text-muted-foreground sticky left-[180px] z-20 bg-background"></td>
+                             <td className="border p-2 text-xs sticky-col left-0">Renforcement</td>
+                             <td className="border p-2 text-xs text-muted-foreground sticky-col left-[180px] sticky-col-edge"></td>
                             {calculatorData.access_segments.map((segment, idx) => (
                               <td key={idx} className="border p-1">
                                 <Select

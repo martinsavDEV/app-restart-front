@@ -154,4 +154,25 @@
   .glass-border {
     @apply border border-border/50;
   }
+
+  /* Sticky column cells - fully opaque to hide scrolling content behind */
+  .sticky-col {
+    @apply sticky z-20;
+    background-color: hsl(var(--background));
+  }
+  .sticky-col-header {
+    @apply sticky z-20;
+    background-color: hsl(var(--primary) / 0.1);
+  }
+  .sticky-col-accent {
+    @apply sticky z-20;
+    background-color: hsl(160 84% 95%);
+  }
+  .dark .sticky-col-accent {
+    background-color: hsl(160 84% 10%);
+  }
+  /* Shadow on the last sticky column (Unité) to visually separate from scrolling area */
+  .sticky-col-edge {
+    box-shadow: 4px 0 8px -4px hsl(var(--foreground) / 0.1);
+  }
 }

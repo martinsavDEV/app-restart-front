@@ -22,9 +22,10 @@ import { ProjectDetailPanel } from "./ProjectDetailPanel";
 
 interface ProjectsViewProps {
   onOpenPricing?: (projectId: string, projectName: string, versionId: string, versionLabel?: string) => void;
+  onProjectSelect?: (projectId: string, projectName: string) => void;
 }
 
-export function ProjectsView({ onOpenPricing }: ProjectsViewProps) {
+export function ProjectsView({ onOpenPricing, onProjectSelect }: ProjectsViewProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -76,6 +77,7 @@ export function ProjectsView({ onOpenPricing }: ProjectsViewProps) {
   // Auto-select first project if none selected
   if (!selectedProjectId && filteredProjects.length > 0 && !isLoading) {
     setSelectedProjectId(filteredProjects[0].id);
+    onProjectSelect?.(filteredProjects[0].id, filteredProjects[0].name);
   }
 
   const handleOpenPricing = (versionId: string) => {
@@ -232,7 +234,10 @@ export function ProjectsView({ onOpenPricing }: ProjectsViewProps) {
                   key={project.id}
                   project={project}
                   isActive={selectedProjectId === project.id}
-                  onClick={() => setSelectedProjectId(project.id)}
+                  onClick={() => {
+                    setSelectedProjectId(project.id);
+                    onProjectSelect?.(project.id, project.name);
+                  }}
                   onEdit={() => {
                     setEditingProject(project);
                     setDialogOpen(true);

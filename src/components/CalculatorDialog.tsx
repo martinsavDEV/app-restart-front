@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { Calculator, Plus, Copy, X, Zap } from "lucide-react";
+import { Calculator, Plus, Copy, X, Zap, PanelRightClose, PanelRightOpen } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { CalculatorData, TurbineData, AccessSegment, HTACableSegment } from "@/types/bpu";
 import { useCalculatorVariables } from "@/hooks/useCalculatorVariables";

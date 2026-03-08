@@ -1,27 +1,58 @@
 
+# Fix : Lots et lignes manquants dans les exports CAPEX
 
-## Session Expiry — Standard industrie SaaS
+## Causes identifiées (2 bugs distincts)
 
-### Pratiques courantes
+### Bug 1 — Lignes sans section ignorées dans l'export
 
-| Type d'app | Durée session | Refresh token |
-|------------|--------------|---------------|
-| SaaS B2B (Notion, Figma) | 30 jours | Oui, renouvelé à chaque utilisation |
-| Bancaire / Fintech | 15-30 min d'inactivité | Non |
-| Apps collaboratives | 7-14 jours | Oui |
-| Google / Microsoft | 90 jours | Oui |
+Dans `useSummaryData`, les lignes sont récupérées via une requête Supabase imbriquée :
 
-**Recommandation pour ton cas** : session de **7 jours** avec refresh automatique tant que l'utilisateur est actif. C'est le sweet spot entre sécurité et confort.
+```
+lots → quote_sections → quote_lines
+```
 
-### Implémentation
+Cette structure **ne peut pas retourner** les lignes qui ont `section_id = NULL` (lignes directement attachées au lot, sans section). En base, il existe **33 lignes** dans cet état, réparties dans plusieurs lots dont "Renforcement de sol".
 
-Le JWT expiry se configure côté backend. Actuellement la config par défaut est 3600s (1h) pour le JWT, mais le refresh token renouvelle la session indéfiniment.
+Ces lignes sont visibles dans la vue Pricing (qui utilise `useQuotePricing` avec une requête plate), mais **complètement absentes** des exports PDF et CSV.
 
-**Approche** : configurer le refresh token lifetime à 7 jours (604800 secondes) dans `supabase/config.toml` section `[auth]`. Ainsi, après 7 jours sans activité, l'utilisateur devra se reconnecter.
+### Bug 2 — Lots vides (0 lignes, 0 sections) absents du PDF
 
-| Fichier | Modification |
-|---------|-------------|
-| `supabase/config.toml` | Ajouter `refresh_token_rotation_enabled = true` et `refresh_token_reuse_interval = 0` + modifier la durée de vie du refresh token |
+Un lot comme "Renforcement de sol" dans le projet "51 - Francheville" a `line_count = 0` et `section_count = 0` : il est `is_enabled: true`, il est bien dans `useSummaryData`, mais comme il n'a ni section ni ligne, son total est 0 et il n'a rien à afficher dans la partie "Détail par lot" du PDF. Il **apparaît bien** dans le résumé des lots (tableau du haut), mais génère une page quasi-vide dans le détail.
 
-> **Note** : le fichier `config.toml` est auto-géré, mais la section `[auth]` permet de configurer ces paramètres. Si la modification directe n'est pas possible, une alternative serait d'ajouter une vérification côté client dans `AuthContext` qui compare la date de dernière connexion (stockée en localStorage) et force un sign-out après 7 jours.
+La vraie question est : ces lots avec 0 lignes ont-ils du contenu en réalité stocké **sans section** ? La réponse de la DB sur Francheville : non, ce lot est genuinement vide. Mais d'autres versions comme "16 - FE de la Besse" ou "86 - Plaisance" ont bien des lignes dans `renforcement_sol` — et certaines sans `section_id`.
 
+## Solution
+
+### Fichier : `src/hooks/useSummaryData.ts`
+
+**Remplacer la requête imbriquée par deux requêtes séparées** :
+
+1. **Requête 1** : Récupérer les lots + sections (sans les lignes)
+2. **Requête 2** : Récupérer toutes les lignes du devis en une fois (`WHERE lot_id IN (...)`)
+3. **Assemblage côté client** : Grouper les lignes par section, et créer une "section virtuelle" sans nom pour les lignes orphelines (`section_id = NULL`)
+
+Cela garantit qu'**aucune ligne n'est perdue**, quelle que soit sa structure.
+
+```text
+Avant (requête imbriquée, perd les lignes sans section) :
+  lots → quote_sections → quote_lines  (lignes section_id=NULL ignorées)
+
+Après (deux requêtes plates) :
+  Requête A : lots + quote_sections
+  Requête B : toutes quote_lines WHERE lot_id IN [...]
+  → Assemblage : lignes avec section_id → dans leur section
+                 lignes sans section_id → dans une section virtuelle "Sans section"
+```
+
+### Comportement des lignes sans section dans l'export
+
+- **PDF** : affichées dans une section intitulée "(Sans section)" ou directement sous l'en-tête du lot
+- **CSV** : idem, avec une ligne de section virtuelle
+
+### Résumé des changements
+
+| Fichier | Changement |
+|---------|------------|
+| `src/hooks/useSummaryData.ts` | Remplacer la requête imbriquée par 2 requêtes plates + assemblage côté client |
+
+Aucun autre fichier n'est modifié : `pdfExport.ts` et `csvUtils.ts` consomment déjà les `sections` correctement — il suffit que les données arrivent complètes.

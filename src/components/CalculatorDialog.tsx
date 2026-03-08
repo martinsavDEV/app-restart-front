@@ -1080,8 +1080,8 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
               </div>
             </div>
 
-            {/* Variables sidebar */}
-            <div className="w-80 border-l pl-4">
+            {/* Variables sidebar toggle */}
+            {showVariablesSidebar && <div className="w-80 border-l pl-4">
               <h3 className="text-sm font-bold text-primary mb-3">Variables disponibles</h3>
               <ScrollArea className="h-[70vh]">
                 <div className="space-y-2">

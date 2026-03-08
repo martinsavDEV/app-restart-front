@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { QuoteVersionCard } from "@/components/QuoteVersionCard";
 import { QuoteComments } from "@/components/QuoteComments";
 import { Plus, FileDown, FileText, MapPin } from "lucide-react";
+import { useQuoteCommentCounts } from "@/hooks/useQuoteCommentCounts";
 import { cn } from "@/lib/utils";
 
 interface QuoteVersion {

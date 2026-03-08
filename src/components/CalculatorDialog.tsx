@@ -1067,7 +1067,7 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                     )}
                   </div>
                 </div>
-              </ScrollArea>
+              </div>
 
               {/* Actions */}
               <div className="flex justify-end gap-2 pt-4 border-t mt-4">

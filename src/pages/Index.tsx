@@ -18,7 +18,7 @@ const Index = () => {
   const { user, isLoading, isAdmin, isPendingApproval } = useAuth();
   const navigate = useNavigate();
   const [activeView, setActiveView] = useState("projects");
-  const [quotesEnabled, setQuotesEnabled] = useState(false);
+  
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [selectedProjectName, setSelectedProjectName] = useState<string | null>(null);
   const [selectedQuoteVersion, setSelectedQuoteVersion] = useState<string | null>(null);

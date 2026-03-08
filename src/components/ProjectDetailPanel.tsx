@@ -52,6 +52,8 @@ export const ProjectDetailPanel = ({
   isLoadingVersions,
 }: ProjectDetailPanelProps) => {
   const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null);
+  const versionIds = versions.map(v => v.id);
+  const { data: commentCounts } = useQuoteCommentCounts(versionIds);
 
   useEffect(() => {
     if (versions.length > 0 && !selectedVersionId) {

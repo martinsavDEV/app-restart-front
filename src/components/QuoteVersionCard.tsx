@@ -47,6 +47,7 @@ export const QuoteVersionCard = ({
   onRename,
   onDelete,
   onToggleStar,
+  commentCount,
 }: QuoteVersionCardProps) => {
   const formatDate = (dateStr: string | null | undefined) => {
     if (!dateStr) return "-";

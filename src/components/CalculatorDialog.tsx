@@ -652,8 +652,8 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                             </td>
                           </tr>
                           <tr>
-                            <td className="border p-2 text-xs sticky left-0 z-20 bg-background">Bicouche</td>
-                            <td className="border p-2 text-xs text-muted-foreground sticky left-[180px] z-20 bg-background">m²</td>
+                             <td className="border p-2 text-xs sticky-col left-0">Bicouche</td>
+                             <td className="border p-2 text-xs text-muted-foreground sticky-col left-[180px] sticky-col-edge">m²</td>
                             {calculatorData.access_segments.map((segment, idx) => (
                               <td key={idx} className="border p-1">
                                 <NumericInput

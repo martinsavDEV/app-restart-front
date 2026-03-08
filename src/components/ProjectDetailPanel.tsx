@@ -113,17 +113,27 @@ export const ProjectDetailPanel = ({
           ) : (
             <div className="space-y-3">
               {versions.map((version) => (
-                <QuoteVersionCard
-                  key={version.id}
-                  version={version}
-                  isSelected={version.id === selectedVersionId}
-                  onSelect={() => setSelectedVersionId(version.id)}
-                  onOpen={() => onOpenPricing(version.id)}
-                  onDuplicate={() => onDuplicateVersion?.(version.id, version.version_label)}
-                  onRename={() => onRenameVersion?.(version.id, version.version_label)}
-                  onDelete={() => onDeleteVersion?.(version.id)}
-                  onToggleStar={() => onToggleStarVersion?.(version.id, !version.is_starred)}
-                />
+                <div key={version.id}>
+                  <QuoteVersionCard
+                    version={version}
+                    isSelected={version.id === selectedVersionId}
+                    onSelect={() => setSelectedVersionId(version.id)}
+                    onOpen={() => onOpenPricing(version.id)}
+                    onDuplicate={() => onDuplicateVersion?.(version.id, version.version_label)}
+                    onRename={() => onRenameVersion?.(version.id, version.version_label)}
+                    onDelete={() => onDeleteVersion?.(version.id)}
+                    onToggleStar={() => onToggleStarVersion?.(version.id, !version.is_starred)}
+                  />
+                  {version.id === selectedVersionId && (
+                    <div className="mt-2 ml-2 border-l-2 border-primary/30 pl-3 pb-1">
+                      <div className="flex items-center gap-1.5 mb-2">
+                        <MessageSquare className="w-3.5 h-3.5 text-muted-foreground" />
+                        <span className="text-xs font-medium text-muted-foreground">Commentaires</span>
+                      </div>
+                      <QuoteComments quoteVersionId={version.id} compact />
+                    </div>
+                  )}
+                </div>
               ))}
             </div>
           )}

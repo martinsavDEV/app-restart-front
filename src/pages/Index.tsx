@@ -118,7 +118,6 @@ const Index = () => {
       <Sidebar
         activeView={activeView}
         onViewChange={handleViewChange}
-        quotesEnabled={quotesEnabled}
       />
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <Topbar

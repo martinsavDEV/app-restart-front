@@ -67,6 +67,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return false;
   }, []);
 
+  const SESSION_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+  const SESSION_TIMESTAMP_KEY = "app_last_active";
+
+  const checkSessionExpiry = useCallback(async (): Promise<boolean> => {
+    const lastActive = localStorage.getItem(SESSION_TIMESTAMP_KEY);
+    if (lastActive) {
+      const elapsed = Date.now() - parseInt(lastActive, 10);
+      if (elapsed > SESSION_MAX_AGE_MS) {
+        localStorage.removeItem(SESSION_TIMESTAMP_KEY);
+        await supabase.auth.signOut();
+        return false; // session expired
+      }
+    }
+    // Refresh timestamp on activity
+    localStorage.setItem(SESSION_TIMESTAMP_KEY, Date.now().toString());
+    return true;
+  }, [SESSION_MAX_AGE_MS]);
+
   useEffect(() => {
     const {
       data: { subscription },
@@ -75,6 +93,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(session?.user ?? null);
 
       if (session?.user) {
+        const valid = await checkSessionExpiry();
+        if (!valid) {
+          setUserRole(null);
+          setIsPendingApproval(false);
+          setIsLoading(false);
+          return;
+        }
+
         setTimeout(async () => {
           const hasRole = await checkUserRole(session.user.id, session.user.email);
           
@@ -95,13 +121,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(session?.user ?? null);
 
       if (session?.user) {
+        const valid = await checkSessionExpiry();
+        if (!valid) {
+          setIsLoading(false);
+          return;
+        }
         await checkUserRole(session.user.id, session.user.email);
       }
       setIsLoading(false);
     });
 
     return () => subscription.unsubscribe();
-  }, [checkUserRole]);
+  }, [checkUserRole, checkSessionExpiry]);
 
   const signOut = async () => {
     setUserRole(null);

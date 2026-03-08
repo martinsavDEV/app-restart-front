@@ -162,7 +162,10 @@
   }
   .sticky-col-header {
     @apply sticky z-20;
-    background-color: hsl(var(--primary) / 0.1);
+    background-color: hsl(215 28% 90%);
+  }
+  .dark .sticky-col-header {
+    background-color: hsl(215 28% 20%);
   }
   .sticky-col-accent {
     @apply sticky z-20;

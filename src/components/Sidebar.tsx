@@ -9,14 +9,13 @@ import {
 } from "@/components/ui/tooltip";
 import {
   Database,
-  FileStack,
+  Wind,
   Calculator,
   FileSpreadsheet,
   Coins,
   Layout,
   Settings,
   LogOut,
-  Wind,
 } from "lucide-react";
 
 interface NavItem {

@@ -431,6 +431,159 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                       <table className="w-full border-collapse text-sm">
                         <thead>
                           <tr className="bg-primary/10">
+                            <th className="border p-2 text-left text-xs font-bold min-w-[180px] sticky left-0 z-10 bg-primary/10">Paramètre</th>
+                            <th className="border p-2 text-left text-xs font-bold min-w-[50px] sticky left-[180px] z-10 bg-primary/10">Unité</th>
+                            {calculatorData.turbines.map((turbine, idx) => (
+                              <th key={idx} className="border p-2 text-center min-w-[100px]">
+                                <div className="flex items-center justify-between gap-1">
+                                  <Input
+                                    value={turbine.name}
+                                    onChange={(e) => updateTurbine(idx, "name", e.target.value)}
+                                    className="h-7 text-xs font-semibold text-center border-0 bg-transparent p-0"
+                                  />
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => removeTurbine(idx)}
+                                    className="h-6 w-6 p-0"
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                              </th>
+                            ))}
+                            <th className="border p-2 text-center text-xs font-bold bg-primary/20">Total</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {[
+                            { label: "Plateforme + pan coupé", unit: "m²", field: "surf_PF" as const, totalKey: "surf_PF" as const, varPrefix: "surf_PF" },
+                            { label: "Accès PF", unit: "m²", field: "acces_PF" as const, totalKey: "acces_PF" as const, varPrefix: "acces_PF" },
+                            { label: "m³ à bouger", unit: "m³", field: "m3_bouger" as const, totalKey: "m3_bouger" as const, varPrefix: "m3_bouger" },
+                            { label: "Bypass", unit: "m²", field: "bypass" as const, totalKey: "bypass" as const, varPrefix: "bypass" },
+                          ].map((row) => (
+                            <tr key={row.field}>
+                              <td className="border p-2 text-xs sticky left-0 z-10 bg-background">{row.label}</td>
+                              <td className="border p-2 text-xs text-muted-foreground sticky left-[180px] z-10 bg-background">{row.unit}</td>
+                              {calculatorData.turbines.map((turbine, idx) => (
+                                <td key={idx} className="border p-1">
+                                  <NumericInput
+                                    value={turbine[row.field] as number}
+                                    onValueChange={(val) => updateTurbine(idx, row.field, val)}
+                                    className="h-7 text-xs text-center"
+                                    title={`Variable: $${row.varPrefix}_${turbine.name}`}
+                                  />
+                                </td>
+                              ))}
+                              <td className="border p-2 text-xs text-center font-semibold bg-primary/5" title={`Variable: $sum_${row.varPrefix}`}>
+                                {turbineTotals[row.totalKey]}
+                              </td>
+                            </tr>
+                          ))}
+                          <tr>
+                            <td className="border p-2 text-xs sticky left-0 z-10 bg-background">Fondation</td>
+                            <td className="border p-2 text-xs text-muted-foreground sticky left-[180px] z-10 bg-background"></td>
+                            {calculatorData.turbines.map((turbine, idx) => (
+                              <td key={idx} className="border p-1">
+                                <Select
+                                  value={turbine.fondation_type}
+                                  onValueChange={(value) => updateTurbine(idx, "fondation_type", value)}
+                                >
+                                  <SelectTrigger className="h-7 text-xs">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="en eau">En eau</SelectItem>
+                                    <SelectItem value="sans eau">Sans eau</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </td>
+                            ))}
+                            <td className="border p-2 text-xs text-center bg-primary/5"></td>
+                          </tr>
+                          <tr>
+                            <td className="border p-2 text-xs sticky left-0 z-10 bg-background">G2AVP</td>
+                            <td className="border p-2 text-xs text-muted-foreground sticky left-[180px] z-10 bg-background"></td>
+                            {calculatorData.turbines.map((turbine, idx) => (
+                              <td key={idx} className="border p-1">
+                                <Input
+                                  value={turbine.g2avp}
+                                  onChange={(e) => updateTurbine(idx, "g2avp", e.target.value)}
+                                  className="h-7 text-xs text-center"
+                                />
+                              </td>
+                            ))}
+                            <td className="border p-2 text-xs text-center bg-primary/5"></td>
+                          </tr>
+                          <tr>
+                            <td className="border p-2 text-xs sticky left-0 z-10 bg-background">Substitution</td>
+                            <td className="border p-2 text-xs text-muted-foreground sticky left-[180px] z-10 bg-background">m</td>
+                            {calculatorData.turbines.map((turbine, idx) => (
+                              <td key={idx} className="border p-1">
+                                <NumericInput
+                                  value={turbine.substitution}
+                                  onValueChange={(val) => updateTurbine(idx, "substitution", val)}
+                                  className="h-7 text-xs text-center"
+                                  title={`Variable: $vol_sub_${turbine.name} (volume calculé)`}
+                                />
+                              </td>
+                            ))}
+                            <td className="border p-2 text-xs text-center bg-primary/5"></td>
+                          </tr>
+                          {foundationMetrics && (
+                            <tr className="bg-emerald-50 dark:bg-emerald-900/10">
+                              <td className="border p-2 text-xs font-semibold text-emerald-700 dark:text-emerald-400 sticky left-0 z-10 bg-emerald-50 dark:bg-emerald-900/10">
+                                Vol. substitution
+                              </td>
+                              <td className="border p-2 text-xs text-muted-foreground sticky left-[180px] z-10 bg-emerald-50 dark:bg-emerald-900/10">m³</td>
+                              {calculatorData.turbines.map((turbine, idx) => {
+                                const volSub = calculateSubstitutionVolume(foundationMetrics.surfaceFondFouille, turbine.substitution);
+                                return (
+                                  <td key={idx} className="border p-2 text-xs text-center font-mono text-emerald-700 dark:text-emerald-400">
+                                    {turbine.substitution > 0 ? formatNumber(volSub, 0) : "-"}
+                                  </td>
+                                );
+                              })}
+                              <td className="border p-2 text-xs text-center font-bold bg-emerald-100 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400" title="Variable: $sum_vol_substitution">
+                                {formatNumber(calculatorData.turbines.reduce((sum, t) => sum + calculateSubstitutionVolume(foundationMetrics.surfaceFondFouille, t.substitution), 0), 0)}
+                              </td>
+                            </tr>
+                          )}
+                          <tr>
+                            <td className="border p-2 text-xs sticky left-0 z-10 bg-background">Commentaire</td>
+                            <td className="border p-2 text-xs text-muted-foreground sticky left-[180px] z-10 bg-background"></td>
+                            {calculatorData.turbines.map((turbine, idx) => (
+                              <td key={idx} className="border p-1">
+                                <Input
+                                  value={turbine.commentaire}
+                                  onChange={(e) => updateTurbine(idx, "commentaire", e.target.value)}
+                                  className="h-7 text-xs"
+                                />
+                              </td>
+                            ))}
+                            <td className="border p-2 text-xs text-center bg-primary/5"></td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  {/* Access Segments Section */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-sm font-bold text-primary">Accès</h3>
+                      <Button onClick={addAccessSegment} size="sm" variant="outline" className="font-semibold">
+                        <Plus className="h-4 w-4 mr-1" />
+                        Ajouter tronçon
+                      </Button>
+                    </div>
+
+                    <div className="overflow-x-auto border rounded-md">
+                      <table className="w-full border-collapse text-sm">
+                        <thead>
+                          <tr className="bg-primary/10">
                             <th className="border p-2 text-left text-xs font-bold min-w-[180px] sticky left-0 z-10 bg-primary/10">Tronçon</th>
                             <th className="border p-2 text-left text-xs font-bold min-w-[50px] sticky left-[180px] z-10 bg-primary/10">Unité</th>
                             {calculatorData.access_segments.map((segment, idx) => (
@@ -554,7 +707,6 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                       </table>
                     </div>
                   </div>
-                  </div>
 
                   <Separator />
 
@@ -564,6 +716,16 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                       <div className="flex items-center gap-2">
                         <Zap className="h-4 w-4 text-primary" />
                         <h3 className="text-sm font-bold text-primary">Électricité - Câbles HTA ({calculatorData.global.tension_hta || "20kV"})</h3>
+                        <div className="flex items-center gap-3 ml-4">
+                          <div className="flex items-center gap-1.5">
+                            <Switch checked={showAlu} onCheckedChange={setShowAlu} className="scale-75" />
+                            <span className="text-xs font-medium text-blue-700 dark:text-blue-400">Alu</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <Switch checked={showCu} onCheckedChange={setShowCu} className="scale-75" />
+                            <span className="text-xs font-medium text-orange-700 dark:text-orange-400">Cuivre</span>
+                          </div>
+                        </div>
                       </div>
                       <Button onClick={addHTACable} size="sm" variant="outline" className="font-semibold">
                         <Plus className="h-4 w-4 mr-1" />
@@ -576,16 +738,11 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                         <thead>
                           <tr className="bg-primary/10">
                             <th className="border p-2 text-left text-xs font-bold min-w-[120px]">PDL</th>
-                            <th className="border p-2 text-center text-xs font-bold bg-blue-100 dark:bg-blue-900/30">95² alu</th>
-                            <th className="border p-2 text-center text-xs font-bold bg-blue-100 dark:bg-blue-900/30">150² alu</th>
-                            <th className="border p-2 text-center text-xs font-bold bg-blue-100 dark:bg-blue-900/30">240² alu</th>
-                            <th className="border p-2 text-center text-xs font-bold bg-blue-100 dark:bg-blue-900/30">300² alu</th>
-                            <th className="border p-2 text-center text-xs font-bold bg-blue-100 dark:bg-blue-900/30">400² alu</th>
-                            <th className="border p-2 text-center text-xs font-bold bg-orange-100 dark:bg-orange-900/30">95² cu</th>
-                            <th className="border p-2 text-center text-xs font-bold bg-orange-100 dark:bg-orange-900/30">150² cu</th>
-                            <th className="border p-2 text-center text-xs font-bold bg-orange-100 dark:bg-orange-900/30">240² cu</th>
-                            <th className="border p-2 text-center text-xs font-bold bg-orange-100 dark:bg-orange-900/30">300² cu</th>
-                            <th className="border p-2 text-center text-xs font-bold bg-orange-100 dark:bg-orange-900/30">400² cu</th>
+                            {visibleHtaFields.map((f) => (
+                              <th key={f} className={cn("border p-2 text-center text-xs font-bold", f.startsWith("alu") ? "bg-blue-100 dark:bg-blue-900/30" : "bg-orange-100 dark:bg-orange-900/30")}>
+                                {f.replace("alu_", "").replace("cu_", "")}² {f.startsWith("alu") ? "alu" : "cu"}
+                              </th>
+                            ))}
                             <th className="border p-2 text-center text-xs font-bold">Actions</th>
                           </tr>
                         </thead>
@@ -593,7 +750,7 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                           {/* Sum row */}
                           <tr className="bg-primary/20 font-bold">
                             <td className="border p-2 text-xs font-bold">Somme (ml)</td>
-                            {htaFields.map((f) => (
+                            {visibleHtaFields.map((f) => (
                               <td key={f} className={cn("border p-2 text-xs text-center", f.startsWith("alu") ? "bg-blue-50 dark:bg-blue-900/10" : "bg-orange-50 dark:bg-orange-900/10")}>
                                 {htaTotals[f]}
                               </td>
@@ -610,7 +767,7 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                                   className="h-7 text-xs"
                                 />
                               </td>
-                              {htaFields.map((f) => (
+                              {visibleHtaFields.map((f) => (
                                 <td key={f} className={cn("border p-1", f.startsWith("alu") ? "bg-blue-50/50 dark:bg-blue-900/5" : "bg-orange-50/50 dark:bg-orange-900/5")}>
                                   <NumericInput
                                     value={toNum((cable as any)[f])}
@@ -650,7 +807,7 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                                 <td className="border p-1 text-xs text-muted-foreground pl-4">
                                   ↳ {cable.name}
                                 </td>
-                                <td colSpan={10} className="border p-1">
+                                <td colSpan={visibleHtaFields.length} className="border p-1">
                                   <div className="flex items-center gap-2">
                                     <NumericInput
                                       value={parseFloat(cc.section) || 0}
@@ -692,7 +849,7 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                           )}
                           {/* Total linéaire row */}
                           <tr className="bg-emerald-50 dark:bg-emerald-900/10 font-bold">
-                            <td className="border p-2 text-xs font-bold text-emerald-700 dark:text-emerald-400" colSpan={htaFields.length + 1}>
+                            <td className="border p-2 text-xs font-bold text-emerald-700 dark:text-emerald-400" colSpan={visibleHtaFields.length + 1}>
                               Total linéaire câbles HTA
                             </td>
                             <td className="border p-2 text-xs text-center font-bold text-emerald-700 dark:text-emerald-400" title="Variable: $sum_lineaire_hta">
@@ -703,10 +860,6 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                       </table>
                     </div>
                   </div>
-
-                  <Separator />
-
-                  {/* Fondation Section */}
                   <div className="space-y-4">
                     <h3 className="text-sm font-bold text-primary">Fondation</h3>
                     

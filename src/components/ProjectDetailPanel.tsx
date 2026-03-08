@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { QuoteVersionCard } from "@/components/QuoteVersionCard";
 import { QuoteComments } from "@/components/QuoteComments";
 import { Plus, FileDown, FileText, MapPin } from "lucide-react";
+import { useQuoteCommentCounts } from "@/hooks/useQuoteCommentCounts";
 import { cn } from "@/lib/utils";
 
 interface QuoteVersion {
@@ -51,6 +52,8 @@ export const ProjectDetailPanel = ({
   isLoadingVersions,
 }: ProjectDetailPanelProps) => {
   const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null);
+  const versionIds = versions.map(v => v.id);
+  const { data: commentCounts } = useQuoteCommentCounts(versionIds);
 
   useEffect(() => {
     if (versions.length > 0 && !selectedVersionId) {
@@ -123,6 +126,7 @@ export const ProjectDetailPanel = ({
                     onRename={() => onRenameVersion?.(version.id, version.version_label)}
                     onDelete={() => onDeleteVersion?.(version.id)}
                     onToggleStar={() => onToggleStarVersion?.(version.id, !version.is_starred)}
+                    commentCount={commentCounts?.get(version.id) || 0}
                   />
                   {version.id === selectedVersionId && (
                     <div className="mt-0 rounded-b-lg border border-t-0 border-primary/30 bg-muted/30 px-3 py-2">

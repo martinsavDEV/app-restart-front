@@ -457,8 +457,8 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                         </thead>
                         <tbody>
                           <tr>
-                            <td className="border p-2 text-xs">Plateforme + pan coupé</td>
-                            <td className="border p-2 text-xs text-muted-foreground">m²</td>
+                            <td className="border p-2 text-xs sticky left-0 z-10 bg-background">Plateforme + pan coupé</td>
+                            <td className="border p-2 text-xs text-muted-foreground sticky left-[180px] z-10 bg-background">m²</td>
                             {calculatorData.turbines.map((turbine, idx) => (
                               <td key={idx} className="border p-1">
                                 <NumericInput
@@ -474,8 +474,8 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                             </td>
                           </tr>
                           <tr>
-                            <td className="border p-2 text-xs">Accès PF</td>
-                            <td className="border p-2 text-xs text-muted-foreground">m²</td>
+                            <td className="border p-2 text-xs sticky left-0 z-10 bg-background">Accès PF</td>
+                            <td className="border p-2 text-xs text-muted-foreground sticky left-[180px] z-10 bg-background">m²</td>
                             {calculatorData.turbines.map((turbine, idx) => (
                               <td key={idx} className="border p-1">
                                 <NumericInput
@@ -491,8 +491,8 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                             </td>
                           </tr>
                           <tr>
-                            <td className="border p-2 text-xs">m³ à bouger</td>
-                            <td className="border p-2 text-xs text-muted-foreground">m³</td>
+                            <td className="border p-2 text-xs sticky left-0 z-10 bg-background">m³ à bouger</td>
+                            <td className="border p-2 text-xs text-muted-foreground sticky left-[180px] z-10 bg-background">m³</td>
                             {calculatorData.turbines.map((turbine, idx) => (
                               <td key={idx} className="border p-1">
                                 <NumericInput
@@ -508,8 +508,8 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                             </td>
                           </tr>
                           <tr>
-                            <td className="border p-2 text-xs">Bypass</td>
-                            <td className="border p-2 text-xs text-muted-foreground">m²</td>
+                            <td className="border p-2 text-xs sticky left-0 z-10 bg-background">Bypass</td>
+                            <td className="border p-2 text-xs text-muted-foreground sticky left-[180px] z-10 bg-background">m²</td>
                             {calculatorData.turbines.map((turbine, idx) => (
                               <td key={idx} className="border p-1">
                                 <NumericInput
@@ -525,8 +525,8 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                             </td>
                           </tr>
                           <tr>
-                            <td className="border p-2 text-xs">Fondation</td>
-                            <td className="border p-2 text-xs text-muted-foreground"></td>
+                            <td className="border p-2 text-xs sticky left-0 z-10 bg-background">Fondation</td>
+                            <td className="border p-2 text-xs text-muted-foreground sticky left-[180px] z-10 bg-background"></td>
                             {calculatorData.turbines.map((turbine, idx) => (
                               <td key={idx} className="border p-1">
                                 <Select
@@ -546,8 +546,8 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                             <td className="border p-2 text-xs text-center bg-primary/5"></td>
                           </tr>
                           <tr>
-                            <td className="border p-2 text-xs">G2AVP</td>
-                            <td className="border p-2 text-xs text-muted-foreground"></td>
+                            <td className="border p-2 text-xs sticky left-0 z-10 bg-background">G2AVP</td>
+                            <td className="border p-2 text-xs text-muted-foreground sticky left-[180px] z-10 bg-background"></td>
                             {calculatorData.turbines.map((turbine, idx) => (
                               <td key={idx} className="border p-1">
                                 <Input
@@ -560,8 +560,8 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                             <td className="border p-2 text-xs text-center bg-primary/5"></td>
                           </tr>
                           <tr>
-                            <td className="border p-2 text-xs">Substitution</td>
-                            <td className="border p-2 text-xs text-muted-foreground">m</td>
+                            <td className="border p-2 text-xs sticky left-0 z-10 bg-background">Substitution</td>
+                            <td className="border p-2 text-xs text-muted-foreground sticky left-[180px] z-10 bg-background">m</td>
                             {calculatorData.turbines.map((turbine, idx) => (
                               <td key={idx} className="border p-1">
                                 <NumericInput
@@ -577,10 +577,10 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                           {/* Volume substitution - calculated row */}
                           {foundationMetrics && (
                             <tr className="bg-emerald-50 dark:bg-emerald-900/10">
-                              <td className="border p-2 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
+                              <td className="border p-2 text-xs font-semibold text-emerald-700 dark:text-emerald-400 sticky left-0 z-10 bg-emerald-50 dark:bg-emerald-900/10">
                                 Vol. substitution
                               </td>
-                              <td className="border p-2 text-xs text-muted-foreground">m³</td>
+                              <td className="border p-2 text-xs text-muted-foreground sticky left-[180px] z-10 bg-emerald-50 dark:bg-emerald-900/10">m³</td>
                               {calculatorData.turbines.map((turbine, idx) => {
                                 const volSub = calculateSubstitutionVolume(
                                   foundationMetrics.surfaceFondFouille,
@@ -608,8 +608,8 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                             </tr>
                           )}
                           <tr>
-                            <td className="border p-2 text-xs">Commentaire</td>
-                            <td className="border p-2 text-xs text-muted-foreground"></td>
+                            <td className="border p-2 text-xs sticky left-0 z-10 bg-background">Commentaire</td>
+                            <td className="border p-2 text-xs text-muted-foreground sticky left-[180px] z-10 bg-background"></td>
                             {calculatorData.turbines.map((turbine, idx) => (
                               <td key={idx} className="border p-1">
                                 <Input

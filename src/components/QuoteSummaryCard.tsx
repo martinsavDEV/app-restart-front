@@ -347,14 +347,14 @@ export const QuoteSummaryCard = ({ versionId, projectName, nWtg, onSettingsUpdat
         </div>
 
         {/* Calculator Button */}
-        <div className="pt-3 border-t">
+        <div className="pt-3 border-t flex justify-end">
           <Button
             variant="outline"
-            className="w-full"
+            size="sm"
             onClick={() => setCalculatorOpen(true)}
           >
-            <Calculator className="h-4 w-4 mr-2" />
-            Ouvrir le Calculator
+            <Calculator className="h-4 w-4 mr-1.5" />
+            Calculator
           </Button>
         </div>
 

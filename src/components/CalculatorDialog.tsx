@@ -1120,7 +1120,16 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                   ))}
                 </div>
               </ScrollArea>
-            </div>
+            </div>}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="self-start mt-1 p-1.5"
+              onClick={() => setShowVariablesSidebar(!showVariablesSidebar)}
+              title={showVariablesSidebar ? "Masquer les variables" : "Afficher les variables"}
+            >
+              {showVariablesSidebar ? <PanelRightClose className="h-4 w-4" /> : <PanelRightOpen className="h-4 w-4" />}
+            </Button>
           </div>
         )}
       </DialogContent>

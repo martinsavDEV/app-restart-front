@@ -429,7 +429,7 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                     </div>
 
                     <div className="overflow-x-auto border rounded-md">
-                      <table className="border-collapse text-sm">
+                      <table className="border-separate border-spacing-0 text-sm">
                         <thead>
                           <tr className="bg-primary/10">
                              <th className="border p-2 text-left text-xs font-bold min-w-[180px] sticky-col-header left-0">Paramètre</th>

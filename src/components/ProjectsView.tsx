@@ -77,6 +77,7 @@ export function ProjectsView({ onOpenPricing, onProjectSelect }: ProjectsViewPro
   // Auto-select first project if none selected
   if (!selectedProjectId && filteredProjects.length > 0 && !isLoading) {
     setSelectedProjectId(filteredProjects[0].id);
+    onProjectSelect?.(filteredProjects[0].id, filteredProjects[0].name);
   }
 
   const handleOpenPricing = (versionId: string) => {

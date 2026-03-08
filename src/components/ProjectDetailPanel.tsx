@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { QuoteVersionCard } from "@/components/QuoteVersionCard";
 import { QuoteComments } from "@/components/QuoteComments";
-import { Plus, FileDown, FileText, MapPin, MessageSquare } from "lucide-react";
+import { Plus, FileDown, FileText, MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface QuoteVersion {

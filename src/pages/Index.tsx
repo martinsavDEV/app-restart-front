@@ -75,6 +75,7 @@ const Index = () => {
       case "projects":
         return (
           <ProjectsView
+            selectedProjectId={selectedProjectId}
             onOpenPricing={handleOpenPricing}
             onProjectSelect={(id, name) => {
               setSelectedProjectId(id);

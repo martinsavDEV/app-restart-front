@@ -295,6 +295,9 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
   };
 
   const htaFields = ["alu_95", "alu_150", "alu_240", "alu_300", "alu_400", "cu_95", "cu_150", "cu_240", "cu_300", "cu_400"] as const;
+  const visibleHtaFields = htaFields.filter(f => 
+    (showAlu && f.startsWith("alu")) || (showCu && f.startsWith("cu"))
+  );
   const htaTotals = Object.fromEntries(
     htaFields.map((f) => [f, calculatorData.hta_cables.reduce((sum, c) => sum + toNum((c as any)[f]), 0)])
   ) as Record<string, number>;

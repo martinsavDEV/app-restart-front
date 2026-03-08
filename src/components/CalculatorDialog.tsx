@@ -320,7 +320,7 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] max-h-[90vh]">
+      <DialogContent className="max-w-[95vw] max-h-[90vh] overflow-hidden">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Calculator className="h-5 w-5" />

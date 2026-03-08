@@ -334,7 +334,7 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
           <div className="flex gap-4 h-full">
             {/* Main content - Vertical table layout */}
             <div className="flex-1">
-              <ScrollArea className="h-[70vh]">
+              <ScrollArea className="h-[70vh] [&>div[data-radix-scroll-area-viewport]]:!overflow-x-hidden">
                 <div className="space-y-6">
                   {/* Global Section */}
                   <div className="space-y-2">
@@ -427,8 +427,8 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                       </Button>
                     </div>
 
-                    <div className="overflow-x-auto border rounded-md max-w-full">
-                      <table className="border-collapse text-sm w-max min-w-full">
+                    <div className="overflow-x-auto border rounded-md">
+                      <table className="border-collapse text-sm" style={{ minWidth: `${230 + calculatorData.turbines.length * 160 + 80}px` }}>
                         <thead>
                           <tr className="bg-primary/10">
                             <th className="border p-2 text-left text-xs font-bold min-w-[180px] sticky left-0 z-10 bg-primary/10">Paramètre</th>

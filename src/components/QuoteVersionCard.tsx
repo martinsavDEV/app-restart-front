@@ -136,9 +136,23 @@ export const QuoteVersionCard = ({
             </p>
           )}
 
-          <div className="flex items-center gap-1 mt-2 text-[11px] text-muted-foreground ml-6">
-            <Calendar className="w-3 h-3" />
-            {formatDate(version.last_update || version.date_creation)}
+      <div className="flex items-center gap-2 mt-2 ml-6">
+            <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
+              <Calendar className="w-3 h-3" />
+              {formatDate(version.last_update || version.date_creation)}
+            </div>
+            {!!commentCount && commentCount > 0 && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onSelect?.();
+                }}
+                className="flex items-center gap-1 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 px-1.5 py-0.5 rounded text-[10px] font-semibold hover:bg-emerald-500/25 transition-colors"
+              >
+                <MessageSquare className="w-3 h-3" />
+                {commentCount}
+              </button>
+            )}
           </div>
         </div>
 

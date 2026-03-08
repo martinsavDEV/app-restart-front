@@ -126,6 +126,7 @@ export const ProjectDetailPanel = ({
                     onRename={() => onRenameVersion?.(version.id, version.version_label)}
                     onDelete={() => onDeleteVersion?.(version.id)}
                     onToggleStar={() => onToggleStarVersion?.(version.id, !version.is_starred)}
+                    commentCount={commentCounts?.get(version.id) || 0}
                   />
                   {version.id === selectedVersionId && (
                     <div className="mt-0 rounded-b-lg border border-t-0 border-primary/30 bg-muted/30 px-3 py-2">

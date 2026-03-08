@@ -627,8 +627,8 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                             </td>
                           </tr>
                           <tr>
-                            <td className="border p-2 text-xs sticky left-0 z-10 bg-background">GNT</td>
-                            <td className="border p-2 text-xs text-muted-foreground sticky left-[180px] z-10 bg-background">m²</td>
+                            <td className="border p-2 text-xs sticky left-0 z-20 bg-background">GNT</td>
+                            <td className="border p-2 text-xs text-muted-foreground sticky left-[180px] z-20 bg-background">m²</td>
                             {calculatorData.access_segments.map((segment, idx) => (
                               <td key={idx} className="border p-1">
                                 <div className="flex items-center gap-1 justify-center">

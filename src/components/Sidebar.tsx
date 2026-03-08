@@ -38,10 +38,9 @@ const navItems: NavItem[] = [
 interface SidebarProps {
   activeView: string;
   onViewChange: (view: string) => void;
-  quotesEnabled?: boolean;
 }
 
-export const Sidebar = ({ activeView, onViewChange, quotesEnabled = false }: SidebarProps) => {
+export const Sidebar = ({ activeView, onViewChange }: SidebarProps) => {
   const { signOut, isAdmin } = useAuth();
 
   // Filter nav items based on admin status

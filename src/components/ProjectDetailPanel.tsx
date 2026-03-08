@@ -1,10 +1,9 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { QuoteVersionCard } from "@/components/QuoteVersionCard";
 import { QuoteComments } from "@/components/QuoteComments";
-import { Plus, FileDown, FileText, MapPin, MessageSquare, ChevronDown } from "lucide-react";
+import { Plus, FileDown, FileText, MapPin, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface QuoteVersion {

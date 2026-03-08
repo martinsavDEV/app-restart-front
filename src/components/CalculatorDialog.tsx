@@ -432,8 +432,8 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                       <table className="border-collapse text-sm">
                         <thead>
                           <tr className="bg-primary/10">
-                            <th className="border p-2 text-left text-xs font-bold min-w-[180px] sticky left-0 z-20 bg-primary/10">Paramètre</th>
-                            <th className="border p-2 text-left text-xs font-bold min-w-[50px] sticky left-[180px] z-20 bg-primary/10">Unité</th>
+                             <th className="border p-2 text-left text-xs font-bold min-w-[180px] sticky-col-header left-0">Paramètre</th>
+                             <th className="border p-2 text-left text-xs font-bold min-w-[50px] sticky-col-header left-[180px] sticky-col-edge">Unité</th>
                             {calculatorData.turbines.map((turbine, idx) => (
                               <th key={idx} className="border p-2 text-center min-w-[100px]">
                                 <div className="flex items-center justify-between gap-1">

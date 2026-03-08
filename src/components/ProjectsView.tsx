@@ -21,13 +21,14 @@ import { ProjectCard } from "./ProjectCard";
 import { ProjectDetailPanel } from "./ProjectDetailPanel";
 
 interface ProjectsViewProps {
+  selectedProjectId?: string | null;
   onOpenPricing?: (projectId: string, projectName: string, versionId: string, versionLabel?: string) => void;
   onProjectSelect?: (projectId: string, projectName: string) => void;
 }
 
-export function ProjectsView({ onOpenPricing, onProjectSelect }: ProjectsViewProps) {
+export function ProjectsView({ selectedProjectId: initialProjectId, onOpenPricing, onProjectSelect }: ProjectsViewProps) {
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(initialProjectId || null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);

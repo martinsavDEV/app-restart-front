@@ -68,6 +68,16 @@ export const VariableAutocomplete = ({
   };
 
   const handleBlur = (e: React.FocusEvent) => {
+    if (justSelectedRef.current) {
+      justSelectedRef.current = false;
+      // Update display to show resolved value when not editing
+      if (isLinkedVariable && resolvedValue !== undefined) {
+        setSearchValue(String(resolvedValue));
+      }
+      setTimeout(() => setOpen(false), 150);
+      return;
+    }
+
     const trimmedValue = searchValue.trim();
     
     // Check if it's supposed to be a variable

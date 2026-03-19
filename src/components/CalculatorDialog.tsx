@@ -988,6 +988,8 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                                   },
                                 })
                               }
+                              formula={calculatorData.design.formulas?.["marge_securite"] ?? null}
+                              onFormulaChange={(f) => updateDesignFormula("marge_securite", f)}
                               className="w-20 font-semibold"
                             />
                             <Button

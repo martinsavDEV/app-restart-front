@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { evaluateFormula, isFormula } from "@/lib/formulaUtils";
 
 interface EditableCellProps {
   value: number;

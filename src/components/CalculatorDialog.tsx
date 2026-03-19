@@ -657,9 +657,8 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                               <td key={idx} className="border p-1">
                                 <NumericInput
                                   value={segment.surface}
-                                  onValueChange={(val) => updateAccessSegment(idx, "surface", val)}
+                                  onValueChange={(val, f) => updateAccessSegment(idx, "surface", val, f)}
                                   formula={segment.formulas?.["surface"] ?? null}
-                                  onFormulaChange={(f) => updateAccessFormula(idx, "surface", f)}
                                   className="h-7 text-xs text-center"
                                   title={`Variable: $surface_${segment.name.replace(/\s+/g, "_")}`}
                                 />

@@ -206,6 +206,18 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
     setCalculatorData({ ...calculatorData, turbines: newTurbines });
   };
 
+  const updateTurbineFormula = (index: number, field: string, formula: string | null) => {
+    const newTurbines = [...calculatorData.turbines];
+    const existing = newTurbines[index].formulas || {};
+    if (formula) {
+      newTurbines[index] = { ...newTurbines[index], formulas: { ...existing, [field]: formula } };
+    } else {
+      const { [field]: _, ...rest } = existing;
+      newTurbines[index] = { ...newTurbines[index], formulas: Object.keys(rest).length > 0 ? rest : undefined };
+    }
+    setCalculatorData({ ...calculatorData, turbines: newTurbines });
+  };
+
   const addAccessSegment = () => {
     const newSegment: AccessSegment = {
       name: `Tronçon ${calculatorData.access_segments.length + 1}`,

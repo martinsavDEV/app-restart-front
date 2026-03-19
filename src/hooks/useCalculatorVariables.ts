@@ -9,6 +9,13 @@ const toNumber = (val: unknown): number => {
   return 0;
 };
 
+/** Sanitize a user-provided name into a valid variable identifier segment */
+const sanitizeVarName = (name: string): string =>
+  name
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+
 /**
  * Pure function to compute all calculator variables from CalculatorData.
  * Can be used outside of React (e.g. in useSummaryData for exports).

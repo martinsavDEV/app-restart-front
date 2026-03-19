@@ -22,21 +22,17 @@ const NumericInput = React.forwardRef<HTMLInputElement, NumericInputProps>(
       setIsEditing(false);
       const trimmed = localValue.trim();
       
-      // Try formula evaluation first (e.g. "1500+200", "3*(45+12)")
       if (isFormula(trimmed)) {
         const result = evaluateFormula(trimmed);
         if (result !== null) {
-          onValueChange(result);
-          onFormulaChange?.(trimmed);
+          onValueChange(result, trimmed);
           return;
         }
       }
       
-      // Fallback: simple number parse — clear any stored formula
       const parsed = parseLocaleNumber(localValue);
-      onValueChange(isNaN(parsed) ? 0 : parsed);
-      onFormulaChange?.(null);
-    }, [localValue, onValueChange, onFormulaChange]);
+      onValueChange(isNaN(parsed) ? 0 : parsed, null);
+    }, [localValue, onValueChange]);
 
     const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
       setIsEditing(true);

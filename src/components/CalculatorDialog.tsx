@@ -720,6 +720,8 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                                 <NumericInput
                                   value={segment.enrobe}
                                   onValueChange={(val) => updateAccessSegment(idx, "enrobe", val)}
+                                  formula={segment.formulas?.["enrobe"] ?? null}
+                                  onFormulaChange={(f) => updateAccessFormula(idx, "enrobe", f)}
                                   className="h-7 text-xs text-center"
                                 />
                               </td>

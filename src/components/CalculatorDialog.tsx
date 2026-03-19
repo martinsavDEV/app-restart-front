@@ -820,6 +820,8 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                                   <NumericInput
                                     value={toNum((cable as any)[f])}
                                     onValueChange={(val) => updateHTACable(idx, f, val)}
+                                    formula={cable.formulas?.[f] ?? null}
+                                    onFormulaChange={(formula) => updateHTAFormula(idx, f, formula)}
                                     className="h-7 text-xs text-center"
                                     title={`Variable: $${f.replace("_", "")}_${cable.name.replace(/\s+/g, "_")}`}
                                   />

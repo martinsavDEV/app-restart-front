@@ -7,9 +7,8 @@ import { cn } from "@/lib/utils";
 
 interface NumericInputProps extends Omit<React.ComponentProps<"input">, "value" | "onChange"> {
   value: number;
-  onValueChange: (value: number) => void;
+  onValueChange: (value: number, formula?: string | null) => void;
   formula?: string | null;
-  onFormulaChange?: (formula: string | null) => void;
 }
 
 const NumericInput = React.forwardRef<HTMLInputElement, NumericInputProps>(

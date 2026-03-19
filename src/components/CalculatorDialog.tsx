@@ -915,17 +915,16 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                         <Label className="text-xs min-w-[140px] font-medium">Diamètre fondation</Label>
                         <NumericInput
                           value={calculatorData.design.diametre_fondation ?? 0}
-                          onValueChange={(val) =>
-                            setCalculatorData({
-                              ...calculatorData,
-                              design: {
-                                ...calculatorData.design,
-                                diametre_fondation: val || null,
-                              },
-                            })
-                          }
+                          onValueChange={(val, f) => {
+                            const newDesign = { ...calculatorData.design, diametre_fondation: val || null };
+                            if (f !== undefined) {
+                              const existing = newDesign.formulas || {};
+                              if (f) { newDesign.formulas = { ...existing, diametre_fondation: f }; }
+                              else { const { diametre_fondation: _, ...rest } = existing; newDesign.formulas = Object.keys(rest).length > 0 ? rest : undefined; }
+                            }
+                            setCalculatorData({ ...calculatorData, design: newDesign });
+                          }}
                           formula={calculatorData.design.formulas?.["diametre_fondation"] ?? null}
-                          onFormulaChange={(f) => updateDesignFormula("diametre_fondation", f)}
                           className="w-24 font-semibold"
                         />
                         <span className="text-xs text-muted-foreground font-mono">m</span>

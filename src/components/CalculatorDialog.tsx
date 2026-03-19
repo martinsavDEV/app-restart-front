@@ -563,6 +563,8 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                                 <NumericInput
                                   value={turbine.substitution}
                                   onValueChange={(val) => updateTurbine(idx, "substitution", val)}
+                                  formula={turbine.formulas?.["substitution"] ?? null}
+                                  onFormulaChange={(f) => updateTurbineFormula(idx, "substitution", f)}
                                   className="h-7 text-xs text-center"
                                   title={`Variable: $vol_sub_${turbine.name} (volume calculé)`}
                                 />

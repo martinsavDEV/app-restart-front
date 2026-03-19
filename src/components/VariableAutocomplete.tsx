@@ -31,6 +31,7 @@ export const VariableAutocomplete = ({
   const [open, setOpen] = useState(false);
   const [searchValue, setSearchValue] = useState(String(value));
   const inputRef = useRef<HTMLInputElement>(null);
+  const justSelectedRef = useRef(false);
 
   const isLinkedVariable = String(value).startsWith("$");
   const linkedVariable = isLinkedVariable 
@@ -67,6 +68,16 @@ export const VariableAutocomplete = ({
   };
 
   const handleBlur = (e: React.FocusEvent) => {
+    if (justSelectedRef.current) {
+      justSelectedRef.current = false;
+      // Update display to show resolved value when not editing
+      if (isLinkedVariable && resolvedValue !== undefined) {
+        setSearchValue(String(resolvedValue));
+      }
+      setTimeout(() => setOpen(false), 150);
+      return;
+    }
+
     const trimmedValue = searchValue.trim();
     
     // Check if it's supposed to be a variable
@@ -100,6 +111,7 @@ export const VariableAutocomplete = ({
   };
 
   const handleSelect = (variable: CalculatorVariable) => {
+    justSelectedRef.current = true;
     setSearchValue(variable.name);
     onChange(variable.name);
     onSelect(variable);

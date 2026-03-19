@@ -815,9 +815,8 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                                 <td key={f} className={cn("border p-1", f.startsWith("alu") ? "bg-blue-50/50 dark:bg-blue-900/5" : "bg-orange-50/50 dark:bg-orange-900/5")}>
                                   <NumericInput
                                     value={toNum((cable as any)[f])}
-                                    onValueChange={(val) => updateHTACable(idx, f, val)}
+                                    onValueChange={(val, f) => updateHTACable(idx, f, val, f)}
                                     formula={cable.formulas?.[f] ?? null}
-                                    onFormulaChange={(formula) => updateHTAFormula(idx, f, formula)}
                                     className="h-7 text-xs text-center"
                                     title={`Variable: $${f.replace("_", "")}_${cable.name.replace(/\s+/g, "_")}`}
                                   />

@@ -9,6 +9,13 @@ const toNumber = (val: unknown): number => {
   return 0;
 };
 
+/** Sanitize a user-provided name into a valid variable identifier segment */
+const sanitizeVarName = (name: string): string =>
+  name
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+
 /**
  * Pure function to compute all calculator variables from CalculatorData.
  * Can be used outside of React (e.g. in useSummaryData for exports).
@@ -61,17 +68,18 @@ export const computeCalculatorVariables = (calculatorData: CalculatorData | null
     const bypass = toNumber(turbine.bypass);
     const substitution = toNumber(turbine.substitution);
 
+    const tName = sanitizeVarName(turbine.name);
     vars.push(
-      { name: `$surf_PF_${turbine.name}`, value: surfPF, label: `Surface PF ${turbine.name}`, category: "Éoliennes" },
-      { name: `$acces_PF_${turbine.name}`, value: accesPF, label: `Accès PF ${turbine.name}`, category: "Éoliennes" },
-      { name: `$m3_bouger_${turbine.name}`, value: m3Bouger, label: `m³ à bouger ${turbine.name}`, category: "Éoliennes" },
-      { name: `$bypass_${turbine.name}`, value: bypass, label: `Bypass ${turbine.name}`, category: "Éoliennes" }
+      { name: `$surf_PF_${tName}`, value: surfPF, label: `Surface PF ${turbine.name}`, category: "Éoliennes" },
+      { name: `$acces_PF_${tName}`, value: accesPF, label: `Accès PF ${turbine.name}`, category: "Éoliennes" },
+      { name: `$m3_bouger_${tName}`, value: m3Bouger, label: `m³ à bouger ${turbine.name}`, category: "Éoliennes" },
+      { name: `$bypass_${tName}`, value: bypass, label: `Bypass ${turbine.name}`, category: "Éoliennes" }
     );
 
     if (foundationMetrics && substitution > 0) {
       const volSub = calculateSubstitutionVolume(foundationMetrics.surfaceFondFouille, substitution);
       vars.push({
-        name: `$vol_sub_${turbine.name}`,
+        name: `$vol_sub_${tName}`,
         value: Math.round(volSub * 100) / 100,
         label: `Vol. substitution ${turbine.name} (m³)`,
         category: "Éoliennes",
@@ -110,7 +118,7 @@ export const computeCalculatorVariables = (calculatorData: CalculatorData | null
 
   // Access segments variables
   calculatorData.access_segments.forEach((segment) => {
-    const segName = segment.name.replace(/\s+/g, "_");
+    const segName = sanitizeVarName(segment.name);
     vars.push(
       { name: `$surface_${segName}`, value: toNumber(segment.surface), label: `Surface ${segment.name}`, category: "Accès" }
     );
@@ -138,7 +146,7 @@ export const computeCalculatorVariables = (calculatorData: CalculatorData | null
     let totalLineaire = 0;
 
     calculatorData.hta_cables.forEach((cable) => {
-      const cName = cable.name.replace(/\s+/g, "_");
+      const cName = sanitizeVarName(cable.name);
       const fields = [
         { key: "alu_95", varPrefix: "alu95", label: "95² alu" },
         { key: "alu_150", varPrefix: "alu150", label: "150² alu" },

@@ -5,9 +5,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { WorkLot, WorkSection, BPULine, CalculatorVariable } from "@/types/bpu";
+import { WorkLot, WorkSection, BPULine } from "@/types/bpu";
 import { Plus, Trash2, GripVertical } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { EditableCell } from "./EditableCell";
 import { EditableCellText } from "./EditableCellText";
 import { VariableAutocomplete } from "./VariableAutocomplete";
@@ -16,21 +16,23 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-// Variables génériques disponibles dans les templates (non liées à un projet spécifique)
-const GENERIC_TEMPLATE_VARIABLES: CalculatorVariable[] = [
-  // Variables Globales
-  { name: "$nb_eol", label: "Nombre d'éoliennes", value: 0, category: "Global" },
-  { name: "$nb_fondations", label: "Nombre de fondations", value: 0, category: "Global" },
-  { name: "$puissance_eol", label: "Puissance éolienne (MW)", value: 0, category: "Global" },
-  { name: "$hauteur_moyeu", label: "Hauteur de moyeu (m)", value: 0, category: "Global" },
-  
-  // Variables Totaux
-  { name: "$surf_totale", label: "Surface totale (m²)", value: 0, category: "Totaux" },
-  { name: "$long_totale", label: "Longueur totale (ml)", value: 0, category: "Totaux" },
-  { name: "$vol_total", label: "Volume total (m³)", value: 0, category: "Totaux" },
-  { name: "$long_acces_total", label: "Longueur accès total (ml)", value: 0, category: "Totaux" },
-  { name: "$nb_virages_total", label: "Nombre virages total", value: 0, category: "Totaux" },
-];
+import { getTemplateAvailableVariables } from "@/hooks/useCalculatorVariables";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+  arrayMove,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 interface TemplateEditorDialogProps {
   open: boolean;
@@ -47,18 +49,158 @@ const LOT_OPTIONS = [
   { value: "turbine", label: "Turbinier" },
 ];
 
+// --- Sortable row component ---
+interface SortableLineRowProps {
+  line: BPULine;
+  sectionId: string;
+  code: string;
+  templateVariables: ReturnType<typeof getTemplateAvailableVariables>;
+  updateLine: (sectionId: string, lineId: string, updates: Partial<BPULine>) => void;
+  deleteLine: (sectionId: string, lineId: string) => void;
+  formatCurrency: (value: number) => string;
+}
+
+const SortableLineRow = ({
+  line,
+  sectionId,
+  code,
+  templateVariables,
+  updateLine,
+  deleteLine,
+  formatCurrency,
+}: SortableLineRowProps) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: line.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  const qty = typeof line.quantity === "number" ? line.quantity : parseFloat(String(line.quantity)) || 0;
+
+  return (
+    <tr ref={setNodeRef} style={style} className="border-b">
+      <td className="py-1 w-6">
+        <button
+          className="cursor-grab active:cursor-grabbing touch-none p-1 hover:bg-muted rounded"
+          {...attributes}
+          {...listeners}
+        >
+          <GripVertical className="h-3 w-3 text-muted-foreground" />
+        </button>
+      </td>
+      <td className="py-1">
+        <PriceItemAutocomplete
+          value={line.designation}
+          lotCode={code}
+          onSelect={(item) => {
+            updateLine(sectionId, line.id, {
+              designation: item.designation,
+              unit: item.unit,
+              unitPrice: item.unitPrice,
+              priceSource: item.priceSource,
+            });
+          }}
+          onChange={(value) => updateLine(sectionId, line.id, { designation: value })}
+          className="w-full"
+        />
+      </td>
+      <td className="py-1">
+        <VariableAutocomplete
+          value={line.linkedVariable || String(qty)}
+          variables={templateVariables}
+          resolvedValue={undefined}
+          onSelect={(variable) => {
+            updateLine(sectionId, line.id, {
+              linkedVariable: variable.name,
+              quantity: variable.value,
+            });
+          }}
+          onChange={(value) => {
+            const trimmedValue = value.trim();
+            if (!trimmedValue) {
+              updateLine(sectionId, line.id, { quantity: 0, linkedVariable: undefined });
+            } else if (trimmedValue.startsWith("$")) {
+              updateLine(sectionId, line.id, { linkedVariable: trimmedValue });
+            } else {
+              const numValue = parseFloat(trimmedValue.replace(/[^\d.,]/g, "").replace(",", "."));
+              updateLine(sectionId, line.id, {
+                quantity: isNaN(numValue) ? 0 : numValue,
+                linkedVariable: undefined,
+              });
+            }
+          }}
+          className="w-20 text-right"
+        />
+      </td>
+      <td className="py-1">
+        <EditableCellText
+          value={line.unit}
+          onChange={(value) => updateLine(sectionId, line.id, { unit: value })}
+          maxLength={10}
+        />
+      </td>
+      <td className="py-1">
+        <EditableCell
+          value={line.unitPrice || 0}
+          onChange={(value) => updateLine(sectionId, line.id, { unitPrice: value })}
+          align="right"
+          format={(v) => (v || 0).toFixed(2)}
+        />
+      </td>
+      <td className="py-1">
+        {line.priceSource ? (
+          <Badge variant="outline" className="text-[10px] font-normal">
+            {line.priceSource}
+          </Badge>
+        ) : (
+          <span className="text-muted-foreground text-[10px]">Manuel</span>
+        )}
+      </td>
+      <td className="py-1 text-right font-medium">
+        {formatCurrency(qty * (line.unitPrice || 0))}
+      </td>
+      <td className="py-1">
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => deleteLine(sectionId, line.id)}
+          className="h-6 w-6 p-0"
+        >
+          <Trash2 className="h-3 w-3" />
+        </Button>
+      </td>
+    </tr>
+  );
+};
+
+// --- Main dialog ---
 export const TemplateEditorDialog = ({ open, onOpenChange, template, onSave }: TemplateEditorDialogProps) => {
   const [code, setCode] = useState(template?.code || "terrassement");
   const [label, setLabel] = useState(template?.label || "");
   const [description, setDescription] = useState(template?.description || "");
   const [sections, setSections] = useState<WorkSection[]>([]);
 
+  const templateVariables = useMemo(() => getTemplateAvailableVariables(), []);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor)
+  );
+
   useEffect(() => {
     if (template) {
       setCode(template.code);
       setLabel(template.label);
       setDescription(template.description || "");
-      // Ensure all lines have proper default values
       const templateSections = (template.template_lines as WorkLot)?.sections || [];
       const normalizedSections = templateSections.map(section => ({
         ...section,
@@ -97,13 +239,13 @@ export const TemplateEditorDialog = ({ open, onOpenChange, template, onSave }: T
   };
 
   const updateSectionMultiple = (sectionId: string, isMultiple: boolean) => {
-    setSections(sections.map(s => 
+    setSections(sections.map(s =>
       s.id === sectionId ? { ...s, is_multiple: isMultiple, multiplier: isMultiple ? (s.multiplier || 1) : 1 } : s
     ));
   };
 
   const updateSectionMultiplier = (sectionId: string, multiplier: number) => {
-    setSections(sections.map(s => 
+    setSections(sections.map(s =>
       s.id === sectionId ? { ...s, multiplier } : s
     ));
   };
@@ -117,24 +259,37 @@ export const TemplateEditorDialog = ({ open, onOpenChange, template, onSave }: T
       unitPrice: 0,
       linkedVariable: undefined,
     };
-    setSections(sections.map(s => 
+    setSections(sections.map(s =>
       s.id === sectionId ? { ...s, lines: [...s.lines, newLine] } : s
     ));
   };
 
   const deleteLine = (sectionId: string, lineId: string) => {
-    setSections(sections.map(s => 
+    setSections(sections.map(s =>
       s.id === sectionId ? { ...s, lines: s.lines.filter(l => l.id !== lineId) } : s
     ));
   };
 
   const updateLine = (sectionId: string, lineId: string, updates: Partial<BPULine>) => {
-    setSections(sections.map(s => 
+    setSections(sections.map(s =>
       s.id === sectionId ? {
         ...s,
         lines: s.lines.map(l => l.id === lineId ? { ...l, ...updates } : l)
       } : s
     ));
+  };
+
+  const handleLineDragEnd = (sectionId: string) => (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    setSections(prev => prev.map(s => {
+      if (s.id !== sectionId) return s;
+      const oldIndex = s.lines.findIndex(l => l.id === active.id);
+      const newIndex = s.lines.findIndex(l => l.id === over.id);
+      if (oldIndex === -1 || newIndex === -1) return s;
+      return { ...s, lines: arrayMove(s.lines, oldIndex, newIndex) };
+    }));
   };
 
   const handleSave = () => {
@@ -156,8 +311,8 @@ export const TemplateEditorDialog = ({ open, onOpenChange, template, onSave }: T
 
   const calculateSectionTotal = (section: WorkSection) => {
     return section.lines.reduce((sum, line) => {
-      const qty = typeof line.quantity === "number" ? line.quantity : parseFloat(line.quantity) || 0;
-      return sum + (qty * line.unitPrice);
+      const qty = typeof line.quantity === "number" ? line.quantity : parseFloat(String(line.quantity)) || 0;
+      return sum + (qty * (line.unitPrice || 0));
     }, 0);
   };
 
@@ -284,108 +439,45 @@ export const TemplateEditorDialog = ({ open, onOpenChange, template, onSave }: T
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-2">
-                      <table className="w-full text-xs">
-                        <thead>
-                          <tr className="border-b">
-                            <th className="text-left py-2 font-medium">Désignation</th>
-                            <th className="text-right py-2 font-medium w-20">Quantité</th>
-                            <th className="text-left py-2 font-medium w-16">Unité</th>
-                            <th className="text-right py-2 font-medium w-24">PU</th>
-                            <th className="text-left py-2 font-medium w-24">Source</th>
-                            <th className="text-right py-2 font-medium w-24">Total</th>
-                            <th className="w-10"></th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {section.lines.map((line) => {
-                            const qty = typeof line.quantity === "number" ? line.quantity : parseFloat(line.quantity) || 0;
-                            return (
-                            <tr key={line.id} className="border-b">
-                              <td className="py-1">
-                                <PriceItemAutocomplete
-                                  value={line.designation}
-                                  lotCode={code}
-                                  onSelect={(item) => {
-                                    updateLine(section.id, line.id, {
-                                      designation: item.designation,
-                                      unit: item.unit,
-                                      unitPrice: item.unitPrice,
-                                      priceSource: item.priceSource,
-                                    });
-                                  }}
-                                  onChange={(value) => updateLine(section.id, line.id, { designation: value })}
-                                  className="w-full"
+                      <DndContext
+                        sensors={sensors}
+                        collisionDetection={closestCenter}
+                        onDragEnd={handleLineDragEnd(section.id)}
+                      >
+                        <SortableContext
+                          items={section.lines.map(l => l.id)}
+                          strategy={verticalListSortingStrategy}
+                        >
+                          <table className="w-full text-xs">
+                            <thead>
+                              <tr className="border-b">
+                                <th className="w-6"></th>
+                                <th className="text-left py-2 font-medium">Désignation</th>
+                                <th className="text-right py-2 font-medium w-20">Quantité</th>
+                                <th className="text-left py-2 font-medium w-16">Unité</th>
+                                <th className="text-right py-2 font-medium w-24">PU</th>
+                                <th className="text-left py-2 font-medium w-24">Source</th>
+                                <th className="text-right py-2 font-medium w-24">Total</th>
+                                <th className="w-10"></th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {section.lines.map((line) => (
+                                <SortableLineRow
+                                  key={line.id}
+                                  line={line}
+                                  sectionId={section.id}
+                                  code={code}
+                                  templateVariables={templateVariables}
+                                  updateLine={updateLine}
+                                  deleteLine={deleteLine}
+                                  formatCurrency={formatCurrency}
                                 />
-                              </td>
-                              <td className="py-1">
-                                <VariableAutocomplete
-                                  value={line.linkedVariable || String(qty)}
-                                  variables={GENERIC_TEMPLATE_VARIABLES}
-                                  resolvedValue={undefined}
-                                  onSelect={(variable) => {
-                                    updateLine(section.id, line.id, { 
-                                      linkedVariable: variable.name,
-                                      quantity: variable.value
-                                    });
-                                  }}
-                                  onChange={(value) => {
-                                    const trimmedValue = value.trim();
-                                    if (!trimmedValue) {
-                                      updateLine(section.id, line.id, { quantity: 0, linkedVariable: undefined });
-                                    } else if (trimmedValue.startsWith("$")) {
-                                      updateLine(section.id, line.id, { linkedVariable: trimmedValue });
-                                    } else {
-                                      const numValue = parseFloat(trimmedValue.replace(/[^\d.,]/g, "").replace(",", "."));
-                                      updateLine(section.id, line.id, { 
-                                        quantity: isNaN(numValue) ? 0 : numValue,
-                                        linkedVariable: undefined
-                                      });
-                                    }
-                                  }}
-                                  className="w-20 text-right"
-                                />
-                              </td>
-                              <td className="py-1">
-                                <EditableCellText
-                                  value={line.unit}
-                                  onChange={(value) => updateLine(section.id, line.id, { unit: value })}
-                                  maxLength={10}
-                                />
-                              </td>
-                              <td className="py-1">
-                                <EditableCell
-                                  value={line.unitPrice || 0}
-                                  onChange={(value) => updateLine(section.id, line.id, { unitPrice: value })}
-                                  align="right"
-                                  format={(v) => (v || 0).toFixed(2)}
-                                />
-                              </td>
-                              <td className="py-1">
-                                {line.priceSource ? (
-                                  <Badge variant="outline" className="text-[10px] font-normal">
-                                    {line.priceSource}
-                                  </Badge>
-                                ) : (
-                                  <span className="text-muted-foreground text-[10px]">Manuel</span>
-                                )}
-                              </td>
-                              <td className="py-1 text-right font-medium">
-                                {formatCurrency(qty * line.unitPrice)}
-                              </td>
-                              <td className="py-1">
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() => deleteLine(section.id, line.id)}
-                                  className="h-6 w-6 p-0"
-                                >
-                                  <Trash2 className="h-3 w-3" />
-                                </Button>
-                              </td>
-                            </tr>
-                          )})}
-                        </tbody>
-                      </table>
+                              ))}
+                            </tbody>
+                          </table>
+                        </SortableContext>
+                      </DndContext>
                       <Button
                         size="sm"
                         variant="ghost"

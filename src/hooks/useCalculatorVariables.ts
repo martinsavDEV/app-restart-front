@@ -229,6 +229,50 @@ export const computeCalculatorVariables = (calculatorData: CalculatorData | null
 };
 
 /**
+ * Returns all fixed-name variables available for templates (Global, Totaux, Fondation).
+ * These variables exist on every project regardless of turbine/segment configuration.
+ * Values are set to 0 since templates are not project-specific.
+ */
+export const getTemplateAvailableVariables = (): CalculatorVariable[] => {
+  return [
+    // Global
+    { name: "$nb_eol", value: 0, label: "Nombre d'éoliennes", category: "Global" },
+
+    // Fondation
+    { name: "$surface_fond_fouille", value: 0, label: "Surface fond de fouille (m²)", category: "Fondation" },
+    { name: "$volume_terrassement", value: 0, label: "Volume terrassement (m³)", category: "Fondation" },
+
+    // Totaux éoliennes
+    { name: "$sum_surf_PF", value: 0, label: "Total Surface PF", category: "Totaux" },
+    { name: "$sum_acces_PF", value: 0, label: "Total Accès PF", category: "Totaux" },
+    { name: "$sum_m3_bouger", value: 0, label: "Total m³ à bouger", category: "Totaux" },
+    { name: "$sum_bypass", value: 0, label: "Total Bypass", category: "Totaux" },
+    { name: "$sum_vol_substitution", value: 0, label: "Total Vol. substitution (m³)", category: "Totaux" },
+    { name: "$nb_eol_en_eau", value: 0, label: "Nb éoliennes en eau", category: "Totaux" },
+    { name: "$nb_eol_sans_eau", value: 0, label: "Nb éoliennes sans eau", category: "Totaux" },
+
+    // Totaux accès
+    { name: "$sum_surface_chemins", value: 0, label: "Total Surface chemins", category: "Totaux" },
+    { name: "$sum_GNT", value: 0, label: "Total Surface GNT (m²)", category: "Totaux" },
+    { name: "$sum_bicouche", value: 0, label: "Total Bicouche", category: "Totaux" },
+    { name: "$sum_enrobe", value: 0, label: "Total Enrobé", category: "Totaux" },
+
+    // Totaux HTA
+    { name: "$sum_alu95", value: 0, label: "Total 95² alu (ml)", category: "Totaux" },
+    { name: "$sum_alu150", value: 0, label: "Total 150² alu (ml)", category: "Totaux" },
+    { name: "$sum_alu240", value: 0, label: "Total 240² alu (ml)", category: "Totaux" },
+    { name: "$sum_alu300", value: 0, label: "Total 300² alu (ml)", category: "Totaux" },
+    { name: "$sum_alu400", value: 0, label: "Total 400² alu (ml)", category: "Totaux" },
+    { name: "$sum_cu95", value: 0, label: "Total 95² cu (ml)", category: "Totaux" },
+    { name: "$sum_cu150", value: 0, label: "Total 150² cu (ml)", category: "Totaux" },
+    { name: "$sum_cu240", value: 0, label: "Total 240² cu (ml)", category: "Totaux" },
+    { name: "$sum_cu300", value: 0, label: "Total 300² cu (ml)", category: "Totaux" },
+    { name: "$sum_cu400", value: 0, label: "Total 400² cu (ml)", category: "Totaux" },
+    { name: "$sum_lineaire_hta", value: 0, label: "Total linéaire HTA (ml)", category: "Totaux" },
+  ];
+};
+
+/**
  * Hook to generate all available variables from Calculator data
  * and provide their current values
  */

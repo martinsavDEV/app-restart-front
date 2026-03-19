@@ -12,7 +12,7 @@ interface NumericInputProps extends Omit<React.ComponentProps<"input">, "value" 
 }
 
 const NumericInput = React.forwardRef<HTMLInputElement, NumericInputProps>(
-  ({ value, onValueChange, formula, onFormulaChange, onFocus, onBlur, onKeyDown, className, ...props }, ref) => {
+  ({ value, onValueChange, formula, onFocus, onBlur, onKeyDown, className, ...props }, ref) => {
     const [isEditing, setIsEditing] = useState(false);
     const [localValue, setLocalValue] = useState("");
 

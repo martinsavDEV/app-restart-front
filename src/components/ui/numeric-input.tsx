@@ -3,16 +3,21 @@ import { useState, useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import { parseLocaleNumber } from "@/lib/numpadDecimal";
 import { evaluateFormula, isFormula } from "@/lib/formulaUtils";
+import { cn } from "@/lib/utils";
 
 interface NumericInputProps extends Omit<React.ComponentProps<"input">, "value" | "onChange"> {
   value: number;
   onValueChange: (value: number) => void;
+  formula?: string | null;
+  onFormulaChange?: (formula: string | null) => void;
 }
 
 const NumericInput = React.forwardRef<HTMLInputElement, NumericInputProps>(
-  ({ value, onValueChange, onFocus, onBlur, onKeyDown, ...props }, ref) => {
+  ({ value, onValueChange, formula, onFormulaChange, onFocus, onBlur, onKeyDown, className, ...props }, ref) => {
     const [isEditing, setIsEditing] = useState(false);
     const [localValue, setLocalValue] = useState("");
+
+    const hasFormula = !!formula && formula.length > 0;
 
     const commit = useCallback(() => {
       setIsEditing(false);
@@ -23,18 +28,25 @@ const NumericInput = React.forwardRef<HTMLInputElement, NumericInputProps>(
         const result = evaluateFormula(trimmed);
         if (result !== null) {
           onValueChange(result);
+          onFormulaChange?.(trimmed);
           return;
         }
       }
       
-      // Fallback: simple number parse
+      // Fallback: simple number parse — clear any stored formula
       const parsed = parseLocaleNumber(localValue);
       onValueChange(isNaN(parsed) ? 0 : parsed);
-    }, [localValue, onValueChange]);
+      onFormulaChange?.(null);
+    }, [localValue, onValueChange, onFormulaChange]);
 
     const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
       setIsEditing(true);
-      setLocalValue(value === 0 ? "" : String(value).replace(".", ","));
+      // Restore raw formula if one exists, otherwise show the number
+      if (hasFormula) {
+        setLocalValue(formula!);
+      } else {
+        setLocalValue(value === 0 ? "" : String(value).replace(".", ","));
+      }
       onFocus?.(e);
     };
 
@@ -61,6 +73,10 @@ const NumericInput = React.forwardRef<HTMLInputElement, NumericInputProps>(
         onFocus={handleFocus}
         onBlur={handleBlur}
         onKeyDown={handleKeyDown}
+        className={cn(
+          hasFormula && !isEditing && "text-blue-600 dark:text-blue-400 font-medium",
+          className
+        )}
         {...props}
       />
     );

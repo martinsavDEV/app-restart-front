@@ -52,6 +52,7 @@ export interface TurbineData {
   g2avp: string;
   substitution: number;
   commentaire: string;
+  formulas?: Record<string, string>;
 }
 
 export interface AccessSegment {
@@ -62,6 +63,7 @@ export interface AccessSegment {
   gnt: boolean;
   bicouche: number;
   enrobe: number;
+  formulas?: Record<string, string>;
 }
 
 export interface HTACableSegment {
@@ -77,6 +79,7 @@ export interface HTACableSegment {
   cu_300: number;
   cu_400: number;
   custom_cables?: Array<{ section: string; material: string; length: number }>;
+  formulas?: Record<string, string>;
 }
 
 export interface CalculatorData {
@@ -93,6 +96,7 @@ export interface CalculatorData {
     marge_securite: number;      // 1.0 ou 1.5 ou valeur custom
     pente_talus: string;         // "1:1" | "3:2" | ratio custom
     hauteur_cage: number;        // défaut 3.5m
+    formulas?: Record<string, string>;
   };
 }
 

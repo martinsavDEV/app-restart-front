@@ -1063,17 +1063,16 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                         <Label className="text-xs min-w-[140px] font-medium">Hauteur cage ancrage</Label>
                         <NumericInput
                           value={calculatorData.design.hauteur_cage}
-                          onValueChange={(val) =>
-                            setCalculatorData({
-                              ...calculatorData,
-                              design: {
-                                ...calculatorData.design,
-                                hauteur_cage: val || 3.5,
-                              },
-                            })
-                          }
+                          onValueChange={(val, f) => {
+                            const newDesign = { ...calculatorData.design, hauteur_cage: val || 3.5 };
+                            if (f !== undefined) {
+                              const existing = newDesign.formulas || {};
+                              if (f) { newDesign.formulas = { ...existing, hauteur_cage: f }; }
+                              else { const { hauteur_cage: _, ...rest } = existing; newDesign.formulas = Object.keys(rest).length > 0 ? rest : undefined; }
+                            }
+                            setCalculatorData({ ...calculatorData, design: newDesign });
+                          }}
                           formula={calculatorData.design.formulas?.["hauteur_cage"] ?? null}
-                          onFormulaChange={(f) => updateDesignFormula("hauteur_cage", f)}
                           className="w-24 font-semibold"
                         />
                         <span className="text-xs text-muted-foreground font-mono">m</span>

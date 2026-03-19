@@ -1,58 +1,39 @@
 
-# Fix : Lots et lignes manquants dans les exports CAPEX
 
-## Causes identifiées (2 bugs distincts)
+# Fix : Noms de variables avec caractères spéciaux
 
-### Bug 1 — Lignes sans section ignorées dans l'export
+## Problème
 
-Dans `useSummaryData`, les lignes sont récupérées via une requête Supabase imbriquée :
+`computeCalculatorVariables` génère des noms de variables à partir des noms de segments/turbines/câbles en ne remplaçant que les espaces par `_` (ligne 113). Si un segment s'appelle `"PCE2 + PCE2.2"`, la variable devient `$surface_PCE2_+_PCE2.2` qui contient `+` et `.` — caractères invalides pour un identifiant.
 
-```
-lots → quote_sections → quote_lines
-```
-
-Cette structure **ne peut pas retourner** les lignes qui ont `section_id = NULL` (lignes directement attachées au lot, sans section). En base, il existe **33 lignes** dans cet état, réparties dans plusieurs lots dont "Renforcement de sol".
-
-Ces lignes sont visibles dans la vue Pricing (qui utilise `useQuotePricing` avec une requête plate), mais **complètement absentes** des exports PDF et CSV.
-
-### Bug 2 — Lots vides (0 lignes, 0 sections) absents du PDF
-
-Un lot comme "Renforcement de sol" dans le projet "51 - Francheville" a `line_count = 0` et `section_count = 0` : il est `is_enabled: true`, il est bien dans `useSummaryData`, mais comme il n'a ni section ni ligne, son total est 0 et il n'a rien à afficher dans la partie "Détail par lot" du PDF. Il **apparaît bien** dans le résumé des lots (tableau du haut), mais génère une page quasi-vide dans le détail.
-
-La vraie question est : ces lots avec 0 lignes ont-ils du contenu en réalité stocké **sans section** ? La réponse de la DB sur Francheville : non, ce lot est genuinement vide. Mais d'autres versions comme "16 - FE de la Besse" ou "86 - Plaisance" ont bien des lignes dans `renforcement_sol` — et certaines sans `section_id`.
+Le regex d'extraction de variables (`\$[a-zA-Z_][a-zA-Z0-9_]*`) ne peut pas parser ces noms, donc la formule échoue.
 
 ## Solution
 
-### Fichier : `src/hooks/useSummaryData.ts`
+Créer une fonction `sanitizeVarName` qui nettoie tous les caractères non-alphanumériques (pas seulement les espaces) et l'utiliser partout où un nom utilisateur est injecté dans un nom de variable.
 
-**Remplacer la requête imbriquée par deux requêtes séparées** :
+**Fichier** : `src/hooks/useCalculatorVariables.ts`
 
-1. **Requête 1** : Récupérer les lots + sections (sans les lignes)
-2. **Requête 2** : Récupérer toutes les lignes du devis en une fois (`WHERE lot_id IN (...)`)
-3. **Assemblage côté client** : Grouper les lignes par section, et créer une "section virtuelle" sans nom pour les lignes orphelines (`section_id = NULL`)
-
-Cela garantit qu'**aucune ligne n'est perdue**, quelle que soit sa structure.
-
-```text
-Avant (requête imbriquée, perd les lignes sans section) :
-  lots → quote_sections → quote_lines  (lignes section_id=NULL ignorées)
-
-Après (deux requêtes plates) :
-  Requête A : lots + quote_sections
-  Requête B : toutes quote_lines WHERE lot_id IN [...]
-  → Assemblage : lignes avec section_id → dans leur section
-                 lignes sans section_id → dans une section virtuelle "Sans section"
+```typescript
+/** Sanitize a user-provided name into a valid variable identifier segment */
+const sanitizeVarName = (name: string): string =>
+  name
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // strip accents
+    .replace(/[^a-zA-Z0-9]+/g, "_")                   // non-alphanum → _
+    .replace(/^_+|_+$/g, "");                          // trim leading/trailing _
 ```
 
-### Comportement des lignes sans section dans l'export
+Appliquer à :
+- **Segments d'accès** (ligne 113) : `segment.name.replace(/\s+/g, "_")` → `sanitizeVarName(segment.name)`
+- **Turbines** (lignes ~70-80) : `turbine.name` est déjà propre (E01, E02…) mais on applique par sécurité
+- **Câbles HTA** (lignes ~140+) : `cable.name.replace(/\s+/g, "_")` → `sanitizeVarName(cable.name)`
 
-- **PDF** : affichées dans une section intitulée "(Sans section)" ou directement sous l'en-tête du lot
-- **CSV** : idem, avec une ligne de section virtuelle
+Ainsi `"PCE2 + PCE2.2"` deviendra `PCE2_PCE2_2` et la variable sera `$surface_PCE2_PCE2_2` — un identifiant valide que le parser de formules peut résoudre.
 
-### Résumé des changements
+## Impact
 
-| Fichier | Changement |
-|---------|------------|
-| `src/hooks/useSummaryData.ts` | Remplacer la requête imbriquée par 2 requêtes plates + assemblage côté client |
+Les variables existantes déjà référencées dans des formules enregistrées en base risquent de ne plus matcher (ancien nom `$surface_PCE2_+_PCE2.2` vs nouveau `$surface_PCE2_PCE2_2`). C'est un one-time fix ; les formules cassées devront être ressaisies, mais c'est inévitable car les anciennes ne fonctionnaient de toute façon pas.
 
-Aucun autre fichier n'est modifié : `pdfExport.ts` et `csvUtils.ts` consomment déjà les `sections` correctement — il suffit que les données arrivent complètes.
+## Fichiers modifiés
+- `src/hooks/useCalculatorVariables.ts` — ajouter `sanitizeVarName`, l'appliquer aux 3 endroits de génération de noms
+

@@ -1,58 +1,55 @@
 
-# Fix : Lots et lignes manquants dans les exports CAPEX
 
-## Causes identifiées (2 bugs distincts)
+# Plan : Stocker les formules et afficher en bleu dans le Calculator
 
-### Bug 1 — Lignes sans section ignorées dans l'export
+## Contexte
 
-Dans `useSummaryData`, les lignes sont récupérées via une requête Supabase imbriquée :
+Actuellement, `NumericInput` évalue les formules mais ne les conserve pas — seul le résultat numérique est stocké. L'utilisateur veut le même comportement que `QuantityFormulaInput` dans les métrés : formule persistée, texte bleu quand une formule est active, et formule restituée à l'édition.
 
-```
-lots → quote_sections → quote_lines
-```
+## Approche
 
-Cette structure **ne peut pas retourner** les lignes qui ont `section_id = NULL` (lignes directement attachées au lot, sans section). En base, il existe **33 lignes** dans cet état, réparties dans plusieurs lots dont "Renforcement de sol".
+### 1. Ajouter un stockage de formules dans `CalculatorData` (types/bpu.ts)
 
-Ces lignes sont visibles dans la vue Pricing (qui utilise `useQuotePricing` avec une requête plate), mais **complètement absentes** des exports PDF et CSV.
+Ajouter un champ optionnel `formulas` de type `Record<string, string>` sur `TurbineData`, `AccessSegment`, `HTACableSegment` et `design`. Ce champ stocke les formules par nom de champ :
 
-### Bug 2 — Lots vides (0 lignes, 0 sections) absents du PDF
-
-Un lot comme "Renforcement de sol" dans le projet "51 - Francheville" a `line_count = 0` et `section_count = 0` : il est `is_enabled: true`, il est bien dans `useSummaryData`, mais comme il n'a ni section ni ligne, son total est 0 et il n'a rien à afficher dans la partie "Détail par lot" du PDF. Il **apparaît bien** dans le résumé des lots (tableau du haut), mais génère une page quasi-vide dans le détail.
-
-La vraie question est : ces lots avec 0 lignes ont-ils du contenu en réalité stocké **sans section** ? La réponse de la DB sur Francheville : non, ce lot est genuinement vide. Mais d'autres versions comme "16 - FE de la Besse" ou "86 - Plaisance" ont bien des lignes dans `renforcement_sol` — et certaines sans `section_id`.
-
-## Solution
-
-### Fichier : `src/hooks/useSummaryData.ts`
-
-**Remplacer la requête imbriquée par deux requêtes séparées** :
-
-1. **Requête 1** : Récupérer les lots + sections (sans les lignes)
-2. **Requête 2** : Récupérer toutes les lignes du devis en une fois (`WHERE lot_id IN (...)`)
-3. **Assemblage côté client** : Grouper les lignes par section, et créer une "section virtuelle" sans nom pour les lignes orphelines (`section_id = NULL`)
-
-Cela garantit qu'**aucune ligne n'est perdue**, quelle que soit sa structure.
-
-```text
-Avant (requête imbriquée, perd les lignes sans section) :
-  lots → quote_sections → quote_lines  (lignes section_id=NULL ignorées)
-
-Après (deux requêtes plates) :
-  Requête A : lots + quote_sections
-  Requête B : toutes quote_lines WHERE lot_id IN [...]
-  → Assemblage : lignes avec section_id → dans leur section
-                 lignes sans section_id → dans une section virtuelle "Sans section"
+```typescript
+export interface TurbineData {
+  // ... existing fields
+  formulas?: Record<string, string>; // e.g. { surf_PF: "1500+200" }
+}
+// Idem pour AccessSegment, HTACableSegment, et CalculatorData.design
 ```
 
-### Comportement des lignes sans section dans l'export
+Étant donné que `calculator_data` est stocké en JSON dans la base, aucune migration n'est nécessaire — le champ optionnel sera simplement inclus dans le JSON.
 
-- **PDF** : affichées dans une section intitulée "(Sans section)" ou directement sous l'en-tête du lot
-- **CSV** : idem, avec une ligne de section virtuelle
+### 2. Enrichir `NumericInput` (ui/numeric-input.tsx)
 
-### Résumé des changements
+Ajouter des props optionnelles `formula` et `onFormulaChange` :
+
+- **À l'affichage** : si `formula` est définie, afficher le résultat en bleu (`text-blue-600`)
+- **Au focus** : restaurer la formule brute (au lieu du nombre)
+- **Au commit** : si l'input est une formule, appeler `onFormulaChange(formula)` en plus de `onValueChange(result)`. Si c'est un nombre simple, appeler `onFormulaChange(null)` pour effacer la formule.
+
+### 3. Mettre à jour `CalculatorDialog` (CalculatorDialog.tsx)
+
+Pour chaque `NumericInput`, passer `formula` et `onFormulaChange` en lisant/écrivant dans le champ `formulas` de l'objet correspondant (turbine, segment, câble, design).
+
+Créer des helpers génériques :
+```typescript
+const getFormula = (obj: { formulas?: Record<string,string> }, field: string) => 
+  obj?.formulas?.[field] ?? null;
+
+const setFormula = (obj: any, field: string, formula: string | null) => ({
+  ...obj,
+  formulas: { ...(obj.formulas || {}), [field]: formula ?? undefined }
+});
+```
+
+## Fichiers modifiés
 
 | Fichier | Changement |
-|---------|------------|
-| `src/hooks/useSummaryData.ts` | Remplacer la requête imbriquée par 2 requêtes plates + assemblage côté client |
+|---------|-----------|
+| `src/types/bpu.ts` | Ajouter `formulas?: Record<string, string>` sur TurbineData, AccessSegment, HTACableSegment, et design |
+| `src/components/ui/numeric-input.tsx` | Ajouter props `formula`/`onFormulaChange`, style bleu, restauration formule au focus |
+| `src/components/CalculatorDialog.tsx` | Brancher formula/onFormulaChange sur chaque NumericInput |
 
-Aucun autre fichier n'est modifié : `pdfExport.ts` et `csvUtils.ts` consomment déjà les `sections` correctement — il suffit que les données arrivent complètes.

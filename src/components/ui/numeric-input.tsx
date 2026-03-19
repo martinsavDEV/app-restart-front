@@ -2,6 +2,7 @@ import * as React from "react";
 import { useState, useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import { parseLocaleNumber } from "@/lib/numpadDecimal";
+import { evaluateFormula, isFormula } from "@/lib/formulaUtils";
 
 interface NumericInputProps extends Omit<React.ComponentProps<"input">, "value" | "onChange"> {
   value: number;

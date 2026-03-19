@@ -52,6 +52,7 @@ export interface TurbineData {
   g2avp: string;
   substitution: number;
   commentaire: string;
+  formulas?: Record<string, string>;
 }
 
 export interface AccessSegment {

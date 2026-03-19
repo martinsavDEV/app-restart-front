@@ -235,20 +235,17 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
     setCalculatorData({ ...calculatorData, access_segments: newSegments });
   };
 
-  const updateAccessSegment = (index: number, field: keyof AccessSegment, value: any) => {
+  const updateAccessSegment = (index: number, field: keyof AccessSegment, value: any, formula?: string | null) => {
     const newSegments = [...calculatorData.access_segments];
     newSegments[index] = { ...newSegments[index], [field]: value };
-    setCalculatorData({ ...calculatorData, access_segments: newSegments });
-  };
-
-  const updateAccessFormula = (index: number, field: string, formula: string | null) => {
-    const newSegments = [...calculatorData.access_segments];
-    const existing = newSegments[index].formulas || {};
-    if (formula) {
-      newSegments[index] = { ...newSegments[index], formulas: { ...existing, [field]: formula } };
-    } else {
-      const { [field]: _, ...rest } = existing;
-      newSegments[index] = { ...newSegments[index], formulas: Object.keys(rest).length > 0 ? rest : undefined };
+    if (formula !== undefined) {
+      const existing = newSegments[index].formulas || {};
+      if (formula) {
+        newSegments[index] = { ...newSegments[index], [field]: value, formulas: { ...existing, [field as string]: formula } };
+      } else {
+        const { [field as string]: _, ...rest } = existing;
+        newSegments[index] = { ...newSegments[index], [field]: value, formulas: Object.keys(rest).length > 0 ? rest : undefined };
+      }
     }
     setCalculatorData({ ...calculatorData, access_segments: newSegments });
   };

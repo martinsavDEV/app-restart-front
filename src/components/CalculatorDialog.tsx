@@ -939,6 +939,8 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                               },
                             })
                           }
+                          formula={calculatorData.design.formulas?.["diametre_fondation"] ?? null}
+                          onFormulaChange={(f) => updateDesignFormula("diametre_fondation", f)}
                           className="w-24 font-semibold"
                         />
                         <span className="text-xs text-muted-foreground font-mono">m</span>

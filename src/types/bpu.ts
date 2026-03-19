@@ -79,6 +79,7 @@ export interface HTACableSegment {
   cu_300: number;
   cu_400: number;
   custom_cables?: Array<{ section: string; material: string; length: number }>;
+  formulas?: Record<string, string>;
 }
 
 export interface CalculatorData {

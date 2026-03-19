@@ -111,6 +111,7 @@ export const VariableAutocomplete = ({
   };
 
   const handleSelect = (variable: CalculatorVariable) => {
+    justSelectedRef.current = true;
     setSearchValue(variable.name);
     onChange(variable.name);
     onSelect(variable);

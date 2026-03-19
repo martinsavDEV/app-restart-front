@@ -118,7 +118,7 @@ export const computeCalculatorVariables = (calculatorData: CalculatorData | null
 
   // Access segments variables
   calculatorData.access_segments.forEach((segment) => {
-    const segName = segment.name.replace(/\s+/g, "_");
+    const segName = sanitizeVarName(segment.name);
     vars.push(
       { name: `$surface_${segName}`, value: toNumber(segment.surface), label: `Surface ${segment.name}`, category: "Accès" }
     );

@@ -40,6 +40,19 @@ export const EditableCell = ({
   };
 
   const handleBlur = () => {
+    const trimmed = editValue.trim();
+    
+    // Try formula evaluation first (e.g. "150+230", "3*(45+12)")
+    if (isFormula(trimmed)) {
+      const result = evaluateFormula(trimmed);
+      if (result !== null && result >= 0) {
+        onChange(result);
+        setIsEditing(false);
+        return;
+      }
+    }
+    
+    // Fallback: parse as simple number (existing behavior)
     const parsedValue = parse(editValue);
     if (!isNaN(parsedValue) && parsedValue >= 0) {
       onChange(parsedValue);

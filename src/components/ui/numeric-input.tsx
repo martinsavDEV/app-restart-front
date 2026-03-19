@@ -2,6 +2,7 @@ import * as React from "react";
 import { useState, useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import { parseLocaleNumber } from "@/lib/numpadDecimal";
+import { evaluateFormula, isFormula } from "@/lib/formulaUtils";
 
 interface NumericInputProps extends Omit<React.ComponentProps<"input">, "value" | "onChange"> {
   value: number;
@@ -15,6 +16,18 @@ const NumericInput = React.forwardRef<HTMLInputElement, NumericInputProps>(
 
     const commit = useCallback(() => {
       setIsEditing(false);
+      const trimmed = localValue.trim();
+      
+      // Try formula evaluation first (e.g. "1500+200", "3*(45+12)")
+      if (isFormula(trimmed)) {
+        const result = evaluateFormula(trimmed);
+        if (result !== null) {
+          onValueChange(result);
+          return;
+        }
+      }
+      
+      // Fallback: simple number parse
       const parsed = parseLocaleNumber(localValue);
       onValueChange(isNaN(parsed) ? 0 : parsed);
     }, [localValue, onValueChange]);

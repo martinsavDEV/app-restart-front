@@ -96,6 +96,7 @@ export interface CalculatorData {
     marge_securite: number;      // 1.0 ou 1.5 ou valeur custom
     pente_talus: string;         // "1:1" | "3:2" | ratio custom
     hauteur_cage: number;        // défaut 3.5m
+    formulas?: Record<string, string>;
   };
 }
 

@@ -40,10 +40,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Try to accept pending invitation
     if (userEmail) {
       try {
-        await supabase.rpc("accept_invitation", {
-          _user_id: userId,
-          _email: userEmail,
-        });
+        await supabase.rpc("accept_invitation");
 
         // Re-check role after accepting invitation
         const { data: newRoleData } = await supabase

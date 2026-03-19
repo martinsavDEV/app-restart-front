@@ -31,6 +31,7 @@ export const VariableAutocomplete = ({
   const [open, setOpen] = useState(false);
   const [searchValue, setSearchValue] = useState(String(value));
   const inputRef = useRef<HTMLInputElement>(null);
+  const justSelectedRef = useRef(false);
 
   const isLinkedVariable = String(value).startsWith("$");
   const linkedVariable = isLinkedVariable 

@@ -963,17 +963,16 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                           <div className="flex items-center gap-1">
                             <NumericInput
                               value={calculatorData.design.marge_securite}
-                              onValueChange={(val) =>
-                                setCalculatorData({
-                                  ...calculatorData,
-                                  design: {
-                                    ...calculatorData.design,
-                                    marge_securite: val || 1.0,
-                                  },
-                                })
-                              }
+                              onValueChange={(val, f) => {
+                                const newDesign = { ...calculatorData.design, marge_securite: val || 1.0 };
+                                if (f !== undefined) {
+                                  const existing = newDesign.formulas || {};
+                                  if (f) { newDesign.formulas = { ...existing, marge_securite: f }; }
+                                  else { const { marge_securite: _, ...rest } = existing; newDesign.formulas = Object.keys(rest).length > 0 ? rest : undefined; }
+                                }
+                                setCalculatorData({ ...calculatorData, design: newDesign });
+                              }}
                               formula={calculatorData.design.formulas?.["marge_securite"] ?? null}
-                              onFormulaChange={(f) => updateDesignFormula("marge_securite", f)}
                               className="w-20 font-semibold"
                             />
                             <Button

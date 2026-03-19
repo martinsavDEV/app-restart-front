@@ -244,6 +244,18 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
     setCalculatorData({ ...calculatorData, access_segments: newSegments });
   };
 
+  const updateAccessFormula = (index: number, field: string, formula: string | null) => {
+    const newSegments = [...calculatorData.access_segments];
+    const existing = newSegments[index].formulas || {};
+    if (formula) {
+      newSegments[index] = { ...newSegments[index], formulas: { ...existing, [field]: formula } };
+    } else {
+      const { [field]: _, ...rest } = existing;
+      newSegments[index] = { ...newSegments[index], formulas: Object.keys(rest).length > 0 ? rest : undefined };
+    }
+    setCalculatorData({ ...calculatorData, access_segments: newSegments });
+  };
+
   const addHTACable = () => {
     const cable = defaultHTACable();
     cable.name = `Tronçon ${calculatorData.hta_cables.length + 1}`;

@@ -1089,6 +1089,8 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                               },
                             })
                           }
+                          formula={calculatorData.design.formulas?.["hauteur_cage"] ?? null}
+                          onFormulaChange={(f) => updateDesignFormula("hauteur_cage", f)}
                           className="w-24 font-semibold"
                         />
                         <span className="text-xs text-muted-foreground font-mono">m</span>

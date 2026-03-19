@@ -200,20 +200,17 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
     });
   };
 
-  const updateTurbine = (index: number, field: keyof TurbineData, value: any) => {
+  const updateTurbine = (index: number, field: keyof TurbineData, value: any, formula?: string | null) => {
     const newTurbines = [...calculatorData.turbines];
     newTurbines[index] = { ...newTurbines[index], [field]: value };
-    setCalculatorData({ ...calculatorData, turbines: newTurbines });
-  };
-
-  const updateTurbineFormula = (index: number, field: string, formula: string | null) => {
-    const newTurbines = [...calculatorData.turbines];
-    const existing = newTurbines[index].formulas || {};
-    if (formula) {
-      newTurbines[index] = { ...newTurbines[index], formulas: { ...existing, [field]: formula } };
-    } else {
-      const { [field]: _, ...rest } = existing;
-      newTurbines[index] = { ...newTurbines[index], formulas: Object.keys(rest).length > 0 ? rest : undefined };
+    if (formula !== undefined) {
+      const existing = newTurbines[index].formulas || {};
+      if (formula) {
+        newTurbines[index] = { ...newTurbines[index], [field]: value, formulas: { ...existing, [field as string]: formula } };
+      } else {
+        const { [field as string]: _, ...rest } = existing;
+        newTurbines[index] = { ...newTurbines[index], [field]: value, formulas: Object.keys(rest).length > 0 ? rest : undefined };
+      }
     }
     setCalculatorData({ ...calculatorData, turbines: newTurbines });
   };

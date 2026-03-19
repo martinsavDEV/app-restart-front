@@ -68,11 +68,12 @@ export const computeCalculatorVariables = (calculatorData: CalculatorData | null
     const bypass = toNumber(turbine.bypass);
     const substitution = toNumber(turbine.substitution);
 
+    const tName = sanitizeVarName(turbine.name);
     vars.push(
-      { name: `$surf_PF_${turbine.name}`, value: surfPF, label: `Surface PF ${turbine.name}`, category: "Éoliennes" },
-      { name: `$acces_PF_${turbine.name}`, value: accesPF, label: `Accès PF ${turbine.name}`, category: "Éoliennes" },
-      { name: `$m3_bouger_${turbine.name}`, value: m3Bouger, label: `m³ à bouger ${turbine.name}`, category: "Éoliennes" },
-      { name: `$bypass_${turbine.name}`, value: bypass, label: `Bypass ${turbine.name}`, category: "Éoliennes" }
+      { name: `$surf_PF_${tName}`, value: surfPF, label: `Surface PF ${turbine.name}`, category: "Éoliennes" },
+      { name: `$acces_PF_${tName}`, value: accesPF, label: `Accès PF ${turbine.name}`, category: "Éoliennes" },
+      { name: `$m3_bouger_${tName}`, value: m3Bouger, label: `m³ à bouger ${turbine.name}`, category: "Éoliennes" },
+      { name: `$bypass_${tName}`, value: bypass, label: `Bypass ${turbine.name}`, category: "Éoliennes" }
     );
 
     if (foundationMetrics && substitution > 0) {

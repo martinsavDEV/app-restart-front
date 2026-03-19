@@ -508,6 +508,8 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                                   <NumericInput
                                     value={turbine[row.field] as number}
                                     onValueChange={(val) => updateTurbine(idx, row.field, val)}
+                                    formula={turbine.formulas?.[row.field] ?? null}
+                                    onFormulaChange={(f) => updateTurbineFormula(idx, row.field, f)}
                                     className="h-7 text-xs text-center"
                                     title={`Variable: $${row.varPrefix}_${turbine.name}`}
                                   />

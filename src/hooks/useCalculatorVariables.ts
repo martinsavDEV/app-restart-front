@@ -79,7 +79,7 @@ export const computeCalculatorVariables = (calculatorData: CalculatorData | null
     if (foundationMetrics && substitution > 0) {
       const volSub = calculateSubstitutionVolume(foundationMetrics.surfaceFondFouille, substitution);
       vars.push({
-        name: `$vol_sub_${turbine.name}`,
+        name: `$vol_sub_${tName}`,
         value: Math.round(volSub * 100) / 100,
         label: `Vol. substitution ${turbine.name} (m³)`,
         category: "Éoliennes",

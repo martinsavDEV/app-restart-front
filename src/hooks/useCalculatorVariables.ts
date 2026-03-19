@@ -146,7 +146,7 @@ export const computeCalculatorVariables = (calculatorData: CalculatorData | null
     let totalLineaire = 0;
 
     calculatorData.hta_cables.forEach((cable) => {
-      const cName = cable.name.replace(/\s+/g, "_");
+      const cName = sanitizeVarName(cable.name);
       const fields = [
         { key: "alu_95", varPrefix: "alu95", label: "95² alu" },
         { key: "alu_150", varPrefix: "alu150", label: "150² alu" },

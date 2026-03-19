@@ -318,6 +318,16 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
   // Calculate totals
   const toNum = (v: any) => (typeof v === 'number' ? v : parseFloat(v) || 0);
 
+  const updateDesignFormula = (field: string, formula: string | null) => {
+    const existing = calculatorData.design.formulas || {};
+    if (formula) {
+      setCalculatorData({ ...calculatorData, design: { ...calculatorData.design, formulas: { ...existing, [field]: formula } } });
+    } else {
+      const { [field]: _, ...rest } = existing;
+      setCalculatorData({ ...calculatorData, design: { ...calculatorData.design, formulas: Object.keys(rest).length > 0 ? rest : undefined } });
+    }
+  };
+
   const turbineTotals = {
     surf_PF: calculatorData.turbines.reduce((sum, t) => sum + toNum(t.surf_PF), 0),
     acces_PF: calculatorData.turbines.reduce((sum, t) => sum + toNum(t.acces_PF), 0),

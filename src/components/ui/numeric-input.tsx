@@ -16,6 +16,18 @@ const NumericInput = React.forwardRef<HTMLInputElement, NumericInputProps>(
 
     const commit = useCallback(() => {
       setIsEditing(false);
+      const trimmed = localValue.trim();
+      
+      // Try formula evaluation first (e.g. "1500+200", "3*(45+12)")
+      if (isFormula(trimmed)) {
+        const result = evaluateFormula(trimmed);
+        if (result !== null) {
+          onValueChange(result);
+          return;
+        }
+      }
+      
+      // Fallback: simple number parse
       const parsed = parseLocaleNumber(localValue);
       onValueChange(isNaN(parsed) ? 0 : parsed);
     }, [localValue, onValueChange]);

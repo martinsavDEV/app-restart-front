@@ -63,6 +63,7 @@ export interface AccessSegment {
   gnt: boolean;
   bicouche: number;
   enrobe: number;
+  formulas?: Record<string, string>;
 }
 
 export interface HTACableSegment {

@@ -264,20 +264,17 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
     setCalculatorData({ ...calculatorData, hta_cables: newCables });
   };
 
-  const updateHTACable = (index: number, field: string, value: any) => {
+  const updateHTACable = (index: number, field: string, value: any, formula?: string | null) => {
     const newCables = [...calculatorData.hta_cables];
     newCables[index] = { ...newCables[index], [field]: value };
-    setCalculatorData({ ...calculatorData, hta_cables: newCables });
-  };
-
-  const updateHTAFormula = (index: number, field: string, formula: string | null) => {
-    const newCables = [...calculatorData.hta_cables];
-    const existing = newCables[index].formulas || {};
-    if (formula) {
-      newCables[index] = { ...newCables[index], formulas: { ...existing, [field]: formula } };
-    } else {
-      const { [field]: _, ...rest } = existing;
-      newCables[index] = { ...newCables[index], formulas: Object.keys(rest).length > 0 ? rest : undefined };
+    if (formula !== undefined) {
+      const existing = newCables[index].formulas || {};
+      if (formula) {
+        newCables[index] = { ...newCables[index], [field]: value, formulas: { ...existing, [field]: formula } };
+      } else {
+        const { [field]: _, ...rest } = existing;
+        newCables[index] = { ...newCables[index], [field]: value, formulas: Object.keys(rest).length > 0 ? rest : undefined };
+      }
     }
     setCalculatorData({ ...calculatorData, hta_cables: newCables });
   };

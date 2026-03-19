@@ -1,58 +1,64 @@
 
-# Fix : Lots et lignes manquants dans les exports CAPEX
 
-## Causes identifiées (2 bugs distincts)
+# Fix: accept_invitation RPC Privilege Escalation
 
-### Bug 1 — Lignes sans section ignorées dans l'export
+## Problem
 
-Dans `useSummaryData`, les lignes sont récupérées via une requête Supabase imbriquée :
-
-```
-lots → quote_sections → quote_lines
-```
-
-Cette structure **ne peut pas retourner** les lignes qui ont `section_id = NULL` (lignes directement attachées au lot, sans section). En base, il existe **33 lignes** dans cet état, réparties dans plusieurs lots dont "Renforcement de sol".
-
-Ces lignes sont visibles dans la vue Pricing (qui utilise `useQuotePricing` avec une requête plate), mais **complètement absentes** des exports PDF et CSV.
-
-### Bug 2 — Lots vides (0 lignes, 0 sections) absents du PDF
-
-Un lot comme "Renforcement de sol" dans le projet "51 - Francheville" a `line_count = 0` et `section_count = 0` : il est `is_enabled: true`, il est bien dans `useSummaryData`, mais comme il n'a ni section ni ligne, son total est 0 et il n'a rien à afficher dans la partie "Détail par lot" du PDF. Il **apparaît bien** dans le résumé des lots (tableau du haut), mais génère une page quasi-vide dans le détail.
-
-La vraie question est : ces lots avec 0 lignes ont-ils du contenu en réalité stocké **sans section** ? La réponse de la DB sur Francheville : non, ce lot est genuinement vide. Mais d'autres versions comme "16 - FE de la Besse" ou "86 - Plaisance" ont bien des lignes dans `renforcement_sol` — et certaines sans `section_id`.
+The `accept_invitation(_user_id uuid, _email text)` function takes both user ID and email as client-provided parameters. Any authenticated user can call it with an arbitrary email to claim someone else's invitation and gain their role (including admin).
 
 ## Solution
 
-### Fichier : `src/hooks/useSummaryData.ts`
+### 1. Database migration — Replace the RPC function
 
-**Remplacer la requête imbriquée par deux requêtes séparées** :
+Remove parameters entirely; derive identity from the JWT:
 
-1. **Requête 1** : Récupérer les lots + sections (sans les lignes)
-2. **Requête 2** : Récupérer toutes les lignes du devis en une fois (`WHERE lot_id IN (...)`)
-3. **Assemblage côté client** : Grouper les lignes par section, et créer une "section virtuelle" sans nom pour les lignes orphelines (`section_id = NULL`)
+```sql
+CREATE OR REPLACE FUNCTION public.accept_invitation()
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  _caller_id uuid := auth.uid();
+  _caller_email text := auth.jwt() ->> 'email';
+  _invitation RECORD;
+BEGIN
+  IF _caller_id IS NULL OR _caller_email IS NULL THEN
+    RETURN;
+  END IF;
 
-Cela garantit qu'**aucune ligne n'est perdue**, quelle que soit sa structure.
+  SELECT * INTO _invitation
+  FROM public.user_invitations
+  WHERE email = _caller_email AND status = 'pending';
 
-```text
-Avant (requête imbriquée, perd les lignes sans section) :
-  lots → quote_sections → quote_lines  (lignes section_id=NULL ignorées)
+  IF NOT FOUND THEN RETURN; END IF;
 
-Après (deux requêtes plates) :
-  Requête A : lots + quote_sections
-  Requête B : toutes quote_lines WHERE lot_id IN [...]
-  → Assemblage : lignes avec section_id → dans leur section
-                 lignes sans section_id → dans une section virtuelle "Sans section"
+  INSERT INTO public.user_roles (user_id, role)
+  VALUES (_caller_id, _invitation.role)
+  ON CONFLICT DO NOTHING;
+
+  UPDATE public.user_invitations
+  SET status = 'accepted', accepted_at = now()
+  WHERE email = _caller_email;
+END;
+$$;
 ```
 
-### Comportement des lignes sans section dans l'export
+### 2. Update `src/contexts/AuthContext.tsx`
 
-- **PDF** : affichées dans une section intitulée "(Sans section)" ou directement sous l'en-tête du lot
-- **CSV** : idem, avec une ligne de section virtuelle
+Change the RPC call from:
+```typescript
+await supabase.rpc("accept_invitation", { _user_id: userId, _email: userEmail });
+```
+to:
+```typescript
+await supabase.rpc("accept_invitation");
+```
 
-### Résumé des changements
+### Files modified
+| File | Change |
+|------|--------|
+| Migration SQL | Replace `accept_invitation` function (no params, reads JWT) |
+| `src/contexts/AuthContext.tsx` | Remove parameters from `supabase.rpc("accept_invitation")` call |
 
-| Fichier | Changement |
-|---------|------------|
-| `src/hooks/useSummaryData.ts` | Remplacer la requête imbriquée par 2 requêtes plates + assemblage côté client |
-
-Aucun autre fichier n'est modifié : `pdfExport.ts` et `csvUtils.ts` consomment déjà les `sections` correctement — il suffit que les données arrivent complètes.

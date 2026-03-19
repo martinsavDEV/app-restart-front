@@ -200,20 +200,17 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
     });
   };
 
-  const updateTurbine = (index: number, field: keyof TurbineData, value: any) => {
+  const updateTurbine = (index: number, field: keyof TurbineData, value: any, formula?: string | null) => {
     const newTurbines = [...calculatorData.turbines];
     newTurbines[index] = { ...newTurbines[index], [field]: value };
-    setCalculatorData({ ...calculatorData, turbines: newTurbines });
-  };
-
-  const updateTurbineFormula = (index: number, field: string, formula: string | null) => {
-    const newTurbines = [...calculatorData.turbines];
-    const existing = newTurbines[index].formulas || {};
-    if (formula) {
-      newTurbines[index] = { ...newTurbines[index], formulas: { ...existing, [field]: formula } };
-    } else {
-      const { [field]: _, ...rest } = existing;
-      newTurbines[index] = { ...newTurbines[index], formulas: Object.keys(rest).length > 0 ? rest : undefined };
+    if (formula !== undefined) {
+      const existing = newTurbines[index].formulas || {};
+      if (formula) {
+        newTurbines[index] = { ...newTurbines[index], [field]: value, formulas: { ...existing, [field as string]: formula } };
+      } else {
+        const { [field as string]: _, ...rest } = existing;
+        newTurbines[index] = { ...newTurbines[index], [field]: value, formulas: Object.keys(rest).length > 0 ? rest : undefined };
+      }
     }
     setCalculatorData({ ...calculatorData, turbines: newTurbines });
   };
@@ -238,20 +235,17 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
     setCalculatorData({ ...calculatorData, access_segments: newSegments });
   };
 
-  const updateAccessSegment = (index: number, field: keyof AccessSegment, value: any) => {
+  const updateAccessSegment = (index: number, field: keyof AccessSegment, value: any, formula?: string | null) => {
     const newSegments = [...calculatorData.access_segments];
     newSegments[index] = { ...newSegments[index], [field]: value };
-    setCalculatorData({ ...calculatorData, access_segments: newSegments });
-  };
-
-  const updateAccessFormula = (index: number, field: string, formula: string | null) => {
-    const newSegments = [...calculatorData.access_segments];
-    const existing = newSegments[index].formulas || {};
-    if (formula) {
-      newSegments[index] = { ...newSegments[index], formulas: { ...existing, [field]: formula } };
-    } else {
-      const { [field]: _, ...rest } = existing;
-      newSegments[index] = { ...newSegments[index], formulas: Object.keys(rest).length > 0 ? rest : undefined };
+    if (formula !== undefined) {
+      const existing = newSegments[index].formulas || {};
+      if (formula) {
+        newSegments[index] = { ...newSegments[index], [field]: value, formulas: { ...existing, [field as string]: formula } };
+      } else {
+        const { [field as string]: _, ...rest } = existing;
+        newSegments[index] = { ...newSegments[index], [field]: value, formulas: Object.keys(rest).length > 0 ? rest : undefined };
+      }
     }
     setCalculatorData({ ...calculatorData, access_segments: newSegments });
   };
@@ -270,20 +264,17 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
     setCalculatorData({ ...calculatorData, hta_cables: newCables });
   };
 
-  const updateHTACable = (index: number, field: string, value: any) => {
+  const updateHTACable = (index: number, field: string, value: any, formula?: string | null) => {
     const newCables = [...calculatorData.hta_cables];
     newCables[index] = { ...newCables[index], [field]: value };
-    setCalculatorData({ ...calculatorData, hta_cables: newCables });
-  };
-
-  const updateHTAFormula = (index: number, field: string, formula: string | null) => {
-    const newCables = [...calculatorData.hta_cables];
-    const existing = newCables[index].formulas || {};
-    if (formula) {
-      newCables[index] = { ...newCables[index], formulas: { ...existing, [field]: formula } };
-    } else {
-      const { [field]: _, ...rest } = existing;
-      newCables[index] = { ...newCables[index], formulas: Object.keys(rest).length > 0 ? rest : undefined };
+    if (formula !== undefined) {
+      const existing = newCables[index].formulas || {};
+      if (formula) {
+        newCables[index] = { ...newCables[index], [field]: value, formulas: { ...existing, [field]: formula } };
+      } else {
+        const { [field]: _, ...rest } = existing;
+        newCables[index] = { ...newCables[index], [field]: value, formulas: Object.keys(rest).length > 0 ? rest : undefined };
+      }
     }
     setCalculatorData({ ...calculatorData, hta_cables: newCables });
   };
@@ -317,16 +308,6 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
 
   // Calculate totals
   const toNum = (v: any) => (typeof v === 'number' ? v : parseFloat(v) || 0);
-
-  const updateDesignFormula = (field: string, formula: string | null) => {
-    const existing = calculatorData.design.formulas || {};
-    if (formula) {
-      setCalculatorData({ ...calculatorData, design: { ...calculatorData.design, formulas: { ...existing, [field]: formula } } });
-    } else {
-      const { [field]: _, ...rest } = existing;
-      setCalculatorData({ ...calculatorData, design: { ...calculatorData.design, formulas: Object.keys(rest).length > 0 ? rest : undefined } });
-    }
-  };
 
   const turbineTotals = {
     surf_PF: calculatorData.turbines.reduce((sum, t) => sum + toNum(t.surf_PF), 0),
@@ -517,9 +498,8 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                                 <td key={idx} className="border p-1">
                                   <NumericInput
                                     value={turbine[row.field] as number}
-                                    onValueChange={(val) => updateTurbine(idx, row.field, val)}
+                                    onValueChange={(val, f) => updateTurbine(idx, row.field, val, f)}
                                     formula={turbine.formulas?.[row.field] ?? null}
-                                    onFormulaChange={(f) => updateTurbineFormula(idx, row.field, f)}
                                     className="h-7 text-xs text-center"
                                     title={`Variable: $${row.varPrefix}_${turbine.name}`}
                                   />
@@ -572,9 +552,8 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                               <td key={idx} className="border p-1">
                                 <NumericInput
                                   value={turbine.substitution}
-                                  onValueChange={(val) => updateTurbine(idx, "substitution", val)}
+                                  onValueChange={(val, f) => updateTurbine(idx, "substitution", val, f)}
                                   formula={turbine.formulas?.["substitution"] ?? null}
-                                  onFormulaChange={(f) => updateTurbineFormula(idx, "substitution", f)}
                                   className="h-7 text-xs text-center"
                                   title={`Variable: $vol_sub_${turbine.name} (volume calculé)`}
                                 />
@@ -668,9 +647,8 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                               <td key={idx} className="border p-1">
                                 <NumericInput
                                   value={segment.surface}
-                                  onValueChange={(val) => updateAccessSegment(idx, "surface", val)}
+                                  onValueChange={(val, f) => updateAccessSegment(idx, "surface", val, f)}
                                   formula={segment.formulas?.["surface"] ?? null}
-                                  onFormulaChange={(f) => updateAccessFormula(idx, "surface", f)}
                                   className="h-7 text-xs text-center"
                                   title={`Variable: $surface_${segment.name.replace(/\s+/g, "_")}`}
                                 />
@@ -711,9 +689,8 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                               <td key={idx} className="border p-1">
                                 <NumericInput
                                   value={segment.bicouche}
-                                  onValueChange={(val) => updateAccessSegment(idx, "bicouche", val)}
+                                  onValueChange={(val, f) => updateAccessSegment(idx, "bicouche", val, f)}
                                   formula={segment.formulas?.["bicouche"] ?? null}
-                                  onFormulaChange={(f) => updateAccessFormula(idx, "bicouche", f)}
                                   className="h-7 text-xs text-center"
                                 />
                               </td>
@@ -729,9 +706,8 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                               <td key={idx} className="border p-1">
                                 <NumericInput
                                   value={segment.enrobe}
-                                  onValueChange={(val) => updateAccessSegment(idx, "enrobe", val)}
+                                  onValueChange={(val, f) => updateAccessSegment(idx, "enrobe", val, f)}
                                   formula={segment.formulas?.["enrobe"] ?? null}
-                                  onFormulaChange={(f) => updateAccessFormula(idx, "enrobe", f)}
                                   className="h-7 text-xs text-center"
                                 />
                               </td>
@@ -829,9 +805,8 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                                 <td key={f} className={cn("border p-1", f.startsWith("alu") ? "bg-blue-50/50 dark:bg-blue-900/5" : "bg-orange-50/50 dark:bg-orange-900/5")}>
                                   <NumericInput
                                     value={toNum((cable as any)[f])}
-                                    onValueChange={(val) => updateHTACable(idx, f, val)}
+                                    onValueChange={(val, f) => updateHTACable(idx, f, val, f)}
                                     formula={cable.formulas?.[f] ?? null}
-                                    onFormulaChange={(formula) => updateHTAFormula(idx, f, formula)}
                                     className="h-7 text-xs text-center"
                                     title={`Variable: $${f.replace("_", "")}_${cable.name.replace(/\s+/g, "_")}`}
                                   />
@@ -930,17 +905,16 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                         <Label className="text-xs min-w-[140px] font-medium">Diamètre fondation</Label>
                         <NumericInput
                           value={calculatorData.design.diametre_fondation ?? 0}
-                          onValueChange={(val) =>
-                            setCalculatorData({
-                              ...calculatorData,
-                              design: {
-                                ...calculatorData.design,
-                                diametre_fondation: val || null,
-                              },
-                            })
-                          }
+                          onValueChange={(val, f) => {
+                            const newDesign = { ...calculatorData.design, diametre_fondation: val || null };
+                            if (f !== undefined) {
+                              const existing = newDesign.formulas || {};
+                              if (f) { newDesign.formulas = { ...existing, diametre_fondation: f }; }
+                              else { const { diametre_fondation: _, ...rest } = existing; newDesign.formulas = Object.keys(rest).length > 0 ? rest : undefined; }
+                            }
+                            setCalculatorData({ ...calculatorData, design: newDesign });
+                          }}
                           formula={calculatorData.design.formulas?.["diametre_fondation"] ?? null}
-                          onFormulaChange={(f) => updateDesignFormula("diametre_fondation", f)}
                           className="w-24 font-semibold"
                         />
                         <span className="text-xs text-muted-foreground font-mono">m</span>
@@ -979,17 +953,16 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                           <div className="flex items-center gap-1">
                             <NumericInput
                               value={calculatorData.design.marge_securite}
-                              onValueChange={(val) =>
-                                setCalculatorData({
-                                  ...calculatorData,
-                                  design: {
-                                    ...calculatorData.design,
-                                    marge_securite: val || 1.0,
-                                  },
-                                })
-                              }
+                              onValueChange={(val, f) => {
+                                const newDesign = { ...calculatorData.design, marge_securite: val || 1.0 };
+                                if (f !== undefined) {
+                                  const existing = newDesign.formulas || {};
+                                  if (f) { newDesign.formulas = { ...existing, marge_securite: f }; }
+                                  else { const { marge_securite: _, ...rest } = existing; newDesign.formulas = Object.keys(rest).length > 0 ? rest : undefined; }
+                                }
+                                setCalculatorData({ ...calculatorData, design: newDesign });
+                              }}
                               formula={calculatorData.design.formulas?.["marge_securite"] ?? null}
-                              onFormulaChange={(f) => updateDesignFormula("marge_securite", f)}
                               className="w-20 font-semibold"
                             />
                             <Button
@@ -1080,17 +1053,16 @@ export const CalculatorDialog = ({ open, onOpenChange, versionId }: CalculatorDi
                         <Label className="text-xs min-w-[140px] font-medium">Hauteur cage ancrage</Label>
                         <NumericInput
                           value={calculatorData.design.hauteur_cage}
-                          onValueChange={(val) =>
-                            setCalculatorData({
-                              ...calculatorData,
-                              design: {
-                                ...calculatorData.design,
-                                hauteur_cage: val || 3.5,
-                              },
-                            })
-                          }
+                          onValueChange={(val, f) => {
+                            const newDesign = { ...calculatorData.design, hauteur_cage: val || 3.5 };
+                            if (f !== undefined) {
+                              const existing = newDesign.formulas || {};
+                              if (f) { newDesign.formulas = { ...existing, hauteur_cage: f }; }
+                              else { const { hauteur_cage: _, ...rest } = existing; newDesign.formulas = Object.keys(rest).length > 0 ? rest : undefined; }
+                            }
+                            setCalculatorData({ ...calculatorData, design: newDesign });
+                          }}
                           formula={calculatorData.design.formulas?.["hauteur_cage"] ?? null}
-                          onFormulaChange={(f) => updateDesignFormula("hauteur_cage", f)}
                           className="w-24 font-semibold"
                         />
                         <span className="text-xs text-muted-foreground font-mono">m</span>

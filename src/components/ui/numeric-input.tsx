@@ -7,13 +7,12 @@ import { cn } from "@/lib/utils";
 
 interface NumericInputProps extends Omit<React.ComponentProps<"input">, "value" | "onChange"> {
   value: number;
-  onValueChange: (value: number) => void;
+  onValueChange: (value: number, formula?: string | null) => void;
   formula?: string | null;
-  onFormulaChange?: (formula: string | null) => void;
 }
 
 const NumericInput = React.forwardRef<HTMLInputElement, NumericInputProps>(
-  ({ value, onValueChange, formula, onFormulaChange, onFocus, onBlur, onKeyDown, className, ...props }, ref) => {
+  ({ value, onValueChange, formula, onFocus, onBlur, onKeyDown, className, ...props }, ref) => {
     const [isEditing, setIsEditing] = useState(false);
     const [localValue, setLocalValue] = useState("");
 
@@ -23,21 +22,17 @@ const NumericInput = React.forwardRef<HTMLInputElement, NumericInputProps>(
       setIsEditing(false);
       const trimmed = localValue.trim();
       
-      // Try formula evaluation first (e.g. "1500+200", "3*(45+12)")
       if (isFormula(trimmed)) {
         const result = evaluateFormula(trimmed);
         if (result !== null) {
-          onValueChange(result);
-          onFormulaChange?.(trimmed);
+          onValueChange(result, trimmed);
           return;
         }
       }
       
-      // Fallback: simple number parse — clear any stored formula
       const parsed = parseLocaleNumber(localValue);
-      onValueChange(isNaN(parsed) ? 0 : parsed);
-      onFormulaChange?.(null);
-    }, [localValue, onValueChange, onFormulaChange]);
+      onValueChange(isNaN(parsed) ? 0 : parsed, null);
+    }, [localValue, onValueChange]);
 
     const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
       setIsEditing(true);
